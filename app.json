@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "VoiceMate",
+    "slug": "voicemate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "voicemate",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6C5CE7"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.voicemate.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Voice sample recording for voice clone",
+        "NSPhotoLibraryUsageDescription": "Profile photo selection"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6C5CE7"
+      },
+      "package": "com.voicemate.app",
+      "permissions": [
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow VoiceMate to access your photos for profile pictures."
+        }
+      ],
+      "expo-asset",
+      "expo-web-browser"
+    ]
+  }
+}
