@@ -73,7 +73,6 @@ export default function ProfileSetupScreen() {
         bio: form.bio || null,
       };
       await upsertProfile(payload);
-      const hasProfile = useAuthStore.getState().hasProfile;
       if (!profile) {
         // First-time setup - go to voice setup
         router.replace('/(main)/setup/voice');

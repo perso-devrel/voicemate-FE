@@ -35,10 +35,7 @@ export default function LoginScreen() {
     }
   };
 
-  console.log('[LoginScreen] isAuthenticated:', isAuthenticated, 'hasProfile:', hasProfile);
-
   if (isAuthenticated) {
-    console.log('[LoginScreen] Redirecting to main...');
     return <Redirect href={hasProfile ? '/(main)/(tabs)/discover' : '/(main)/setup/profile'} />;
   }
 
