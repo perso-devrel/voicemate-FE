@@ -11,7 +11,8 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { useProfile } from '@/hooks/useProfile';
@@ -20,6 +21,7 @@ import { colors } from '@/constants/colors';
 import { calculateAge } from '@/utils/age';
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const { profile, loading, uploadPhoto, deletePhoto } = useProfile();
   const logout = useAuthStore((s) => s.logout);
 
@@ -35,34 +37,34 @@ export default function ProfileScreen() {
       const asset = result.assets[0];
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
       if (asset.mimeType && !allowedTypes.includes(asset.mimeType)) {
-        Alert.alert('Invalid Format', 'Only JPEG, PNG, and WebP images are allowed.');
+        Alert.alert(t('profile.invalidFormat'), t('profile.invalidImageFormat'));
         return;
       }
       const info = await FileSystem.getInfoAsync(asset.uri);
       if (info.exists && info.size && info.size > 5 * 1024 * 1024) {
-        Alert.alert('File Too Large', 'Photo must be under 5MB.');
+        Alert.alert(t('profile.fileTooLarge'), t('profile.photoSizeLimit'));
         return;
       }
       try {
         await uploadPhoto(asset.uri);
       } catch (e: any) {
-        Alert.alert('Upload Failed', e.message);
+        Alert.alert(t('profile.uploadFailed'), e.message);
       }
     }
   };
 
   const handleDeletePhoto = (index: number) => {
-    Alert.alert('Delete Photo', 'Remove this photo?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deletePhoto(index) },
+    Alert.alert(t('profile.deletePhoto'), t('profile.removePhotoConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deletePhoto(index) },
     ]);
   };
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.logoutTitle'), t('profile.logoutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Logout',
+        text: t('common.logout'),
         style: 'destructive',
         onPress: async () => {
           await logout();
@@ -75,7 +77,7 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <View style={styles.center}>
-        <Text>Loading profile...</Text>
+        <Text>{t('profile.loadingProfile')}</Text>
       </View>
     );
   }
@@ -123,36 +125,36 @@ export default function ProfileScreen() {
 
       {/* Voice Clone Status */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Voice Clone</Text>
+        <Text style={styles.sectionTitle}>{t('profile.voiceClone')}</Text>
         <Text style={styles.detail}>
-          Status: {profile.voice_clone_status}
+          {t('profile.status', { status: profile.voice_clone_status })}
         </Text>
       </View>
 
       {/* Actions */}
       <View style={styles.actions}>
         <Button
-          title="Edit Profile"
+          title={t('profile.editProfile')}
           variant="outline"
           onPress={() => router.push('/(main)/setup/profile')}
         />
         <Button
-          title="Voice Settings"
+          title={t('profile.voiceSettings')}
           variant="outline"
           onPress={() => router.push('/(main)/setup/voice')}
         />
         <Button
-          title="Matching Preferences"
+          title={t('profile.matchingPreferences')}
           variant="outline"
           onPress={() => router.push('/(main)/settings/preferences')}
         />
         <Button
-          title="Blocked Users"
+          title={t('profile.blockedUsers')}
           variant="outline"
           onPress={() => router.push('/(main)/settings/blocked')}
         />
         <Button
-          title="Logout"
+          title={t('common.logout')}
           variant="danger"
           onPress={handleLogout}
         />
@@ -182,7 +184,7 @@ const styles = StyleSheet.create({
   },
   photoSlot: {
     width: '31%',
-    aspectRatio: 3 / 4,
+    aspectRatio: 1,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -192,8 +194,8 @@ const styles = StyleSheet.create({
   },
   addPhoto: {
     backgroundColor: colors.surface,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: colors.border,
     borderStyle: 'dashed',

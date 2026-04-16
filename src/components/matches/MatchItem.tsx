@@ -1,4 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/Avatar';
 import { colors } from '@/constants/colors';
 import { formatRelativeTime } from '@/utils/age';
@@ -10,6 +11,7 @@ interface MatchItemProps {
 }
 
 export function MatchItem({ item, onPress }: MatchItemProps) {
+  const { t } = useTranslation();
   const partner = item.partner;
 
   return (
@@ -18,7 +20,7 @@ export function MatchItem({ item, onPress }: MatchItemProps) {
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>
-            {partner?.display_name ?? 'Unknown'}
+            {partner?.display_name ?? t('matches.unknown')}
           </Text>
           {item.last_message && (
             <Text style={styles.time}>
@@ -28,7 +30,7 @@ export function MatchItem({ item, onPress }: MatchItemProps) {
         </View>
         <View style={styles.messageRow}>
           <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.last_message?.original_text ?? 'Start a conversation!'}
+            {item.last_message?.original_text ?? t('matches.startConversation')}
           </Text>
           {item.unread_count > 0 && (
             <View style={styles.badge}>

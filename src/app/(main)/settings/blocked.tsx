@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, Pressable, StyleSheet, Alert } from 'react-native';
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/Avatar';
 import { colors } from '@/constants/colors';
 import * as blockService from '@/services/block';
 import type { BlockListItem } from '@/types';
 
 export default function BlockedUsersScreen() {
+  const { t } = useTranslation();
   const [blocked, setBlocked] = useState<BlockListItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -16,11 +18,11 @@ export default function BlockedUsersScreen() {
       const data = await blockService.getBlockList();
       setBlocked(data);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     load();
@@ -28,12 +30,12 @@ export default function BlockedUsersScreen() {
 
   const handleUnblock = (item: BlockListItem) => {
     Alert.alert(
-      'Unblock',
-      `Unblock ${item.profile.display_name}?`,
+      t('blocked.unblock'),
+      t('blocked.unblockConfirm', { name: item.profile.display_name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Unblock',
+          text: t('blocked.unblock'),
           onPress: async () => {
             await blockService.unblockUser(item.blocked_id);
             setBlocked((prev) => prev.filter((b) => b.blocked_id !== item.blocked_id));
@@ -48,14 +50,14 @@ export default function BlockedUsersScreen() {
       <Avatar uri={item.profile.photos[0]} size={44} />
       <Text style={styles.name}>{item.profile.display_name}</Text>
       <Pressable onPress={() => handleUnblock(item)} style={styles.unblockBtn}>
-        <Text style={styles.unblockText}>Unblock</Text>
+        <Text style={styles.unblockText}>{t('blocked.unblock')}</Text>
       </Pressable>
     </View>
   );
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: 'Blocked Users' }} />
+      <Stack.Screen options={{ headerShown: true, title: t('blocked.title') }} />
       <FlatList
         data={blocked}
         renderItem={renderItem}
@@ -65,7 +67,7 @@ export default function BlockedUsersScreen() {
         ListEmptyComponent={
           loading ? null : (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>No blocked users</Text>
+              <Text style={styles.emptyText}>{t('blocked.noBlockedUsers')}</Text>
             </View>
           )
         }

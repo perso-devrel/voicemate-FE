@@ -41,6 +41,12 @@
           "photosPermission": "Allow VoiceMate to access your photos for profile pictures."
         }
       ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow VoiceMate to access your microphone to record voice samples."
+        }
+      ],
       "expo-asset",
       "expo-web-browser"
     ]

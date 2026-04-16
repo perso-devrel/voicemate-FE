@@ -6,8 +6,10 @@ import {
   StyleSheet,
   Alert,
   Pressable,
+  BackHandler,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useProfile } from '@/hooks/useProfile';
@@ -18,7 +20,36 @@ import type { ProfileUpsertRequest } from '@/types';
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
 export default function ProfileSetupScreen() {
+  const { t } = useTranslation();
   const { profile, loading, upsertProfile } = useProfile();
+  const navigation = useNavigation();
+
+  // First-time user: back = logout
+  useEffect(() => {
+    if (profile) return;
+
+    navigation.setOptions({
+      headerShown: true,
+      headerTitle: '',
+    });
+
+    const onHardwareBack = () => {
+      useAuthStore.getState().logout();
+      return true;
+    };
+
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      e.preventDefault();
+      useAuthStore.getState().logout();
+    });
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', onHardwareBack);
+
+    return () => {
+      unsubscribe();
+      backHandler.remove();
+    };
+  }, [profile, navigation]);
 
   const [form, setForm] = useState<ProfileUpsertRequest>({
     display_name: '',
@@ -80,31 +111,39 @@ export default function ProfileSetupScreen() {
         router.back();
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert(t('common.error'), e.message);
     }
+  };
+
+  const genderLabel = (g: typeof GENDER_OPTIONS[number]) => {
+    if (g === 'male') return t('setupProfile.genderMale');
+    if (g === 'female') return t('setupProfile.genderFemale');
+    return t('setupProfile.genderOther');
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{profile ? 'Edit Profile' : 'Create Profile'}</Text>
+      <Text style={styles.title}>
+        {profile ? t('setupProfile.editProfile') : t('setupProfile.createProfile')}
+      </Text>
 
       <Input
-        label="Display Name"
+        label={t('setupProfile.displayName')}
         value={form.display_name}
         onChangeText={(v) => updateField('display_name', v)}
-        placeholder="Your name"
+        placeholder={t('setupProfile.displayNamePlaceholder')}
         maxLength={50}
       />
 
       <Input
-        label="Birth Date"
+        label={t('setupProfile.birthDate')}
         value={form.birth_date}
         onChangeText={(v) => updateField('birth_date', v)}
-        placeholder="YYYY-MM-DD"
+        placeholder={t('setupProfile.birthDatePlaceholder')}
         maxLength={10}
       />
 
-      <Text style={styles.label}>Gender</Text>
+      <Text style={styles.label}>{t('setupProfile.gender')}</Text>
       <View style={styles.genderRow}>
         {GENDER_OPTIONS.map((g) => (
           <Pressable
@@ -113,44 +152,46 @@ export default function ProfileSetupScreen() {
             onPress={() => updateField('gender', g)}
           >
             <Text style={[styles.genderText, form.gender === g && styles.genderActiveText]}>
-              {g}
+              {genderLabel(g)}
             </Text>
           </Pressable>
         ))}
       </View>
 
       <Input
-        label="Nationality"
+        label={t('setupProfile.nationality')}
         value={form.nationality}
         onChangeText={(v) => updateField('nationality', v)}
-        placeholder="e.g. KR"
+        placeholder={t('setupProfile.nationalityPlaceholder')}
         maxLength={5}
       />
 
       <Input
-        label="Language"
+        label={t('setupProfile.language')}
         value={form.language}
         onChangeText={(v) => updateField('language', v)}
-        placeholder="e.g. ko"
+        placeholder={t('setupProfile.languagePlaceholder')}
         maxLength={5}
       />
 
       <Input
-        label="Bio (optional)"
+        label={t('setupProfile.bio')}
         value={form.bio ?? ''}
         onChangeText={(v) => updateField('bio', v)}
-        placeholder="Tell about yourself"
+        placeholder={t('setupProfile.bioPlaceholder')}
         multiline
         maxLength={500}
         style={{ height: 100, textAlignVertical: 'top' }}
       />
 
-      <Text style={styles.label}>Interests ({form.interests?.length ?? 0}/10)</Text>
+      <Text style={styles.label}>
+        {t('setupProfile.interests', { count: form.interests?.length ?? 0 })}
+      </Text>
       <View style={styles.interestInput}>
         <Input
           value={interestInput}
           onChangeText={setInterestInput}
-          placeholder="Add interest"
+          placeholder={t('setupProfile.addInterest')}
           maxLength={30}
           onSubmitEditing={addInterest}
         />
@@ -164,11 +205,12 @@ export default function ProfileSetupScreen() {
       </View>
 
       <Button
-        title={profile ? 'Save' : 'Next'}
+        title={profile ? t('common.save') : t('common.next')}
         onPress={handleSubmit}
         loading={loading}
         style={{ marginTop: 24 }}
       />
+
     </ScrollView>
   );
 }

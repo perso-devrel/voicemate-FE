@@ -13,12 +13,14 @@ import {
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer } from 'expo-audio';
+import { useTranslation } from 'react-i18next';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { useChat } from '@/hooks/useChat';
 import { colors } from '@/constants/colors';
 import type { Message } from '@/types';
 
 export default function ChatScreen() {
+  const { t } = useTranslation();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const {
     messages,
@@ -57,7 +59,7 @@ export default function ChatScreen() {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setSending(false);
     }
@@ -73,7 +75,7 @@ export default function ChatScreen() {
       });
       player.play();
     } catch (e: any) {
-      Alert.alert('Playback Error', e.message);
+      Alert.alert(t('chat.playbackError'), e.message);
     }
   };
 
@@ -88,7 +90,7 @@ export default function ChatScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: 'Chat' }} />
+      <Stack.Screen options={{ headerShown: true, title: t('chat.title') }} />
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -119,7 +121,7 @@ export default function ChatScreen() {
             style={styles.input}
             value={text}
             onChangeText={setText}
-            placeholder="Type a message..."
+            placeholder={t('chat.typeMessage')}
             placeholderTextColor={colors.textLight}
             maxLength={1000}
             multiline

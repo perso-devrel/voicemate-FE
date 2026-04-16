@@ -1,48 +1,44 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SwipeCard } from '@/components/discover/SwipeCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useDiscover } from '@/hooks/useDiscover';
 import { colors } from '@/constants/colors';
 
 export default function DiscoverScreen() {
+  const { t } = useTranslation();
   const { candidates, loading, error, loadCandidates, handleSwipe } = useDiscover();
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     loadCandidates();
   }, [loadCandidates]);
 
   const onSwipe = async (direction: 'like' | 'pass') => {
-    const candidate = candidates[currentIndex];
+    const candidate = candidates[0];
     if (!candidate) return;
 
     const res = await handleSwipe(candidate.id, direction);
 
     if (res?.match) {
-      Alert.alert('Match!', `You matched with ${candidate.display_name}!`);
+      Alert.alert(t('discover.match'), t('discover.matchedWith', { name: candidate.display_name }));
     }
 
-    setCurrentIndex((prev) => prev + 1);
-
-    // Prefetch more when running low
-    if (currentIndex >= candidates.length - 3) {
-      loadCandidates();
-      setCurrentIndex(0);
-    }
+    // handleSwipe removes the candidate from the array,
+    // so the next candidate slides into the same index.
   };
 
   if (loading && candidates.length === 0) {
     return <LoadingScreen />;
   }
 
-  const current = candidates[currentIndex];
+  const current = candidates[0];
 
   if (!current) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>No more profiles</Text>
-        <Text style={styles.emptyText}>Check back later for new people</Text>
+        <Text style={styles.emptyTitle}>{t('discover.noMoreProfiles')}</Text>
+        <Text style={styles.emptyText}>{t('discover.checkBackLater')}</Text>
       </View>
     );
   }

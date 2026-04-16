@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '@/constants/config';
+import { getDevResponse } from '@/services/devData';
 import type { TokenRefreshResponse } from '@/types';
 
 const TOKEN_KEY = 'access_token';
@@ -66,9 +67,9 @@ class ApiClient {
   ): Promise<T> {
     const token = await getValidToken();
 
-    // Dev mode: skip real API calls, return empty data
+    // Dev mode: return dummy data for UI testing
     if (token === 'dev-token') {
-      return [] as T;
+      return getDevResponse(path, options.method ?? 'GET', options.body) as T;
     }
 
     const headers: Record<string, string> = {

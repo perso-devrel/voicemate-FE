@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { saveTokens, clearTokens, getAccessToken, getRefreshToken } from '@/services/api';
-import { loginWithGoogle } from '@/services/auth';
+import { loginWithGoogle, loginWithEmail as loginEmailApi, signupWithEmail as signupEmailApi } from '@/services/auth';
+import { loadDevImages } from '@/services/devData';
 import { getMyProfile } from '@/services/profile';
 import type { Profile } from '@/types';
 
@@ -13,6 +14,8 @@ interface AuthState {
   hasProfile: boolean;
 
   login: (idToken: string) => Promise<void>;
+  emailLogin: (email: string, password: string) => Promise<void>;
+  emailSignup: (email: string, password: string) => Promise<void>;
   devSkipLogin: () => Promise<void>;
   logout: () => Promise<void>;
   tryAutoLogin: () => Promise<void>;
@@ -32,14 +35,40 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const res = await loginWithGoogle(idToken);
     await saveTokens(res.access_token, res.refresh_token);
     set({
-      isAuthenticated: true,
       userId: res.user.id,
       email: res.user.email,
     });
     await get().loadProfile();
+    set({ isAuthenticated: true });
+  },
+
+  emailLogin: async (email: string, password: string) => {
+    const res = await loginEmailApi(email, password);
+    await saveTokens(res.access_token, res.refresh_token);
+    set({
+      userId: res.user.id,
+      email: res.user.email,
+    });
+    await get().loadProfile();
+    set({ isAuthenticated: true });
+  },
+
+  emailSignup: async (email: string, password: string) => {
+    const res = await signupEmailApi(email, password);
+    if (!res.access_token || !res.refresh_token) {
+      throw new Error('Email confirmation required. Please check your inbox.');
+    }
+    await saveTokens(res.access_token, res.refresh_token);
+    set({
+      userId: res.user.id,
+      email: res.user.email,
+    });
+    await get().loadProfile();
+    set({ isAuthenticated: true });
   },
 
   devSkipLogin: async () => {
+    await loadDevImages();
     await saveTokens('dev-token', 'dev-refresh-token');
     set({
       isAuthenticated: true,

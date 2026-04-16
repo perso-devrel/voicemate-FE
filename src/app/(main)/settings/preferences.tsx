@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { usePreferences } from '@/hooks/usePreferences';
@@ -9,6 +10,7 @@ import { colors } from '@/constants/colors';
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
 export default function PreferencesScreen() {
+  const { t } = useTranslation();
   const { preferences, loading, loadPreferences, updatePreferences } = usePreferences();
   const [minAge, setMinAge] = useState('18');
   const [maxAge, setMaxAge] = useState('100');
@@ -57,28 +59,34 @@ export default function PreferencesScreen() {
       });
       router.back();
     } catch (e: any) {
-      Alert.alert('Error', e.message);
+      Alert.alert(t('common.error'), e.message);
     }
+  };
+
+  const genderLabel = (g: typeof GENDER_OPTIONS[number]) => {
+    if (g === 'male') return t('setupProfile.genderMale');
+    if (g === 'female') return t('setupProfile.genderFemale');
+    return t('setupProfile.genderOther');
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Matching Preferences</Text>
+      <Text style={styles.title}>{t('preferences.title')}</Text>
 
       <Input
-        label="Min Age"
+        label={t('preferences.minAge')}
         value={minAge}
         onChangeText={setMinAge}
         keyboardType="number-pad"
       />
       <Input
-        label="Max Age"
+        label={t('preferences.maxAge')}
         value={maxAge}
         onChangeText={setMaxAge}
         keyboardType="number-pad"
       />
 
-      <Text style={styles.label}>Preferred Genders</Text>
+      <Text style={styles.label}>{t('preferences.preferredGenders')}</Text>
       <View style={styles.genderRow}>
         {GENDER_OPTIONS.map((g) => (
           <Pressable
@@ -87,17 +95,17 @@ export default function PreferencesScreen() {
             onPress={() => toggleGender(g)}
           >
             <Text style={[styles.genderText, genders.includes(g) && styles.genderActiveText]}>
-              {g}
+              {genderLabel(g)}
             </Text>
           </Pressable>
         ))}
       </View>
 
-      <Text style={styles.label}>Preferred Languages</Text>
+      <Text style={styles.label}>{t('preferences.preferredLanguages')}</Text>
       <Input
         value={langInput}
         onChangeText={setLangInput}
-        placeholder="e.g. en, ko, ja"
+        placeholder={t('preferences.languagePlaceholder')}
         onSubmitEditing={addLanguage}
       />
       <View style={styles.tags}>
@@ -108,10 +116,10 @@ export default function PreferencesScreen() {
         ))}
       </View>
       <Text style={styles.hint}>
-        Leave empty to match all languages
+        {t('preferences.leaveEmptyAllLanguages')}
       </Text>
 
-      <Button title="Save" onPress={handleSave} loading={loading} style={{ marginTop: 24 }} />
+      <Button title={t('common.save')} onPress={handleSave} loading={loading} style={{ marginTop: 24 }} />
     </ScrollView>
   );
 }

@@ -1,12 +1,14 @@
 import { useEffect, useCallback } from 'react';
 import { View, FlatList, StyleSheet, Text, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { MatchItem } from '@/components/matches/MatchItem';
 import { useMatches } from '@/hooks/useMatches';
 import { colors } from '@/constants/colors';
 import type { MatchListItem } from '@/types';
 
 export default function MatchesScreen() {
+  const { t } = useTranslation();
   const { matches, loading, hasMore, loadMatches, loadMore } = useMatches();
 
   useEffect(() => {
@@ -24,8 +26,8 @@ export default function MatchesScreen() {
     if (loading) return null;
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>No matches yet</Text>
-        <Text style={styles.emptyText}>Start swiping to find your match!</Text>
+        <Text style={styles.emptyTitle}>{t('matches.noMatches')}</Text>
+        <Text style={styles.emptyText}>{t('matches.startSwiping')}</Text>
       </View>
     );
   };
