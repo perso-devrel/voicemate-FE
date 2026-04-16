@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Pressable, Text, View, StyleSheet } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -9,9 +10,15 @@ interface AudioPlayerProps {
   url: string;
   compact?: boolean;
   showProgressBar?: boolean;
+  tintColor?: string;
 }
 
-export function AudioPlayer({ url, compact = false, showProgressBar = false }: AudioPlayerProps) {
+const RING_SIZE = 56;
+const RING_STROKE = 3;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
+export function AudioPlayer({ url, compact = false, showProgressBar = false, tintColor = colors.primary }: AudioPlayerProps) {
   const { t } = useTranslation();
   const player = useAudioPlayer(url);
   const status = useAudioPlayerStatus(player);
@@ -31,6 +38,41 @@ export function AudioPlayer({ url, compact = false, showProgressBar = false }: A
     }
   }, [player, isPlaying, duration, currentTime]);
 
+  if (showProgressBar) {
+    return (
+      <Pressable onPress={toggle} style={styles.ringContainer}>
+        <Svg width={RING_SIZE} height={RING_SIZE} style={StyleSheet.absoluteFill}>
+          <Circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RING_RADIUS}
+            stroke={colors.border}
+            strokeWidth={RING_STROKE}
+            fill="none"
+          />
+          <Circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RING_RADIUS}
+            stroke={tintColor}
+            strokeWidth={RING_STROKE}
+            strokeLinecap="round"
+            fill="none"
+            strokeDasharray={RING_CIRCUMFERENCE}
+            strokeDashoffset={RING_CIRCUMFERENCE * (1 - progress)}
+            transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+          />
+        </Svg>
+        <Ionicons
+          name={isPlaying ? 'pause' : 'play'}
+          size={26}
+          color={tintColor}
+          style={isPlaying ? undefined : styles.playIconOffset}
+        />
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable onPress={toggle} style={[styles.container, compact && styles.compact]}>
       <Ionicons
@@ -38,14 +80,8 @@ export function AudioPlayer({ url, compact = false, showProgressBar = false }: A
         size={compact ? 24 : 32}
         color={colors.primary}
       />
-      {showProgressBar ? (
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-        </View>
-      ) : (
-        !compact && (
-          <Text style={styles.label}>{isPlaying ? t('audioPlayer.stop') : t('audioPlayer.play')}</Text>
-        )
+      {!compact && (
+        <Text style={styles.label}>{isPlaying ? t('audioPlayer.stop') : t('audioPlayer.play')}</Text>
       )}
     </Pressable>
   );
@@ -66,15 +102,14 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '500',
   },
-  progressBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    overflow: 'hidden',
+  ringContainer: {
+    width: RING_SIZE,
+    height: RING_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
   },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
+  playIconOffset: {
+    marginLeft: 3, // optical centering for play triangle
   },
 });

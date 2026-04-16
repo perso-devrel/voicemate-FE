@@ -43,14 +43,16 @@ export default {
 
   profile: {
     loadingProfile: 'Loading profile...',
-    voiceClone: 'Voice Clone',
-    status: 'Status: {{status}}',
+    registerVoicePrompt: 'Register your voice!',
     editProfile: 'Edit Profile',
     voiceSettings: 'Voice Settings',
     matchingPreferences: 'Matching Preferences',
     blockedUsers: 'Blocked Users',
     deletePhoto: 'Delete Photo',
     removePhotoConfirm: 'Remove this photo?',
+    addPhoto: 'Add Profile Photo',
+    photoActionsTitle: 'Profile Photo',
+    changePhoto: 'Change Photo',
     logoutTitle: 'Logout',
     logoutConfirm: 'Are you sure you want to log out?',
     invalidFormat: 'Invalid Format',
@@ -99,7 +101,7 @@ export default {
     startRecording: 'Start Recording',
     stopRecording: 'Stop Recording',
     recordingGuide:
-      'For a more natural voice clone, we recommend recording for at least 30 seconds. If you\'re not sure what to say, feel free to read the script below.',
+      'For a natural voice clone, we recommend at least 30 seconds; minimum is 10 seconds.\nIf you\'re not sure what to say, feel free to read the script below.',
     exampleScriptTitle: 'Sample Script',
     exampleScript:
       "Hi there! I'm trying this app today because I'd love to meet someone new. I hope my voice sounds natural even in other languages. In my free time, I enjoy taking long walks while listening to music, and on weekends I love slowing down with a good book and a cup of coffee. Traveling to new places and having long conversations with close friends mean a lot to me. What does your day usually look like? I'm looking forward to getting to know you better.",
@@ -114,6 +116,8 @@ export default {
     fileTooLarge: 'File Too Large',
     voiceSizeLimit: 'Voice sample must be under 10MB. Try a shorter recording.',
     uploadFailed: 'Upload Failed',
+    tooShortTitle: 'Recording Too Short',
+    tooShortMessage: 'Voice clone requires at least 10 seconds. Please record again.',
   },
 
   preferences: {

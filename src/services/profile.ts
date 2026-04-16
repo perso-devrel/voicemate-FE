@@ -1,4 +1,6 @@
-import { api } from './api';
+import * as FileSystem from 'expo-file-system/legacy';
+import { api, getAccessToken } from './api';
+import { API_BASE_URL } from '@/constants/config';
 import type {
   Profile,
   ProfileUpsertRequest,
@@ -14,19 +16,42 @@ export async function upsertProfile(data: ProfileUpsertRequest): Promise<Profile
   return api.put<Profile>('/api/profile/me', data);
 }
 
+const MIME_MAP: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
+
 export async function uploadPhoto(uri: string): Promise<PhotoUploadResponse> {
-  const formData = new FormData();
   const filename = uri.split('/').pop() ?? 'photo.jpg';
-  const match = /\.(\w+)$/.exec(filename);
-  const type = match ? `image/${match[1]}` : 'image/jpeg';
+  const ext = (/\.(\w+)$/.exec(filename)?.[1] ?? 'jpeg').toLowerCase();
+  const mimeType = MIME_MAP[ext] ?? 'image/jpeg';
 
-  formData.append('photo', {
+  const token = await getAccessToken();
+  const result = await FileSystem.uploadAsync(
+    `${API_BASE_URL}/api/profile/photos`,
     uri,
-    name: filename,
-    type,
-  } as unknown as Blob);
+    {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: 'photo',
+      mimeType,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    },
+  );
 
-  return api.upload<PhotoUploadResponse>('/api/profile/photos', formData);
+  if (result.status < 200 || result.status >= 300) {
+    let message = 'Upload failed';
+    try {
+      message = JSON.parse(result.body).error ?? message;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`${message} (HTTP ${result.status})`);
+  }
+
+  return JSON.parse(result.body) as PhotoUploadResponse;
 }
 
 export async function deletePhoto(index: number): Promise<PhotoDeleteResponse> {

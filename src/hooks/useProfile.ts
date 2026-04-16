@@ -53,5 +53,28 @@ export function useProfile() {
     }
   }, [loadProfile]);
 
-  return { profile, loading, error, upsertProfile, uploadPhoto, deletePhoto, loadProfile };
+  const replacePhoto = useCallback(async (uri: string): Promise<PhotoUploadResponse> => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Refetch fresh server state, then delete index 0 repeatedly until BE reports empty.
+      // Using BE's response as source of truth avoids stale-store mismatches.
+      const fresh = await profileService.getMyProfile();
+      let remaining = fresh.photos.length;
+      while (remaining > 0) {
+        const res = await profileService.deletePhoto(0);
+        remaining = res.photos.length;
+      }
+      const res = await profileService.uploadPhoto(uri);
+      await loadProfile();
+      return res;
+    } catch (e: any) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, [loadProfile]);
+
+  return { profile, loading, error, upsertProfile, uploadPhoto, deletePhoto, replacePhoto, loadProfile };
 }

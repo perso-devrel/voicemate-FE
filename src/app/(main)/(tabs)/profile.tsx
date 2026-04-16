@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,10 +22,10 @@ import { calculateAge } from '@/utils/age';
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const { profile, loading, uploadPhoto, deletePhoto } = useProfile();
+  const { profile, uploadPhoto, deletePhoto, replacePhoto } = useProfile();
   const logout = useAuthStore((s) => s.logout);
 
-  const handleAddPhoto = async () => {
+  const pickAndValidate = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -33,30 +33,54 @@ export default function ProfileScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (asset.mimeType && !allowedTypes.includes(asset.mimeType)) {
-        Alert.alert(t('profile.invalidFormat'), t('profile.invalidImageFormat'));
-        return;
-      }
-      const info = await FileSystem.getInfoAsync(asset.uri);
-      if (info.exists && info.size && info.size > 5 * 1024 * 1024) {
-        Alert.alert(t('profile.fileTooLarge'), t('profile.photoSizeLimit'));
-        return;
-      }
-      try {
-        await uploadPhoto(asset.uri);
-      } catch (e: any) {
-        Alert.alert(t('profile.uploadFailed'), e.message);
-      }
+    if (result.canceled || !result.assets[0]) return null;
+
+    const asset = result.assets[0];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (asset.mimeType && !allowedTypes.includes(asset.mimeType)) {
+      Alert.alert(t('profile.invalidFormat'), t('profile.invalidImageFormat'));
+      return null;
+    }
+    const info = await FileSystem.getInfoAsync(asset.uri);
+    if (info.exists && info.size && info.size > 5 * 1024 * 1024) {
+      Alert.alert(t('profile.fileTooLarge'), t('profile.photoSizeLimit'));
+      return null;
+    }
+    return asset.uri;
+  };
+
+  const handleAddPhoto = async () => {
+    const uri = await pickAndValidate();
+    if (!uri) return;
+    try {
+      await uploadPhoto(uri);
+    } catch (e: any) {
+      Alert.alert(t('profile.uploadFailed'), e.message);
     }
   };
 
-  const handleDeletePhoto = (index: number) => {
+  const handleChangePhoto = async () => {
+    const uri = await pickAndValidate();
+    if (!uri) return;
+    try {
+      await replacePhoto(uri);
+    } catch (e: any) {
+      Alert.alert(t('profile.uploadFailed'), e.message);
+    }
+  };
+
+  const handleDeletePhoto = () => {
     Alert.alert(t('profile.deletePhoto'), t('profile.removePhotoConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => deletePhoto(index) },
+      { text: t('common.delete'), style: 'destructive', onPress: () => deletePhoto(0) },
+    ]);
+  };
+
+  const handlePhotoPress = () => {
+    Alert.alert(t('profile.photoActionsTitle'), undefined, [
+      { text: t('profile.changePhoto'), onPress: handleChangePhoto },
+      { text: t('common.delete'), style: 'destructive', onPress: handleDeletePhoto },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
@@ -84,19 +108,22 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Photos */}
-      <View style={styles.photosGrid}>
-        {profile.photos.map((uri, i) => (
-          <Pressable key={i} style={styles.photoSlot} onLongPress={() => handleDeletePhoto(i)}>
-            <Image source={{ uri }} style={styles.photo} />
-          </Pressable>
-        ))}
-        {profile.photos.length < 6 && (
-          <Pressable style={[styles.photoSlot, styles.addPhoto]} onPress={handleAddPhoto}>
-            <Ionicons name="add" size={32} color={colors.textLight} />
-          </Pressable>
-        )}
-      </View>
+      {/* Profile Photo (single) */}
+      {profile.photos[0] ? (
+        <Pressable key="photo-tile" style={styles.photoSlot} onPress={handlePhotoPress}>
+          <Image
+            key={profile.photos[0]}
+            source={{ uri: profile.photos[0] }}
+            style={styles.photo}
+            resizeMode="cover"
+          />
+        </Pressable>
+      ) : (
+        <Pressable key="add-tile" style={[styles.photoSlot, styles.addPhoto]} onPress={handleAddPhoto}>
+          <Ionicons name="add" size={48} color={colors.textLight} />
+          <Text style={styles.addPhotoLabel}>{t('profile.addPhoto')}</Text>
+        </Pressable>
+      )}
 
       {/* Profile Info */}
       <View style={styles.section}>
@@ -123,13 +150,12 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      {/* Voice Clone Status */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{t('profile.voiceClone')}</Text>
-        <Text style={styles.detail}>
-          {t('profile.status', { status: profile.voice_clone_status })}
-        </Text>
-      </View>
+      {/* Voice Clone CTA (only when not yet registered) */}
+      {profile.voice_clone_status === 'pending' && (
+        <View style={styles.voiceCtaBox}>
+          <Text style={styles.voiceCtaText}>{t('profile.registerVoicePrompt')}</Text>
+        </View>
+      )}
 
       {/* Actions */}
       <View style={styles.actions}>
@@ -163,6 +189,10 @@ export default function ProfileScreen() {
   );
 }
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const PHOTO_WIDTH = SCREEN_WIDTH - 32; // matches contentContainerStyle padding (16 * 2)
+const PHOTO_HEIGHT = (PHOTO_WIDTH * 4) / 3; // 3:4 portrait
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -177,15 +207,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
   photoSlot: {
-    width: '31%',
-    aspectRatio: 1,
-    borderRadius: 12,
+    width: PHOTO_WIDTH,
+    height: PHOTO_HEIGHT,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   photo: {
@@ -199,9 +224,27 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     borderStyle: 'dashed',
+    gap: 8,
+  },
+  addPhotoLabel: {
+    fontSize: 14,
+    color: colors.textLight,
   },
   section: {
     marginTop: 20,
+  },
+  voiceCtaBox: {
+    marginTop: 20,
+    backgroundColor: '#FFE4EC',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  voiceCtaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#D63384',
+    textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 16,
