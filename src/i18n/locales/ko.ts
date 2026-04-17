@@ -91,7 +91,6 @@ export default {
         nationality: "국적",
         nationalityPlaceholder: "예: KR",
         language: "언어",
-        languagePlaceholder: "예: ko",
         selectLanguageRequired: "언어를 선택해주세요",
         bio: "자기소개 (선택)",
         bioPlaceholder: "자신에 대해 소개해주세요",
@@ -138,10 +137,7 @@ export default {
         maxAge: "최대 나이",
         preferredGenders: "선호 성별",
         preferredLanguages: "선호 언어",
-        languagePlaceholder: "예: en, ko, ja",
         leaveEmptyAllLanguages: "비워두면 모든 언어와 매칭됩니다",
-        addLanguage: "추가",
-        languageLengthError: "언어 코드는 2~5자여야 합니다 (예: en, ko, ja)",
     },
 
     blocked: {

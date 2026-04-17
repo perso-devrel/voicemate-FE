@@ -74,12 +74,12 @@
 
 | 키 | 처리 방향 |
 |----|-----------|
-| `preferences.languagePlaceholder` | 제거 |
-| `preferences.languageLengthError` | 제거 |
-| `preferences.addLanguage` | 제거 |
-| `setupProfile.languagePlaceholder` | 제거 |
+| `preferences.languagePlaceholder` | ✅ 제거 완료 (Phase 6 #59) |
+| `preferences.languageLengthError` | ✅ 제거 완료 (Phase 6 #59) |
+| `preferences.addLanguage` | ✅ 제거 완료 (Phase 6 #59) |
+| `setupProfile.languagePlaceholder` | ✅ 제거 완료 (Phase 6 #59) |
 
-> 제거 PR은 ko/en 양쪽에서 동시 삭제해야 하며, `parity.test.ts`가 통과해야 한다. 번역 품질 수정과 분리하여 개별 이슈로 처리.
+> 제거 후 `parity.test.ts` 통과 확인. 향후 신규 키 추가 시에도 ko/en 대칭을 유지할 것.
 
 ## 변경 이력
 

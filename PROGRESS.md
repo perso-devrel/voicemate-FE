@@ -1,8 +1,17 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-18 04:40)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-18 04:55)
 - 진행 중 Phase: 6 (자율 개선 모드)
-- Phase 0~5 완료 (28 PR merged)
-- 진행 중 이슈: #57 (업로드 타임아웃 래퍼)
+- Phase 0~5 완료 (28 PR) + Phase 6: #57
+- 진행 중 이슈: #59 (미사용 i18n 4키 제거)
 - 블로커: 없음
+
+---
+
+## 2026-04-18 04:50 · [phase-6] Issue #59 · 미사용 i18n 4키 제거
+- 브랜치: `feature/issue-59-remove-unused-i18n`
+- 요약: `preferences.{languagePlaceholder, languageLengthError, addLanguage}` + `setupProfile.languagePlaceholder` ko/en 양쪽에서 제거. parity.test.ts 통과. 57/57 tests.
+- Phase 6 점수 (Value 2 + Rev 5) - Risk 1 = 6.
+- 다음 후보: E-catch unknown 축소 (api.ts), `.claude` gitignore
+- 리스크: 없음
 
 ---
 
