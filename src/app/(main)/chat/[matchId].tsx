@@ -20,6 +20,11 @@ import { useChat } from '@/hooks/useChat';
 import { colors } from '@/constants/colors';
 import type { Message } from '@/types';
 
+// Minimum padding under the chat input bar so the send button never sits
+// directly on top of the Android gesture bar when useSafeAreaInsets() reports
+// a bottom inset of 0 (seen on some edge-to-edge Android configurations).
+const MIN_BOTTOM_SAFE_PAD = 12;
+
 export default function ChatScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -118,7 +123,12 @@ export default function ChatScreen() {
           }}
         />
 
-        <View style={[styles.inputBar, { paddingBottom: 8 + insets.bottom }]}>
+        <View
+          style={[
+            styles.inputBar,
+            { paddingBottom: 8 + Math.max(insets.bottom, MIN_BOTTOM_SAFE_PAD) },
+          ]}
+        >
           <TextInput
             style={styles.input}
             value={text}

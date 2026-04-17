@@ -1,8 +1,17 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 21:35)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 21:55)
 - 진행 중 Phase: 2
-- 완료 이슈: #1, #3, #5, #7, #9, #11, #13
-- 진행 중 이슈: #15 (Realtime 채팅 검증 — docs + manual-qa)
+- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15
+- 진행 중 이슈: #17 (채팅 입력바 safe-area 방어)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 21:50 · Issue #17 · 채팅 입력바 Android edge-to-edge 방어
+- 브랜치: `feature/issue-17-chat-input-insets`
+- 요약: `src/app/(main)/chat/[matchId].tsx` inputBar paddingBottom을 `Math.max(insets.bottom, 12) + 8`로 보강. 시각 회귀는 `needs-manual-qa`.
+- 검증: typecheck/lint/test 25/25 통과
+- 다음: #10 Google 버튼 전파 검증
+- 리스크: iOS는 `insets.bottom` > 12이 일반적이라 체감 영향 없음
 
 ---
 
