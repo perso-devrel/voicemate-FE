@@ -138,6 +138,8 @@ export default {
         preferredGenders: "선호 성별",
         preferredLanguages: "선호 언어",
         leaveEmptyAllLanguages: "비워두면 모든 언어와 매칭됩니다",
+        invalidAgeRange: "최소 나이는 최대 나이보다 작거나 같아야 합니다.",
+        ageOutOfBounds: "나이는 {{min}}–{{max}}세 사이여야 합니다.",
     },
 
     blocked: {
