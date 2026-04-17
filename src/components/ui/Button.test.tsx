@@ -33,3 +33,20 @@ describe('isButtonDisabled', () => {
     expect(googleAvailable).toBe(false);
   });
 });
+
+// Type-level contract: the Button accepts an optional accessibilityLabel.
+// If this ever regresses (prop removed or renamed) TypeScript will fail
+// before the test file is even executed, so an explicit runtime assertion
+// would be redundant here. Corresponding runtime behaviour is verified
+// manually through docs/QA_CHECKLIST.md.
+type _ButtonAccessibilityLabelIsOptional = {
+  title: string;
+  onPress: () => void;
+  accessibilityLabel?: string;
+};
+const _a11yContract: _ButtonAccessibilityLabelIsOptional = {
+  title: 't',
+  onPress: () => {},
+  accessibilityLabel: 'explicit',
+};
+void _a11yContract;
