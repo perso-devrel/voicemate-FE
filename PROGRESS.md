@@ -1,8 +1,17 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 22:20)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 22:40)
 - 진행 중 Phase: 2
-- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17
-- 진행 중 이슈: #19 (Google 버튼 회귀 검증)
+- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17, #19
+- 진행 중 이슈: #21 (fetchWithTimeout 커버리지 테스트)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 22:35 · Issue #21 · fetchWithTimeout 회귀 테스트
+- 브랜치: `feature/issue-21-fetch-timeout-test`
+- 요약: `api.timeout.test.ts` 4 케이스 — AbortError→ApiRequestError(timeout), 네트워크 에러→ApiRequestError(network), AbortSignal 전달 확인, 4xx 응답의 error payload surface. 33/33 통과.
+- 런타임 코드 수정 없음 — 현 동작이 TASK.md §Phase 2 #11 요구를 이미 만족.
+- 다음: #12 선호 언어 저장 검증
+- 리스크: 없음
 
 ---
 
