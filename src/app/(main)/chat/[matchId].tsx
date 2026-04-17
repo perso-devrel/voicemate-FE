@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   FlatList,
@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { useChat } from '@/hooks/useChat';
 import { colors } from '@/constants/colors';
+import { createAudioPlayerManager } from '@/utils/audioPlayerManager';
 import type { Message } from '@/types';
 
 // Minimum padding under the chat input bar so the send button never sits
@@ -44,6 +45,13 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const audio = useMemo(() => createAudioPlayerManager(createAudioPlayer), []);
+
+  useEffect(() => {
+    // Safety net: leaving the chat screen (navigation away, soft unmount)
+    // must never leave a native audio player attached.
+    return () => audio.release();
+  }, [audio]);
 
   useEffect(() => {
     loadMessages();
@@ -74,14 +82,9 @@ export default function ChatScreen() {
 
   const handlePlayAudio = async (url: string) => {
     try {
-      const player = createAudioPlayer(url);
-      player.addListener('playbackStatusUpdate', (status) => {
-        if (!status.playing && status.currentTime >= status.duration) {
-          player.remove();
-        }
-      });
-      player.play();
+      audio.play(url);
     } catch (e: any) {
+      audio.release();
       Alert.alert(t('chat.playbackError'), e.message);
     }
   };
