@@ -1,8 +1,16 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 22:40)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 22:55)
 - 진행 중 Phase: 2
-- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17, #19
-- 진행 중 이슈: #21 (fetchWithTimeout 커버리지 테스트)
+- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17, #19, #21
+- 진행 중 이슈: #23 (preferred_languages sanitization 회귀 테스트)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 22:55 · Issue #23 · preferred_languages sanitization 회귀 테스트
+- 브랜치: `feature/issue-23-pref-language-test`
+- 요약: `languages.test.ts`에 `.filter(isLanguageCode)` 계약 2 케이스 추가 (legacy `'한국어'` 드롭, 클린 배열 항등성). 35/35 통과.
+- 다음: #13 프로필 Picker 검증
+- 리스크: 없음
 
 ---
 
