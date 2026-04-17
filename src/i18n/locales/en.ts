@@ -1,4 +1,12 @@
 export default {
+  languages: {
+    ko: '한국어',
+    en: 'English',
+    ja: '日本語',
+    zh: '中文',
+    es: 'Español',
+  },
+
   common: {
     cancel: 'Cancel',
     delete: 'Delete',
@@ -83,6 +91,7 @@ export default {
     nationalityPlaceholder: 'e.g. KR',
     language: 'Language',
     languagePlaceholder: 'e.g. ko',
+    selectLanguageRequired: 'Please select a language',
     bio: 'Bio (optional)',
     bioPlaceholder: 'Tell about yourself',
     interests: 'Interests ({{count}}/10)',
@@ -128,6 +137,8 @@ export default {
     preferredLanguages: 'Preferred Languages',
     languagePlaceholder: 'e.g. en, ko, ja',
     leaveEmptyAllLanguages: 'Leave empty to match all languages',
+    addLanguage: 'Add',
+    languageLengthError: 'Language code must be 2-5 characters (e.g. en, ko, ja)',
   },
 
   blocked: {

@@ -12,15 +12,16 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 let messageChannel: RealtimeChannel | null = null;
 
-export function subscribeToMessages(
+export async function subscribeToMessages(
   matchId: string,
   onNewMessage: (message: Message) => void,
   onMessageUpdate: (message: Message) => void,
 ) {
-  unsubscribeFromMessages();
+  await unsubscribeFromMessages();
+  await setRealtimeAuth();
 
   messageChannel = supabase
-    .channel(`messages:${matchId}`)
+    .channel(`messages_${matchId}`)
     .on(
       'postgres_changes',
       {
@@ -45,14 +46,18 @@ export function subscribeToMessages(
         onMessageUpdate(payload.new as Message);
       },
     )
-    .subscribe();
+    .subscribe((status, err) => {
+      if (__DEV__) {
+        console.log(`[Realtime ${matchId}]`, status, err ?? '');
+      }
+    });
 
   return messageChannel;
 }
 
-export function unsubscribeFromMessages() {
+export async function unsubscribeFromMessages() {
   if (messageChannel) {
-    supabase.removeChannel(messageChannel);
+    await supabase.removeChannel(messageChannel);
     messageChannel = null;
   }
 }
@@ -60,6 +65,6 @@ export function unsubscribeFromMessages() {
 export async function setRealtimeAuth() {
   const token = await getAccessToken();
   if (token) {
-    supabase.realtime.setAuth(token);
+    await supabase.realtime.setAuth(token);
   }
 }

@@ -14,6 +14,7 @@ import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { createAudioPlayer } from 'expo-audio';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { useChat } from '@/hooks/useChat';
 import { colors } from '@/constants/colors';
@@ -21,6 +22,7 @@ import type { Message } from '@/types';
 
 export default function ChatScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { matchId } = useLocalSearchParams<{ matchId: string }>();
   const {
     messages,
@@ -93,8 +95,8 @@ export default function ChatScreen() {
       <Stack.Screen options={{ headerShown: true, title: t('chat.title') }} />
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={90}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <FlatList
           ref={flatListRef}
@@ -116,7 +118,7 @@ export default function ChatScreen() {
           }}
         />
 
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { paddingBottom: 8 + insets.bottom }]}>
           <TextInput
             style={styles.input}
             value={text}

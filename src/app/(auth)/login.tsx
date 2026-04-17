@@ -13,7 +13,7 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const { t } = useTranslation();
   const { login, emailLogin, emailSignup, isAuthenticated, hasProfile } = useAuthStore();
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<'email' | 'google' | null>(null);
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,22 +30,28 @@ export default function LoginScreen() {
   }, [response]);
 
   const handleGoogleLogin = async (idToken: string) => {
-    setLoading(true);
+    setLoadingAction('google');
     try {
       await login(idToken);
     } catch (e: any) {
       Alert.alert(t('auth.loginFailed'), e.message);
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   };
 
+  const handleGooglePress = () => {
+    if (loadingAction) return;
+    promptAsync();
+  };
+
   const handleEmailAuth = async () => {
+    if (loadingAction) return;
     if (!email.trim() || !password.trim()) {
       Alert.alert(t('common.error'), t('auth.enterEmailAndPassword'));
       return;
     }
-    setLoading(true);
+    setLoadingAction('email');
     try {
       if (isSignup) {
         await emailSignup(email.trim(), password);
@@ -55,7 +61,7 @@ export default function LoginScreen() {
     } catch (e: any) {
       Alert.alert(isSignup ? t('auth.signupFailed') : t('auth.loginFailed'), e.message);
     } finally {
-      setLoading(false);
+      setLoadingAction(null);
     }
   };
 
@@ -96,7 +102,7 @@ export default function LoginScreen() {
           <Button
             title={isSignup ? t('auth.signup') : t('auth.login')}
             onPress={handleEmailAuth}
-            loading={loading}
+            loading={loadingAction === 'email'}
           />
           <Pressable onPress={() => setIsSignup((v) => !v)}>
             <Text style={styles.toggleText}>
@@ -113,8 +119,8 @@ export default function LoginScreen() {
 
         <Button
           title={t('auth.continueWithGoogle')}
-          onPress={() => promptAsync()}
-          loading={loading}
+          onPress={handleGooglePress}
+          loading={loadingAction === 'google'}
           disabled={!request}
           style={styles.googleBtn}
         />

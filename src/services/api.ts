@@ -5,6 +5,33 @@ import type { TokenRefreshResponse } from '@/types';
 
 const TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
+const REQUEST_TIMEOUT_MS = 15000;
+const UPLOAD_TIMEOUT_MS = 60000;
+
+export class ApiRequestError extends Error {
+  constructor(
+    public status: number,
+    public errorMessage: string,
+  ) {
+    super(errorMessage);
+    this.name = 'ApiRequestError';
+  }
+}
+
+async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (e: any) {
+    if (e?.name === 'AbortError') {
+      throw new ApiRequestError(0, 'Network timeout. Please check your connection.');
+    }
+    throw new ApiRequestError(0, 'Network error. Please check your connection.');
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
@@ -32,7 +59,7 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),
@@ -64,6 +91,7 @@ class ApiClient {
     path: string,
     options: RequestInit = {},
     retry = true,
+    timeoutMs = REQUEST_TIMEOUT_MS,
   ): Promise<T> {
     const token = await getValidToken();
 
@@ -85,10 +113,11 @@ class ApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    const res = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers,
-    });
+    const res = await fetchWithTimeout(
+      `${API_BASE_URL}${path}`,
+      { ...options, headers },
+      timeoutMs,
+    );
 
     if (res.status === 401 && retry) {
       const currentToken = await getAccessToken();
@@ -104,7 +133,7 @@ class ApiClient {
       refreshPromise = null;
 
       if (newToken) {
-        return this.request<T>(path, options, false);
+        return this.request<T>(path, options, false, timeoutMs);
       }
 
       // Refresh failed - trigger logout via store import to avoid circular dep
@@ -155,20 +184,12 @@ class ApiClient {
   }
 
   upload<T>(path: string, formData: FormData) {
-    return this.request<T>(path, {
-      method: 'POST',
-      body: formData,
-    });
-  }
-}
-
-export class ApiRequestError extends Error {
-  constructor(
-    public status: number,
-    public errorMessage: string,
-  ) {
-    super(errorMessage);
-    this.name = 'ApiRequestError';
+    return this.request<T>(
+      path,
+      { method: 'POST', body: formData },
+      true,
+      UPLOAD_TIMEOUT_MS,
+    );
   }
 }
 

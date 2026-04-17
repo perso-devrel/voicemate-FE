@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/stores/authStore';
 import { colors } from '@/constants/colors';
+import { SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
 import type { ProfileUpsertRequest } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
@@ -98,6 +99,10 @@ export default function ProfileSetupScreen() {
   };
 
   const handleSubmit = async () => {
+    if (!form.language) {
+      Alert.alert(t('common.error'), t('setupProfile.selectLanguageRequired'));
+      return;
+    }
     try {
       const payload: ProfileUpsertRequest = {
         ...form,
@@ -166,13 +171,23 @@ export default function ProfileSetupScreen() {
         maxLength={5}
       />
 
-      <Input
-        label={t('setupProfile.language')}
-        value={form.language}
-        onChangeText={(v) => updateField('language', v)}
-        placeholder={t('setupProfile.languagePlaceholder')}
-        maxLength={5}
-      />
+      <Text style={styles.label}>{t('setupProfile.language')}</Text>
+      <View style={styles.langRow}>
+        {SUPPORTED_LANGUAGES.map(({ code, labelKey }) => {
+          const selected = form.language === code;
+          return (
+            <Pressable
+              key={code}
+              style={[styles.langChip, selected && styles.langChipActive]}
+              onPress={() => updateField('language', code as LanguageCode)}
+            >
+              <Text style={[styles.langChipText, selected && styles.langChipActiveText]}>
+                {t(labelKey)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <Input
         label={t('setupProfile.bio')}
@@ -259,6 +274,32 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   genderActiveText: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  langRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  langChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
+  langChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  langChipText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  langChipActiveText: {
     color: colors.white,
     fontWeight: '600',
   },

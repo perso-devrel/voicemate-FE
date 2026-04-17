@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import * as messageService from '@/services/messages';
-import { subscribeToMessages, unsubscribeFromMessages, setRealtimeAuth } from '@/services/realtime';
+import { subscribeToMessages, unsubscribeFromMessages } from '@/services/realtime';
 import { useAuthStore } from '@/stores/authStore';
 import type { Message } from '@/types';
 
@@ -75,17 +75,20 @@ export function useChat(matchId: string) {
 
   // Subscribe to Realtime + reconnect on foreground
   useEffect(() => {
-    const connect = () => {
-      setRealtimeAuth();
-      subscribeToMessages(
+    let cancelled = false;
+
+    const connect = async () => {
+      await subscribeToMessages(
         matchId,
         (newMsg) => {
+          if (cancelled) return;
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
         },
         (updatedMsg) => {
+          if (cancelled) return;
           setMessages((prev) =>
             prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)),
           );
@@ -103,6 +106,7 @@ export function useChat(matchId: string) {
     });
 
     return () => {
+      cancelled = true;
       subscription.remove();
       unsubscribeFromMessages();
     };
