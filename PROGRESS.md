@@ -1,8 +1,17 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 22:55)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 23:10)
 - 진행 중 Phase: 2
-- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17, #19, #21
-- 진행 중 이슈: #23 (preferred_languages sanitization 회귀 테스트)
+- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17, #19, #21, #23
+- 진행 중 이슈: #25 (프로필 언어 Picker invariant 주석)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 23:05 · Issue #25 · 프로필 언어 Picker invariant 주석
+- 브랜치: `feature/issue-25-profile-language-invariant`
+- 요약: `setup/profile.tsx` handleSubmit에 invariant 주석 추가 — `form.language`는 SUPPORTED LanguageCode 이외의 값이 들어올 수 없음. 기존 `it.each(LANGUAGE_CODES)` 테스트가 이미 보장.
+- 코드 동작 변경 없음.
+- 다음: #14 오디오 플레이어 리스너 누수 방지
+- 리스크: 없음
 
 ---
 
