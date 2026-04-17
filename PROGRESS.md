@@ -1,16 +1,25 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 19:05)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 19:25)
 - 진행 중 Phase: 1
-- 완료 이슈: #1 (진단 리포트)
-- 진행 중 이슈: #3 (타입 부채 인벤토리)
+- 완료 이슈: #1, #3
+- 진행 중 이슈: #5 (Lint 인프라 도입)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 19:20 · Issue #5 · Lint 인프라 도입
+- 브랜치: `feature/issue-5-eslint-setup`
+- 요약: `eslint@^9` + `eslint-config-expo@~9.2.0` devDep 추가 + `eslint.config.js` flat preset. `npm run lint`: 0 에러 / 7 경고. 남은 경고는 `docs/LINT_WARNINGS.md`로 분리.
+- 다음: #4 테스트 인프라 점검 (GH 번호 예약 예정)
+- 리스크: 없음 (런타임 영향 없음, devDependency만)
 
 ---
 
 ## 2026-04-17 19:00 · Issue #3 · TypeScript 타입 부채 인벤토리
 - 브랜치: `feature/issue-3-type-debt-inventory`
+- PR: #4 (merged)
 - 요약: `docs/TYPE_DEBT.md` 생성. `: any`/`as any` 30건/14파일 전수 기록 + 권고 리팩토링 레시피. 개별 축소는 Phase 6.
 - `npm run typecheck`: 통과 (0 에러)
-- 다음: #4 Lint 인프라 도입 (ESLint 미설치 상태)
+- 다음: Lint 인프라 도입
 - 리스크: 없음 (문서 전용)
 
 ---
