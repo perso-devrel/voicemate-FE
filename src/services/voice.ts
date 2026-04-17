@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { api, getAccessToken } from './api';
+import { api, ApiRequestError, getAccessToken } from './api';
 import { API_BASE_URL } from '@/constants/config';
+import { uploadWithTimeout } from '@/utils/upload';
 import type { VoiceCloneResponse, VoiceStatusResponse, VoiceDeleteResponse } from '@/types';
 
 const AUDIO_MIME_MAP: Record<string, string> = {
@@ -19,16 +20,14 @@ export async function uploadVoiceClone(uri: string): Promise<VoiceCloneResponse>
   const mimeType = AUDIO_MIME_MAP[ext] ?? 'audio/mp4';
 
   const token = await getAccessToken();
-  const result = await FileSystem.uploadAsync(
-    `${API_BASE_URL}/api/voice/clone`,
-    uri,
-    {
+  const result = await uploadWithTimeout(
+    FileSystem.uploadAsync(`${API_BASE_URL}/api/voice/clone`, uri, {
       httpMethod: 'POST',
       uploadType: FileSystem.FileSystemUploadType.MULTIPART,
       fieldName: 'audio',
       mimeType,
       headers: token ? { Authorization: `Bearer ${token}` } : {},
-    },
+    }),
   );
 
   if (result.status < 200 || result.status >= 300) {
@@ -38,7 +37,7 @@ export async function uploadVoiceClone(uri: string): Promise<VoiceCloneResponse>
     } catch {
       /* ignore */
     }
-    throw new Error(`${message} (HTTP ${result.status})`);
+    throw new ApiRequestError(result.status, message);
   }
 
   return JSON.parse(result.body) as VoiceCloneResponse;

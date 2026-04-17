@@ -1,8 +1,17 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-18 03:50)
-- 진행 중 Phase: 5
-- 완료 이슈: ..., #47 (총 23 merged)
-- 진행 중 이슈: #49 (README.md 작성)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-18 04:40)
+- 진행 중 Phase: 6 (자율 개선 모드)
+- Phase 0~5 완료 (28 PR merged)
+- 진행 중 이슈: #57 (업로드 타임아웃 래퍼)
 - 블로커: 없음
+
+---
+
+## 2026-04-18 04:35 · [phase-6] Issue #57 · 업로드 60초 타임아웃 래퍼
+- 브랜치: `feature/issue-57-upload-timeout`
+- 요약: `src/utils/upload.ts::uploadWithTimeout` 신규 (Promise.race + ApiRequestError 매핑). `profile.ts::uploadPhoto` · `voice.ts::uploadVoiceClone` 래퍼 경유. 4 테스트(57/57). `docs/BE_DEPENDENCIES.md §6` 해결 표시.
+- 브레인스토밍 3 후보 중 `(Value 4 + Rev 4) - Risk 2 = 6` 최상위 선택.
+- 다음: Phase 6 추가 후보 — `E-catch` any 축소 / `.claude` gitignore
+- 리스크: `FileSystem.uploadAsync`는 cancel 지원 안 함 → 타임아웃 후 백그라운드 전송은 no-op으로 버려짐. 사용자는 재시도 UX만 보인다.
 
 ---
 
