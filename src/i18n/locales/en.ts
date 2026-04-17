@@ -136,6 +136,8 @@ export default {
     preferredGenders: 'Preferred Genders',
     preferredLanguages: 'Preferred Languages',
     leaveEmptyAllLanguages: 'Leave empty to match all languages',
+    invalidAgeRange: 'Minimum age must be less than or equal to maximum age.',
+    ageOutOfBounds: 'Age must be between {{min}} and {{max}}.',
   },
 
   blocked: {
