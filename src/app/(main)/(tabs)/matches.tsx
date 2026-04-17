@@ -1,8 +1,9 @@
 import { useEffect, useCallback } from 'react';
-import { View, FlatList, StyleSheet, Text, RefreshControl } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MatchItem } from '@/components/matches/MatchItem';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useMatches } from '@/hooks/useMatches';
 import { colors } from '@/constants/colors';
 import type { MatchListItem } from '@/types';
@@ -25,10 +26,13 @@ export default function MatchesScreen() {
   const renderEmpty = () => {
     if (loading) return null;
     return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>{t('matches.noMatches')}</Text>
-        <Text style={styles.emptyText}>{t('matches.startSwiping')}</Text>
-      </View>
+      <EmptyState
+        iconName="people-outline"
+        title={t('matches.noMatches')}
+        subtitle={t('matches.startSwiping')}
+        ctaLabel={t('matches.goToDiscover')}
+        onCtaPress={() => router.push('/(main)/(tabs)/discover')}
+      />
     );
   };
 
@@ -62,21 +66,5 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-  },
-  empty: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 8,
   },
 });

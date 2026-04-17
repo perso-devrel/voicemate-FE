@@ -1,8 +1,16 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-18 00:40)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-18 01:05)
 - 진행 중 Phase: 3
-- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17, #19, #21, #23, #25, #27, #29, #31
-- 진행 중 이슈: #33 (로딩 상태 카탈로그)
+- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17, #19, #21, #23, #25, #27, #29, #31, #33
+- 진행 중 이슈: #35 (공용 EmptyState + matches CTA)
 - 블로커: 없음
+
+---
+
+## 2026-04-18 01:00 · Issue #35 · 공용 EmptyState + matches CTA
+- 브랜치: `feature/issue-35-empty-state-component`
+- 요약: `src/components/ui/EmptyState.tsx` 신규 — icon + title + subtitle + 옵션 CTA. matches 화면 적용 + discover 탭 CTA. 새 i18n 키 `matches.goToDiscover` (ko/en 대칭, parity.test.ts 유지). 53/53 tests.
+- 다음: #19 a11y 보강
+- 리스크: 없음
 
 ---
 

@@ -45,6 +45,7 @@ export default {
   matches: {
     noMatches: 'No matches yet',
     startSwiping: 'Start swiping to find your match!',
+    goToDiscover: 'Start discovering',
     unknown: 'Unknown',
     startConversation: 'Start a conversation!',
   },
