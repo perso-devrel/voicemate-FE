@@ -1,8 +1,51 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-18 04:55)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-18 06:20)
 - 진행 중 Phase: 6 (자율 개선 모드)
-- Phase 0~5 완료 (28 PR) + Phase 6: #57
-- 진행 중 이슈: #59 (미사용 i18n 4키 제거)
+- 총 머지: 38 PR (Phase 0-5: 28, Phase 6: 9)
+- 진행 중 이슈: #73 (PHASE6_PROPOSALS 누적)
 - 블로커: 없음
+- **DONE 조건 충족**: `docs/PHASE6_PROPOSALS.md`에 12 항목 누적 (TASK.md §6-5 3번)
+
+---
+
+## 2026-04-18 06:15 · [phase-6] Issue #73 · PHASE6_PROPOSALS.md 12항목
+- 브랜치: `feature/issue-73-phase6-proposals`
+- 요약: 사용자 판단이 필요한 12개 제안 — SDK 메이저 업그레이드, zustand 5, 시크릿 스캔, 관찰성, 번역 폴리시, Dark Mode, mapApiError 구현, realtime fallback polling, exhaustive-deps 3건, birth_date UX 등.
+- TASK.md §6-5 "누적 제안 10건 이상" 충족 → 본 이터레이션 종료 후 DONE.
+
+---
+
+## 2026-04-18 06:00 · [phase-6] Issue #71 · useChat E-catch → describeError
+- 요약: 3 catch 블록 치환. TYPE_DEBT 26건.
+
+---
+
+## 2026-04-18 05:40 · [phase-6] Issue #69 · Realtime CHANNEL_ERROR backoff
+- 요약: `computeBackoffDelay` + useChat 자동 재시도. BE_DEPENDENCIES §1 해결.
+
+---
+
+## 2026-04-18 05:20 · [phase-6] Issue #67 · ESLint 경고 3건 해소
+- 요약: 경고 7→4. `registerOnSessionExpired` 시임 도입.
+
+---
+
+## 2026-04-18 05:00 · [phase-6] Issue #65 · preference 나이 범위 클라이언트 검증
+- 요약: `validateAgeRange` + i18n 키.
+
+---
+
+## 2026-04-18 04:45 · [phase-6] Issue #63 · api.ts any → unknown
+- 요약: `fetchWithTimeout` catch narrow.
+
+---
+
+## 2026-04-18 04:30 · [phase-6] Issue #61 · .claude gitignore
+- 요약: 툴링 아티팩트 제외.
+
+---
+
+## 2026-04-18 04:00 · [phase-6] Issue #57 · 업로드 60초 타임아웃 래퍼
+- 요약: `uploadWithTimeout`. BE_DEPENDENCIES §6 해결.
 
 ---
 
