@@ -23,9 +23,9 @@
 | 6 | `src/hooks/useVoice.ts` | 18 | `} catch (e: any) {` | E-catch | 〃 |
 | 7 | `src/hooks/useVoice.ts` | 32 | `} catch (e: any) {` | E-catch | 〃 |
 | 8 | `src/hooks/useVoice.ts` | 47 | `} catch (e: any) {` | E-catch | 〃 |
-| 9 | `src/hooks/useChat.ts` | 24 | `} catch (e: any) {` | E-catch | 〃 |
-| 10 | `src/hooks/useChat.ts` | 40 | `} catch (e: any) {` | E-catch | 〃 |
-| 11 | `src/hooks/useChat.ts` | 53 | `} catch (e: any) {` | E-catch | 〃 |
+| 9 | ~~`src/hooks/useChat.ts`~~ | ~~24~~ | ~~E-catch~~ | E-catch | ✅ #71 |
+| 10 | ~~`src/hooks/useChat.ts`~~ | ~~40~~ | ~~E-catch~~ | E-catch | ✅ #71 |
+| 11 | ~~`src/hooks/useChat.ts`~~ | ~~53~~ | ~~E-catch~~ | E-catch | ✅ #71 |
 | 12 | `src/hooks/useMatches.ts` | 19 | `} catch (e: any) {` | E-catch | 〃 |
 | 13 | `src/hooks/useMatches.ts` | 35 | `} catch (e: any) {` | E-catch | 〃 |
 | 14 | `src/hooks/useProfile.ts` | 18 | `} catch (e: any) {` | E-catch | 〃 |
@@ -48,12 +48,12 @@
 
 ## 집계
 
-| 카테고리 | 건수 (2026-04-18 #63 이후) |
+| 카테고리 | 건수 (2026-04-18 #71 이후) |
 |----------|------|
-| E-catch | 28 |
+| E-catch | 25 |
 | Nav-event | 1 |
 | Misc | 0 |
-| **합계** | **29** |
+| **합계** | **26** |
 
 ## 권고 리팩토링 레시피
 
