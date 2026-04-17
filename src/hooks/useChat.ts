@@ -4,6 +4,7 @@ import * as messageService from '@/services/messages';
 import { subscribeToMessages, unsubscribeFromMessages } from '@/services/realtime';
 import { useAuthStore } from '@/stores/authStore';
 import { computeBackoffDelay } from '@/utils/backoff';
+import { describeError } from '@/utils/errors';
 import type { Message } from '@/types';
 
 export function useChat(matchId: string) {
@@ -22,8 +23,8 @@ export function useChat(matchId: string) {
       // API returns newest first, reverse for display (oldest at top)
       setMessages(data.reverse());
       setHasMore(data.length === 50);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeError(e));
     } finally {
       setLoading(false);
     }
@@ -38,8 +39,8 @@ export function useChat(matchId: string) {
       const data = await messageService.getMessages(matchId, 50, oldest.created_at);
       setMessages((prev) => [...data.reverse(), ...prev]);
       setHasMore(data.length === 50);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeError(e));
     } finally {
       loadingMore.current = false;
     }
@@ -51,8 +52,8 @@ export function useChat(matchId: string) {
       const msg = await messageService.sendMessage(matchId, text);
       setMessages((prev) => [...prev, msg]);
       return msg;
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeError(e));
       throw e;
     }
   }, [matchId]);
