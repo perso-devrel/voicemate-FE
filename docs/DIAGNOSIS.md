@@ -51,9 +51,9 @@ src/
 - 단, `any` 사용이 다수 존재하여 타입 정합성 보강 여지 있음 (아래 5절).
 
 ### ESLint
-- ESLint 관련 패키지가 `package.json` dependencies에도 devDependencies에도 없음.
-- `.eslintrc.*` / `eslint.config.*` 설정 파일 없음.
-- **조치 필요**: Phase 1 #3에서 ESLint + Prettier 최소 구성을 추가하거나, 설정 없이는 `npm run lint` 스크립트 자체를 유지할 수 없음.
+- ~~ESLint 관련 패키지가 `package.json` dependencies에도 devDependencies에도 없음.~~
+- Phase 1 #3에서 `eslint@^9` + `eslint-config-expo@~9.2.0` + flat config(`eslint.config.js`) 도입.
+- 현 상태: **0 에러, 7 경고** — 경고는 `docs/LINT_WARNINGS.md`로 분리, Phase 6에서 순차 해소.
 
 ## 5. `any` 사용 현황
 
