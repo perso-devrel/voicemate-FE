@@ -42,7 +42,7 @@ src/
 | `web` | `expo start --web` | 정상 |
 | `lint` | `eslint .` | ⚠️ ESLint 미설치 — 실행 시 실패 |
 | `typecheck` | `tsc --noEmit` | ✅ 통과 |
-| `test` | (미존재) | ❌ 테스트 러너 없음 |
+| `test` | `jest` | ✅ 통과 (Phase 1 #7에서 도입) |
 
 ## 4. 타입체크 / 린트 베이스라인
 
