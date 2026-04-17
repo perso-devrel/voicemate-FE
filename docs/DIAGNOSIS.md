@@ -91,10 +91,12 @@ src/
 
 - `src/services/realtime.ts:51` 단 1곳.
   ```ts
-  console.log(`[Realtime ${matchId}]`, status, err ?? '');
+  if (__DEV__) {
+    console.log(`[Realtime ${matchId}]`, status, err ?? '');
+  }
   ```
-- Realtime 채널 상태(`SUBSCRIBED`/`CHANNEL_ERROR`/`TIMED_OUT`) 디버깅용으로, Phase 2 #8 작업과 맞닿음.
-- `__DEV__` 가드 없음 → Phase 6 DX 카테고리에서 구조화 고려.
+- Realtime 채널 상태(`SUBSCRIBED`/`CHANNEL_ERROR`/`TIMED_OUT`) 디버깅용. Phase 2 #15 Issue 에서 문서화 완료.
+- 이미 `__DEV__` 가드 있음 → 프로덕션 번들에 로그 없음.
 
 ## 8. 디렉터리·파일 명명 관찰
 
