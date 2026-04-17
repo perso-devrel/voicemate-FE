@@ -40,3 +40,20 @@ describe('isLanguageCode', () => {
     expect(isLanguageCode('En')).toBe(false);
   });
 });
+
+describe('preferred_languages sanitization', () => {
+  it('.filter(isLanguageCode) drops legacy labels while keeping supported codes', () => {
+    // Contract relied upon by src/app/(main)/settings/preferences.tsx and
+    // src/app/(main)/setup/profile.tsx: the server may still return legacy
+    // localized labels ("한국어") for accounts that were created before the
+    // ISO-code migration. The UI must render only the supported codes and
+    // self-heal on next save.
+    const mixed = ['ko', '한국어', 'en', 'xx', 'ja', ''];
+    expect(mixed.filter(isLanguageCode)).toEqual(['ko', 'en', 'ja']);
+  });
+
+  it('.filter(isLanguageCode) is a no-op for already-clean arrays', () => {
+    const clean: string[] = ['ko', 'en'];
+    expect(clean.filter(isLanguageCode)).toEqual(clean);
+  });
+});
