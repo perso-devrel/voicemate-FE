@@ -28,8 +28,8 @@
 
 **위반 시 증상 / FE 방어 로직**
 - 채널 상태가 `CHANNEL_ERROR` 또는 `TIMED_OUT`으로 고정되고 상대 메시지가 보이지 않음.
-- 현재 FE는 foreground 복귀 시에만 재구독. **CHANNEL_ERROR 상태에서 자동 backoff 재시도 없음** → 별도 이슈로 추적(향후 개선 후보).
-- 대안 폴백: `getMessages(matchId, 50)` 30초 간격 폴링. Realtime이 여전히 구독 중일 때는 중복 배너 메시지가 나오지 않도록 `id` 기반 set 유지 (`useChat.ts:85-88`에서 이미 처리).
+- **2026-04-18 업데이트 (Phase 6 #69)**: `useChat`에 exponential backoff 재시도(1s → 2s → 4s → ... cap 30s)가 탑재됨. `SUBSCRIBED` 복귀 시 attempt 초기화.
+- 대안 폴백: `getMessages(matchId, 50)` 30초 간격 폴링은 현 시점 미도입(만약 BE publication/RLS가 끊겨 backoff 재시도도 실패한다면 별도 이슈 생성 권고).
 
 ---
 
