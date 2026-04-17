@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import * as messageService from '@/services/messages';
 import { subscribeToMessages, unsubscribeFromMessages } from '@/services/realtime';
 import { useAuthStore } from '@/stores/authStore';
+import { computeBackoffDelay } from '@/utils/backoff';
 import type { Message } from '@/types';
 
 export function useChat(matchId: string) {
@@ -73,11 +74,21 @@ export function useChat(matchId: string) {
     );
   }, []);
 
-  // Subscribe to Realtime + reconnect on foreground
+  // Subscribe to Realtime + reconnect on foreground or after error
   useEffect(() => {
     let cancelled = false;
+    let retryAttempt = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearRetry = () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+    };
 
     const connect = async () => {
+      clearRetry();
       await subscribeToMessages(
         matchId,
         (newMsg) => {
@@ -93,6 +104,21 @@ export function useChat(matchId: string) {
             prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)),
           );
         },
+        (status) => {
+          if (cancelled) return;
+          if (status === 'SUBSCRIBED') {
+            retryAttempt = 0;
+            return;
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            const delay = computeBackoffDelay(retryAttempt);
+            retryAttempt += 1;
+            clearRetry();
+            retryTimer = setTimeout(() => {
+              if (!cancelled) connect();
+            }, delay);
+          }
+        },
       );
     };
 
@@ -100,6 +126,7 @@ export function useChat(matchId: string) {
 
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
+        retryAttempt = 0;
         connect();
         loadMessages();
       }
@@ -107,6 +134,7 @@ export function useChat(matchId: string) {
 
     return () => {
       cancelled = true;
+      clearRetry();
       subscription.remove();
       unsubscribeFromMessages();
     };

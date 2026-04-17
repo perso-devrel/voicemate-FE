@@ -12,10 +12,22 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 
 let messageChannel: RealtimeChannel | null = null;
 
+/**
+ * Status value reported by supabase-js on the `.subscribe()` callback.
+ * Kept here so the chat hook can narrow without reaching into
+ * supabase-js's private types.
+ */
+export type RealtimeChannelStatus =
+  | 'SUBSCRIBED'
+  | 'CHANNEL_ERROR'
+  | 'TIMED_OUT'
+  | 'CLOSED';
+
 export async function subscribeToMessages(
   matchId: string,
   onNewMessage: (message: Message) => void,
   onMessageUpdate: (message: Message) => void,
+  onStatusChange?: (status: RealtimeChannelStatus, err?: Error) => void,
 ) {
   await unsubscribeFromMessages();
   await setRealtimeAuth();
@@ -50,6 +62,7 @@ export async function subscribeToMessages(
       if (__DEV__) {
         console.log(`[Realtime ${matchId}]`, status, err ?? '');
       }
+      onStatusChange?.(status as RealtimeChannelStatus, err);
     });
 
   return messageChannel;
