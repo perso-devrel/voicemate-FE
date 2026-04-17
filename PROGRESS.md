@@ -1,16 +1,25 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 19:55)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 20:20)
 - 진행 중 Phase: 1
-- 완료 이슈: #1, #3, #5
-- 진행 중 이슈: #7 (테스트 인프라 스캐폴드)
+- 완료 이슈: #1, #3, #5, #7
+- 진행 중 이슈: #9 (순수 함수 유닛 테스트 보강)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 20:15 · Issue #9 · 순수 함수 유닛 테스트 보강
+- 브랜치: `feature/issue-9-unit-tests-pure`
+- 요약: `src/constants/languages.test.ts` 7 케이스, `src/services/api.test.ts` (ApiRequestError) 6 케이스. 전체 3 suites / 25 tests 통과.
+- 다음: #6 보안 1차 스윕
+- 리스크: 없음
 
 ---
 
 ## 2026-04-17 19:50 · Issue #7 · 테스트 인프라 스캐폴드
 - 브랜치: `feature/issue-7-test-infra`
-- 요약: `jest@^29` + `jest-expo@~54.0.17` + `@testing-library/react-native` + `react-test-renderer@~19.1.0` + `@types/jest` devDep. `jest.config.js`는 `babel-preset-expo` 기반(node env)으로 초기화(jest-expo 프리셋은 향후 컴포넌트 테스트 도입 시 전환). 샘플 `src/utils/age.test.ts` 8 케이스 통과.
-- 다음: #5 핵심 순수 함수 유닛 테스트 보강
-- 리스크: `--legacy-peer-deps` 필요 (RNTL 13.x가 React 19 `react-test-renderer`를 peer 범위로 명시하지 않음). `NEEDS_VERIFICATION`: 기기 QA 전 RNTL 버전 호환 재검토.
+- PR: #8 (merged)
+- 요약: `jest@^29` + `jest-expo@~54.0.17` + `@testing-library/react-native` + `react-test-renderer@~19.1.0` + `@types/jest` devDep. `jest.config.js`는 `babel-preset-expo` 기반(node env)으로 초기화. 샘플 `src/utils/age.test.ts` 8 케이스 통과.
+- 다음: 순수 함수 유닛 테스트 보강
+- 리스크: `--legacy-peer-deps` 필요 (RNTL 13.x가 React 19 `react-test-renderer`를 peer 범위로 명시하지 않음).
 
 ---
 
