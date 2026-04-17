@@ -23,8 +23,8 @@ async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = RE
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(input, { ...init, signal: controller.signal });
-  } catch (e: any) {
-    if (e?.name === 'AbortError') {
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
       throw new ApiRequestError(0, 'Network timeout. Please check your connection.');
     }
     throw new ApiRequestError(0, 'Network error. Please check your connection.');

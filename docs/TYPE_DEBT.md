@@ -15,7 +15,7 @@
 
 | # | 파일 | 라인 | 스니펫 | 카테고리 | 권장 방향 |
 |---|------|------|--------|----------|-----------|
-| 1 | `src/services/api.ts` | 26 | `} catch (e: any) {` | E-catch | `unknown` + `name === 'AbortError'` 분기 유지, 그 외 `Error` 인스턴스 체크 |
+| 1 | ~~`src/services/api.ts`~~ | ~~26~~ | ~~`} catch (e: any) {`~~ | E-catch | ✅ 해결 (Phase 6 #63 — `unknown` + `e instanceof Error && e.name === 'AbortError'`) |
 | 2 | `src/hooks/useDiscover.ts` | 16 | `} catch (e: any) {` | E-catch | 공용 `useErrorHandler` 훅(Phase 3 #16 후)에 위임 |
 | 3 | `src/hooks/useDiscover.ts` | 31 | `} catch (e: any) {` | E-catch | 〃 |
 | 4 | `src/hooks/usePreferences.ts` | 16 | `} catch (e: any) {` | E-catch | 〃 |
@@ -48,12 +48,12 @@
 
 ## 집계
 
-| 카테고리 | 건수 |
+| 카테고리 | 건수 (2026-04-18 #63 이후) |
 |----------|------|
-| E-catch | 29 |
+| E-catch | 28 |
 | Nav-event | 1 |
 | Misc | 0 |
-| **합계** | **30** |
+| **합계** | **29** |
 
 ## 권고 리팩토링 레시피
 
