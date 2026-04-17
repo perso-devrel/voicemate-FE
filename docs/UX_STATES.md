@@ -52,6 +52,27 @@ try {
 - 여러 loading indicator 동시 렌더(예: FlatList 로딩 + LoadingScreen)
 - `loading` 상태를 안 풀어 둔 상태로 화면 이탈 — `try/finally`로 항상 해제
 
+### 현재 사용 인벤토리 (2026-04-18 기준)
+
+| 파일 | 패턴 | 비고 |
+|------|------|------|
+| `src/components/ui/LoadingScreen.tsx` | 전체 커버 컴포넌트 정의 | 루트 및 탭 전환용 |
+| `src/app/_layout.tsx` | `if (isLoading) return <LoadingScreen />` | 자동 로그인 대기 |
+| `src/components/ui/Button.tsx` | `loading` prop → `ActivityIndicator` | 기본 버튼 액션 |
+| `src/app/(auth)/login.tsx` | `<Button loading={...} />` (이메일/구글) | 각 액션 격리 |
+| `src/app/(main)/setup/profile.tsx` | `<Button loading={loading} />` | 프로필 저장 |
+| `src/app/(main)/setup/voice.tsx` | `ActivityIndicator` + `<Button loading />` | 업로드 진행 |
+| `src/app/(main)/(tabs)/discover.tsx` | `ActivityIndicator` fullscreen + `ActivityIndicator` 카드 내 | 초기 로드 + 스와이프 전환 |
+| `src/app/(main)/chat/[matchId].tsx` | FlatList `ListHeaderComponent={<ActivityIndicator />}` | older messages 페이징 |
+| `src/app/(main)/settings/preferences.tsx` | `<Button loading={loading} />` | 저장 |
+| `src/components/ui/Button.test.tsx` | 테스트 | isButtonDisabled 커버 |
+
+### Phase 6 리팩토링 후보
+
+- `LoadingScreen` 사용이 자동 로그인 이외에 없음 → 탭 내부 초기 로드에도 재사용 여부 검토.
+- FlatList 페이징 인디케이터를 공용 `<PagingFooter />` 컴포넌트로 추출.
+- `<Button loading />`는 이미 Phase 2 #19 테스트로 고정됨 — 변경 금지.
+
 ---
 
 ## 3. 빈 상태 (Empty)
