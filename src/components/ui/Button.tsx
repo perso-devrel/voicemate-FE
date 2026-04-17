@@ -11,6 +11,10 @@ interface ButtonProps {
   textStyle?: TextStyle;
 }
 
+export function isButtonDisabled(disabled?: boolean, loading?: boolean): boolean {
+  return Boolean(disabled) || Boolean(loading);
+}
+
 export function Button({
   title,
   onPress,
@@ -20,7 +24,7 @@ export function Button({
   style,
   textStyle,
 }: ButtonProps) {
-  const isDisabled = disabled || loading;
+  const isDisabled = isButtonDisabled(disabled, loading);
 
   return (
     <Pressable
