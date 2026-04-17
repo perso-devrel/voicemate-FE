@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Pressable, Text, View, StyleSheet } from 'react-native';
+import { Pressable, Text, StyleSheet } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Ionicons } from '@expo/vector-icons';
