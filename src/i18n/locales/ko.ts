@@ -45,6 +45,7 @@ export default {
     matches: {
         noMatches: "아직 매치가 없습니다",
         startSwiping: "스와이프로 매치를 찾아보세요!",
+        goToDiscover: "지금 둘러보기",
         unknown: "알 수 없음",
         startConversation: "대화를 시작해보세요!",
     },
