@@ -1,8 +1,17 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 21:55)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 22:20)
 - 진행 중 Phase: 2
-- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15
-- 진행 중 이슈: #17 (채팅 입력바 safe-area 방어)
+- 완료 이슈: #1, #3, #5, #7, #9, #11, #13, #15, #17
+- 진행 중 이슈: #19 (Google 버튼 회귀 검증)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 22:15 · Issue #19 · Google 버튼 흐림 회귀 검증
+- 브랜치: `feature/issue-19-button-regression-test`
+- 요약: `src/components/ui/Button.tsx`에 `isButtonDisabled` 순수 헬퍼 노출 + `Button.test.tsx` 4 케이스로 독립성 회귀 고정. `jest.setup.js`에 `__DEV__` 전역 주입. 정적 분석상 opacity 전파 없음.
+- 검증: 29/29 tests, typecheck/lint 통과
+- 다음: #11 fetchWithTimeout 커버리지 점검
+- 리스크: 없음
 
 ---
 
