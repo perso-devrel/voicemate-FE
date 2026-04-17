@@ -1,15 +1,25 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 20:45)
-- 진행 중 Phase: 1
-- 완료 이슈: #1, #3, #5, #7, #9
-- 진행 중 이슈: #11 (보안 1차 스윕)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 21:10)
+- 진행 중 Phase: 1 → 2 진입 예정
+- 완료 이슈: #1, #3, #5, #7, #9, #11
+- 진행 중 이슈: #13 (의존성 점검)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 21:05 · Issue #13 · 의존성 점검
+- 브랜치: `feature/issue-13-dependency-status`
+- 요약: `docs/DEPENDENCY_STATUS.md` 생성. `@supabase/supabase-js` 2.103.0→2.103.3, `react-i18next` 17.0.3→17.0.4 patch 적용. 나머지 메이저(Expo SDK, React, RN, zustand, eslint, jest, typescript)는 규칙에 따라 보류 기록만.
+- 검증: `typecheck`·`lint`·`test` 25/25 통과
+- 다음: Phase 2 진입 — #8 실시간 채팅 재점검
+- 리스크: 없음
 
 ---
 
 ## 2026-04-17 20:40 · Issue #11 · 보안 1차 스윕
 - 브랜치: `feature/issue-11-security-sweep`
-- 요약: `docs/SECURITY_SWEEP.md` 생성. 기밀 파일/키 커밋·하드코딩·SERVICE_ROLE 누락 전수. **심각 이슈 발견 없음.** 후속 권고(RLS 요약·시크릿 스캔 자동화·토큰 로깅 회귀 방지 테스트) 기록.
-- 다음: #7 의존성 점검
+- PR: #12 (merged)
+- 요약: `docs/SECURITY_SWEEP.md`. 심각 이슈 없음. 후속 권고만 기록.
+- 다음: 의존성 점검
 - 리스크: 없음
 
 ---
