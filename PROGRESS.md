@@ -1,8 +1,18 @@
-# 📌 현재 상태 (마지막 업데이트: 2026-04-17 21:10)
-- 진행 중 Phase: 1 → 2 진입 예정
-- 완료 이슈: #1, #3, #5, #7, #9, #11
-- 진행 중 이슈: #13 (의존성 점검)
+# 📌 현재 상태 (마지막 업데이트: 2026-04-17 21:35)
+- 진행 중 Phase: 2
+- 완료 이슈: #1, #3, #5, #7, #9, #11, #13
+- 진행 중 이슈: #15 (Realtime 채팅 검증 — docs + manual-qa)
 - 블로커: 없음
+
+---
+
+## 2026-04-17 21:30 · Issue #15 · Realtime 채팅 수신 흐름 문서화
+- 브랜치: `feature/issue-15-realtime-docs`
+- 요약: `docs/BE_DEPENDENCIES.md` 최초 작성 — Realtime publication/RLS, ElevenLabs 더빙, Match·Block·에러 포맷 5 섹션. `needs-manual-qa` + `phase-2` 라벨.
+- FE 코드 수정 없음 (재시도 backoff는 별도 이슈로 추적).
+- 정적 검증: 이미 `setRealtimeAuth` → `subscribe()` 순서 보장, `__DEV__` 가드 + AppState 재구독 존재.
+- 다음: #9 채팅 입력바 safe-area 검증
+- 리스크: 없음
 
 ---
 
