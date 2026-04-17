@@ -8,7 +8,7 @@ import { colors } from '@/constants/colors';
 
 export default function DiscoverScreen() {
   const { t } = useTranslation();
-  const { candidates, loading, error, loadCandidates, handleSwipe } = useDiscover();
+  const { candidates, loading, loadCandidates, handleSwipe } = useDiscover();
 
   useEffect(() => {
     loadCandidates();

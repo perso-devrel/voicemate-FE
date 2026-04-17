@@ -8,12 +8,12 @@
 | # | 파일 | 라인 | 규칙 | 요약 |
 |---|------|------|------|------|
 | 1 | `src/app/(auth)/login.tsx` | 30 | `react-hooks/exhaustive-deps` | `useEffect` 의존성 `handleGoogleLogin` 누락 |
-| 2 | `src/app/(main)/(tabs)/discover.tsx` | 11 | `@typescript-eslint/no-unused-vars` | 비구조화된 `error` 미사용 |
+| 2 | ~~`src/app/(main)/(tabs)/discover.tsx`~~ | ~~11~~ | ~~no-unused-vars~~ | ✅ 해결 (#67) |
 | 3 | `src/app/_layout.tsx` | 14 | `react-hooks/exhaustive-deps` | `useEffect`에 `tryAutoLogin` 누락 |
-| 4 | `src/components/chat/AudioPlayer.tsx` | 2 | `@typescript-eslint/no-unused-vars` | `View` import 미사용 |
+| 4 | ~~`src/components/chat/AudioPlayer.tsx`~~ | ~~2~~ | ~~no-unused-vars~~ | ✅ 해결 (#67) |
 | 5 | `src/hooks/useVoice.ts` | 64 | `react-hooks/exhaustive-deps` | `useCallback`에 `stopPolling` 누락 |
 | 6 | `src/i18n/index.ts` | 21 | `import/no-named-as-default-member` | `i18n.use(...)` → `import { use } from 'i18next'` 권고 |
-| 7 | `src/services/api.ts` | 140 | `@typescript-eslint/no-require-imports` | `require(...)` 사용 |
+| 7 | ~~`src/services/api.ts`~~ | ~~140~~ | ~~no-require-imports~~ | ✅ 해결 (#67 — `registerOnSessionExpired` 시임 도입) |
 
 ## 처리 방침
 
