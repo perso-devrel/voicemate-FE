@@ -93,8 +93,24 @@
 
 ---
 
+## 6. 업로드 타임아웃 일관성 (FE 내부 제안)
+
+**요구 내용**
+- 사진(`/api/profile/photos`), 음성 클론(`/api/voice/clone`) 업로드도 로그인 요청처럼 60초 이내에 실패를 surface 해야 한다.
+
+**FE 증거**
+- `src/services/profile.ts:32` · `src/services/voice.ts:22` 모두 `FileSystem.uploadAsync` 직접 호출, `UPLOAD_TIMEOUT_MS` 미적용.
+
+**BE 확인 포인트 (참고)**
+- BE 측 연결 타임아웃/업로드 크기 제한이 어떻게 설정돼 있는지 확인 (라우트 미들웨어). BE 자체는 변경 요구 없음.
+
+**위반 시 증상 / FE 방어 로직**
+- 네트워크가 끊어지면 업로드 Promise가 무한 대기 — 사용자는 "업로드 중" 스피너만 본다.
+- FE 단독 수정으로 해결 가능. Phase 6 리팩토링 이슈로 분리.
+
 ## 변경 이력
 
 | 날짜 | 내용 | 담당 |
 |------|------|------|
 | 2026-04-17 | 초기 생성 (Realtime·더빙·Match·Block/Report·에러 포맷 5개 섹션) | Ralph Loop |
+| 2026-04-18 | §6 업로드 타임아웃 일관성 추가 | Ralph Loop |
