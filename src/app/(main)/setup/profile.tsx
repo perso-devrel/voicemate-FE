@@ -99,6 +99,9 @@ export default function ProfileSetupScreen() {
   };
 
   const handleSubmit = async () => {
+    // Invariant: form.language is either '' (initial) or a SUPPORTED LanguageCode.
+    // The Picker below only emits codes sourced from SUPPORTED_LANGUAGES so no
+    // legacy value can leak in from local state.
     if (!form.language) {
       Alert.alert(t('common.error'), t('setupProfile.selectLanguageRequired'));
       return;

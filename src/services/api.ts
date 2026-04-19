@@ -23,8 +23,8 @@ async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = RE
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(input, { ...init, signal: controller.signal });
-  } catch (e: any) {
-    if (e?.name === 'AbortError') {
+  } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
       throw new ApiRequestError(0, 'Network timeout. Please check your connection.');
     }
     throw new ApiRequestError(0, 'Network error. Please check your connection.');
@@ -35,6 +35,14 @@ async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs = RE
 
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
+
+// Registration seam used by the root layout to let api.ts trigger a
+// logout on refresh failure without importing the zustand store (which
+// would create a circular dependency).
+let onSessionExpired: (() => void) | null = null;
+export function registerOnSessionExpired(cb: () => void) {
+  onSessionExpired = cb;
+}
 
 export async function getAccessToken(): Promise<string | null> {
   return SecureStore.getItemAsync(TOKEN_KEY);
@@ -136,9 +144,9 @@ class ApiClient {
         return this.request<T>(path, options, false, timeoutMs);
       }
 
-      // Refresh failed - trigger logout via store import to avoid circular dep
-      const { useAuthStore } = require('@/stores/authStore');
-      useAuthStore.getState().logout();
+      // Refresh failed — fire the registered logout hook (registered
+      // from _layout.tsx) so the zustand store is not imported here.
+      onSessionExpired?.();
       throw new Error('Session expired');
     }
 

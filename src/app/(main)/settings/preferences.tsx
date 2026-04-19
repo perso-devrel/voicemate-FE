@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { usePreferences } from '@/hooks/usePreferences';
 import { colors } from '@/constants/colors';
 import { SUPPORTED_LANGUAGES, isLanguageCode } from '@/constants/languages';
+import { MIN_AGE, MAX_AGE, validateAgeRange } from '@/utils/preferences';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
@@ -45,10 +46,19 @@ export default function PreferencesScreen() {
   };
 
   const handleSave = async () => {
+    const ageCheck = validateAgeRange(minAge, maxAge);
+    if (!ageCheck.ok) {
+      const message =
+        ageCheck.error === 'min-greater-than-max'
+          ? t('preferences.invalidAgeRange')
+          : t('preferences.ageOutOfBounds', { min: MIN_AGE, max: MAX_AGE });
+      Alert.alert(t('common.error'), message);
+      return;
+    }
     try {
       await updatePreferences({
-        min_age: parseInt(minAge) || 18,
-        max_age: parseInt(maxAge) || 100,
+        min_age: ageCheck.min,
+        max_age: ageCheck.max,
         preferred_genders: genders,
         preferred_languages: languages,
       });

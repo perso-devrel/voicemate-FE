@@ -45,6 +45,7 @@ export default {
   matches: {
     noMatches: 'No matches yet',
     startSwiping: 'Start swiping to find your match!',
+    goToDiscover: 'Start discovering',
     unknown: 'Unknown',
     startConversation: 'Start a conversation!',
   },
@@ -90,7 +91,6 @@ export default {
     nationality: 'Nationality',
     nationalityPlaceholder: 'e.g. KR',
     language: 'Language',
-    languagePlaceholder: 'e.g. ko',
     selectLanguageRequired: 'Please select a language',
     bio: 'Bio (optional)',
     bioPlaceholder: 'Tell about yourself',
@@ -135,10 +135,9 @@ export default {
     maxAge: 'Max Age',
     preferredGenders: 'Preferred Genders',
     preferredLanguages: 'Preferred Languages',
-    languagePlaceholder: 'e.g. en, ko, ja',
     leaveEmptyAllLanguages: 'Leave empty to match all languages',
-    addLanguage: 'Add',
-    languageLengthError: 'Language code must be 2-5 characters (e.g. en, ko, ja)',
+    invalidAgeRange: 'Minimum age must be less than or equal to maximum age.',
+    ageOutOfBounds: 'Age must be between {{min}} and {{max}}.',
   },
 
   blocked: {

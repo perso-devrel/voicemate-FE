@@ -9,6 +9,15 @@ interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'outline' | 'danger';
   style?: ViewStyle;
   textStyle?: TextStyle;
+  /**
+   * Optional override for the screen-reader label. Defaults to `title`;
+   * provide it when the visible text is an icon or a symbol.
+   */
+  accessibilityLabel?: string;
+}
+
+export function isButtonDisabled(disabled?: boolean, loading?: boolean): boolean {
+  return Boolean(disabled) || Boolean(loading);
 }
 
 export function Button({
@@ -19,13 +28,17 @@ export function Button({
   variant = 'primary',
   style,
   textStyle,
+  accessibilityLabel,
 }: ButtonProps) {
-  const isDisabled = disabled || loading;
+  const isDisabled = isButtonDisabled(disabled, loading);
 
   return (
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         styles[variant],

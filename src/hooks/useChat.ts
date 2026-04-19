@@ -3,6 +3,8 @@ import { AppState } from 'react-native';
 import * as messageService from '@/services/messages';
 import { subscribeToMessages, unsubscribeFromMessages } from '@/services/realtime';
 import { useAuthStore } from '@/stores/authStore';
+import { computeBackoffDelay } from '@/utils/backoff';
+import { describeError } from '@/utils/errors';
 import type { Message } from '@/types';
 
 export function useChat(matchId: string) {
@@ -21,8 +23,8 @@ export function useChat(matchId: string) {
       // API returns newest first, reverse for display (oldest at top)
       setMessages(data.reverse());
       setHasMore(data.length === 50);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeError(e));
     } finally {
       setLoading(false);
     }
@@ -37,8 +39,8 @@ export function useChat(matchId: string) {
       const data = await messageService.getMessages(matchId, 50, oldest.created_at);
       setMessages((prev) => [...data.reverse(), ...prev]);
       setHasMore(data.length === 50);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeError(e));
     } finally {
       loadingMore.current = false;
     }
@@ -50,8 +52,8 @@ export function useChat(matchId: string) {
       const msg = await messageService.sendMessage(matchId, text);
       setMessages((prev) => [...prev, msg]);
       return msg;
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(describeError(e));
       throw e;
     }
   }, [matchId]);
@@ -73,11 +75,21 @@ export function useChat(matchId: string) {
     );
   }, []);
 
-  // Subscribe to Realtime + reconnect on foreground
+  // Subscribe to Realtime + reconnect on foreground or after error
   useEffect(() => {
     let cancelled = false;
+    let retryAttempt = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearRetry = () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+    };
 
     const connect = async () => {
+      clearRetry();
       await subscribeToMessages(
         matchId,
         (newMsg) => {
@@ -93,6 +105,21 @@ export function useChat(matchId: string) {
             prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)),
           );
         },
+        (status) => {
+          if (cancelled) return;
+          if (status === 'SUBSCRIBED') {
+            retryAttempt = 0;
+            return;
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            const delay = computeBackoffDelay(retryAttempt);
+            retryAttempt += 1;
+            clearRetry();
+            retryTimer = setTimeout(() => {
+              if (!cancelled) connect();
+            }, delay);
+          }
+        },
       );
     };
 
@@ -100,6 +127,7 @@ export function useChat(matchId: string) {
 
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
+        retryAttempt = 0;
         connect();
         loadMessages();
       }
@@ -107,6 +135,7 @@ export function useChat(matchId: string) {
 
     return () => {
       cancelled = true;
+      clearRetry();
       subscription.remove();
       unsubscribeFromMessages();
     };
