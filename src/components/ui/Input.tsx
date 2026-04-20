@@ -1,5 +1,6 @@
 import { TextInput, View, Text, StyleSheet, TextInputProps } from 'react-native';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -26,7 +27,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.text,
     marginBottom: 6,
   },

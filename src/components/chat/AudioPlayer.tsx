@@ -5,6 +5,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 
 interface AudioPlayerProps {
   url: string;
@@ -100,7 +101,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     color: colors.primary,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   ringContainer: {
     width: RING_SIZE,

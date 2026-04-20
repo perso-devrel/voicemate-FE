@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { usePreferences } from '@/hooks/usePreferences';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 import { SUPPORTED_LANGUAGES, isLanguageCode } from '@/constants/languages';
 import { MIN_AGE, MAX_AGE, validateAgeRange } from '@/utils/preferences';
 
@@ -143,13 +144,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
     marginBottom: 24,
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.text,
     marginBottom: 8,
   },
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
   },
   genderActiveText: {
     color: colors.white,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   langRow: {
     flexDirection: 'row',
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
   },
   langChipActiveText: {
     color: colors.white,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   hint: {
     fontSize: 12,

@@ -79,7 +79,6 @@ src/
 │   ├── api.ts
 │   ├── auth.ts
 │   ├── block.ts
-│   ├── devData.ts
 │   ├── discover.ts
 │   ├── matches.ts
 │   ├── messages.ts

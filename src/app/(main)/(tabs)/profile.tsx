@@ -18,6 +18,7 @@ import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/stores/authStore';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 import { calculateAge } from '@/utils/age';
 
 export default function ProfileScreen() {
@@ -242,19 +243,19 @@ const styles = StyleSheet.create({
   },
   voiceCtaText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: '#D63384',
     textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     marginBottom: 8,
   },
   name: {
     fontSize: 24,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.text,
   },
   detail: {

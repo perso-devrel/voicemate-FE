@@ -6,10 +6,6 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('@/services/devData', () => ({
-  getDevResponse: jest.fn(),
-}));
-
 describe('ApiRequestError', () => {
   it('is an Error subclass', () => {
     const err = new ApiRequestError(404, 'Not found');

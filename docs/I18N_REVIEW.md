@@ -20,7 +20,6 @@
 - 🟢 `toggleToLogin` / `toggleToSignup`: 두 언어 모두 관용적.
 - 🟡 `enterEmailAndPassword` (ko: "이메일과 비밀번호를 입력해주세요"):
   영어 "Please enter email and password"는 article이 빠진 명령형 — 자연스러우나 "Please enter your email and password"가 더 매끄러움. 변경 제안.
-- 🟢 `devSkipLogin` — DEV 전용이므로 사용자 페이싱 아님.
 
 ### `discover`
 - 🟢 `match: "매치!"` / `'Match!'` — 표준 데이팅 앱 어휘.

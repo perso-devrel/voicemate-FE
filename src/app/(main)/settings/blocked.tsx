@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/Avatar';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 import * as blockService from '@/services/block';
 import type { BlockListItem } from '@/types';
 
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   name: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
     color: colors.text,
   },
   unblockBtn: {
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
   unblockText: {
     fontSize: 13,
     color: colors.error,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
   separator: {
     height: 1,

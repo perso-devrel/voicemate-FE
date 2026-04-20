@@ -7,10 +7,6 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
 }));
 
-jest.mock('@/services/devData', () => ({
-  getDevResponse: jest.fn(),
-}));
-
 describe('describeError', () => {
   it('prefers ApiRequestError.errorMessage', () => {
     const e = new ApiRequestError(400, 'Email already in use');

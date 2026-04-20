@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { fonts } from "@/constants/fonts";
 import { View, Text, ScrollView, StyleSheet, Alert, Pressable } from "react-native";
 import { router } from "expo-router";
 import {
@@ -326,7 +327,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontSize: 28,
-        fontWeight: "700",
+        fontFamily: fonts.bold,
         color: colors.text,
     },
     subtitle: {
@@ -345,13 +346,13 @@ const styles = StyleSheet.create({
     },
     statusText: {
         fontSize: 16,
-        fontWeight: "500",
+        fontFamily: fonts.medium,
         color: colors.text,
         textAlign: "center",
     },
     timerText: {
         fontSize: 22,
-        fontWeight: "700",
+        fontFamily: fonts.bold,
         color: RECORD_ORANGE,
         fontVariant: ["tabular-nums"],
     },
@@ -398,7 +399,7 @@ const styles = StyleSheet.create({
     },
     scriptTitle: {
         fontSize: 13,
-        fontWeight: "600",
+        fontFamily: fonts.semibold,
         color: colors.primary,
     },
     scriptText: {

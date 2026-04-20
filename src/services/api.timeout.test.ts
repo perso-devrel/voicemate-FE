@@ -6,10 +6,6 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('@/services/devData', () => ({
-  getDevResponse: jest.fn(),
-}));
-
 describe('ApiClient fetch wrapper', () => {
   const originalFetch = global.fetch;
 

@@ -29,7 +29,6 @@ export default {
         toggleToSignup: "계정이 없으신가요? 회원가입",
         or: "또는",
         continueWithGoogle: "Google로 계속하기",
-        devSkipLogin: "[개발] 로그인 건너뛰기",
         loginFailed: "로그인 실패",
         signupFailed: "회원가입 실패",
         enterEmailAndPassword: "이메일과 비밀번호를 입력해주세요",

@@ -1,14 +1,15 @@
 import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import { Redirect } from 'expo-router';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useState } from 'react';
+import Constants from 'expo-constants';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { GoogleLoginButton } from '@/components/ui/GoogleLoginButton';
 import { useAuthStore } from '@/stores/authStore';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 
-WebBrowser.maybeCompleteAuthSession();
+const isExpoGo = Constants.appOwnership === 'expo';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -18,31 +19,34 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  });
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const idToken = response.params.id_token;
-      handleGoogleLogin(idToken);
+  const handleGooglePress = async () => {
+    if (loadingAction) return;
+    if (isExpoGo) {
+      Alert.alert(
+        t('auth.loginFailed'),
+        'Google 로그인은 dev-client 또는 정식 빌드에서만 동작합니다. 이메일 로그인 또는 개발 스킵을 사용하세요.'
+      );
+      return;
     }
-  }, [response]);
-
-  const handleGoogleLogin = async (idToken: string) => {
     setLoadingAction('google');
     try {
+      const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      });
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const result = await GoogleSignin.signIn();
+      const idToken = (result as any)?.data?.idToken ?? (result as any)?.idToken;
+      if (!idToken) throw new Error('ID 토큰을 받지 못했습니다');
       await login(idToken);
     } catch (e: any) {
-      Alert.alert(t('auth.loginFailed'), e.message);
+      const { statusCodes } = await import('@react-native-google-signin/google-signin');
+      if (e?.code === statusCodes.SIGN_IN_CANCELLED) return;
+      Alert.alert(t('auth.loginFailed'), e?.message ?? String(e));
     } finally {
       setLoadingAction(null);
     }
-  };
-
-  const handleGooglePress = () => {
-    if (loadingAction) return;
-    promptAsync();
   };
 
   const handleEmailAuth = async () => {
@@ -117,20 +121,10 @@ export default function LoginScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        <Button
-          title={t('auth.continueWithGoogle')}
+        <GoogleLoginButton
           onPress={handleGooglePress}
           loading={loadingAction === 'google'}
-          disabled={!request}
-          style={styles.googleBtn}
         />
-        {__DEV__ && (
-          <Button
-            title={t('auth.devSkipLogin')}
-            variant="outline"
-            onPress={async () => await useAuthStore.getState().devSkipLogin()}
-          />
-        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -150,7 +144,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 40,
-    fontWeight: '800',
+    fontFamily: fonts.extrabold,
     color: colors.primary,
   },
   subtitle: {
@@ -193,8 +187,5 @@ const styles = StyleSheet.create({
   dividerText: {
     color: colors.textSecondary,
     fontSize: 13,
-  },
-  googleBtn: {
-    backgroundColor: colors.text,
   },
 });

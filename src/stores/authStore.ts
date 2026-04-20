@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { saveTokens, clearTokens, getAccessToken, getRefreshToken } from '@/services/api';
 import { loginWithGoogle, loginWithEmail as loginEmailApi, signupWithEmail as signupEmailApi } from '@/services/auth';
-import { loadDevImages } from '@/services/devData';
 import { getMyProfile } from '@/services/profile';
 import type { Profile } from '@/types';
 
@@ -16,7 +15,6 @@ interface AuthState {
   login: (idToken: string) => Promise<void>;
   emailLogin: (email: string, password: string) => Promise<void>;
   emailSignup: (email: string, password: string) => Promise<void>;
-  devSkipLogin: () => Promise<void>;
   logout: () => Promise<void>;
   tryAutoLogin: () => Promise<void>;
   loadProfile: () => Promise<void>;
@@ -67,36 +65,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isAuthenticated: true });
   },
 
-  devSkipLogin: async () => {
-    await loadDevImages();
-    await saveTokens('dev-token', 'dev-refresh-token');
-    set({
-      isAuthenticated: true,
-      userId: 'dev-user',
-      email: 'dev@test.com',
-      hasProfile: true,
-      profile: {
-        id: 'dev-user',
-        display_name: 'Dev User',
-        birth_date: '2000-01-01',
-        gender: 'male',
-        nationality: 'KR',
-        language: 'ko',
-        bio: 'Dev mode',
-        interests: [],
-        photos: [],
-        voice_clone_status: 'pending',
-        voice_sample_url: null,
-        elevenlabs_voice_id: null,
-        bio_audio_url: null,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      isLoading: false,
-    });
-  },
-
   logout: async () => {
     await clearTokens();
     set({
@@ -116,11 +84,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const refreshToken = await getRefreshToken();
       if (!token && !refreshToken) {
         set({ isLoading: false });
-        return;
-      }
-      // Dev token: restore dev session
-      if (token === 'dev-token') {
-        await get().devSkipLogin();
         return;
       }
       // Validate token by fetching profile

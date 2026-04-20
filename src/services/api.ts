@@ -1,6 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '@/constants/config';
-import { getDevResponse } from '@/services/devData';
 import type { TokenRefreshResponse } from '@/types';
 
 const TOKEN_KEY = 'access_token';
@@ -103,11 +102,6 @@ class ApiClient {
   ): Promise<T> {
     const token = await getValidToken();
 
-    // Dev mode: return dummy data for UI testing
-    if (token === 'dev-token') {
-      return getDevResponse(path, options.method ?? 'GET', options.body) as T;
-    }
-
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string>),
     };
@@ -128,12 +122,6 @@ class ApiClient {
     );
 
     if (res.status === 401 && retry) {
-      const currentToken = await getAccessToken();
-      // Dev mode: don't attempt refresh/logout with fake tokens
-      if (currentToken === 'dev-token') {
-        throw new Error('Dev mode: API not available');
-      }
-
       isRefreshing = true;
       refreshPromise = refreshAccessToken();
       const newToken = await refreshPromise;

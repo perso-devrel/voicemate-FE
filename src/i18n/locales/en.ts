@@ -29,7 +29,6 @@ export default {
     toggleToSignup: "Don't have an account? Sign Up",
     or: 'OR',
     continueWithGoogle: 'Continue with Google',
-    devSkipLogin: '[DEV] Skip Login',
     loginFailed: 'Login Failed',
     signupFailed: 'Signup Failed',
     enterEmailAndPassword: 'Please enter email and password',

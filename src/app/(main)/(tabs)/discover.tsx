@@ -5,6 +5,7 @@ import { SwipeCard } from '@/components/discover/SwipeCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useDiscover } from '@/hooks/useDiscover';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 
 export default function DiscoverScreen() {
   const { t } = useTranslation();
@@ -70,7 +71,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
   },
   emptyText: {

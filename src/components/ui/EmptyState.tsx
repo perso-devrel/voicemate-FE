@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from './Button';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 
 interface EmptyStateProps {
   title: string;
@@ -57,7 +58,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     textAlign: 'center',
   },

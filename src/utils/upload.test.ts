@@ -7,10 +7,6 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
 }));
 
-jest.mock('@/services/devData', () => ({
-  getDevResponse: jest.fn(),
-}));
-
 describe('uploadWithTimeout', () => {
   it('resolves with the task value when it completes before the timeout', async () => {
     const task = Promise.resolve({ ok: true });

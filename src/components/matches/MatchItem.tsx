@@ -2,6 +2,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/Avatar';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 import { formatRelativeTime } from '@/utils/age';
 import type { MatchListItem } from '@/types';
 
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
     color: colors.text,
     flex: 1,
   },
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.white,
   },
 });

@@ -1,6 +1,7 @@
 import { View, Text, Image, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 import { calculateAge } from '@/utils/age';
 import type { DiscoverCandidate } from '@/types';
 
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: fonts.bold,
     color: colors.white,
   },
   detail: {

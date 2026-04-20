@@ -103,7 +103,6 @@ src/
 - 라우트 그룹: `(auth)`, `(main)`, `(tabs)` 정상. expo-router 관례 준수.
 - 동적 라우트: `chat/[matchId].tsx`만 존재. 매치 상세·설정·프로필 편집은 정적 라우트.
 - `@/*` path alias 일관적으로 사용 (상대 경로 `../../../` 미발견).
-- `src/services/devData.ts`: 개발용 더미 응답 제공. **Phase 6에서 프로덕션 번들 분리 여부 검토 필요** (현재는 모듈 import 단순).
 
 ## 9. 환경 변수 (`EXPO_PUBLIC_*`)
 
