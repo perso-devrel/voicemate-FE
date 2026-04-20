@@ -39,6 +39,14 @@ export default {
         matchedWith: "{{name}}님과 매치되었습니다!",
         noMoreProfiles: "더 이상 프로필이 없습니다",
         checkBackLater: "나중에 새로운 사람을 확인해보세요",
+        playBio: "자기소개 듣기",
+        lockedTitle: "프로필을 먼저 완성해주세요",
+        lockedVoiceHint:
+            "둘러보기 전에 내 음성을 등록해야 해요. 상대방의 자기소개가 내 목소리로 들리거든요.",
+        lockedBioHint:
+            "자기소개를 한 줄 적어주세요. 입력한 글이 내 목소리로 자동 변환돼 상대방에게 들려요.",
+        lockedGoVoice: "음성 등록하러 가기",
+        lockedGoBio: "자기소개 작성하러 가기",
     },
 
     matches: {
@@ -51,6 +59,7 @@ export default {
 
     profile: {
         loadingProfile: "프로필 불러오는 중...",
+        synthesizingBio: "자기소개 음성 생성 중...",
         registerVoicePrompt: "나의 목소리를 등록하세요!",
         editProfile: "프로필 수정",
         voiceSettings: "음성 설정",
@@ -93,6 +102,8 @@ export default {
         selectLanguageRequired: "언어를 선택해주세요",
         bio: "자기소개 (선택)",
         bioPlaceholder: "자신에 대해 소개해주세요",
+        bioLockedPlaceholder: "보이스 클론 등록 후 작성할 수 있어요",
+        bioLockedHint: "보이스 클론이 등록되어야 자기소개 음성이 자동으로 생성돼요. 먼저 '음성 설정'에서 목소리를 등록해주세요.",
         interests: "관심사 ({{count}}/10)",
         addInterest: "관심사 추가",
     },

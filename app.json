@@ -27,6 +27,7 @@
         "backgroundColor": "#6C5CE7"
       },
       "package": "com.voicemate.app",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "RECORD_AUDIO",
         "READ_EXTERNAL_STORAGE"

@@ -1,19 +1,38 @@
 import { useEffect } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SwipeCard } from '@/components/discover/SwipeCard';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { Button } from '@/components/ui/Button';
+import { PhotoBackground } from '@/components/ui/PhotoBackground';
 import { useDiscover } from '@/hooks/useDiscover';
-import { colors } from '@/constants/colors';
+import { useAuthStore } from '@/stores/authStore';
+import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
 export default function DiscoverScreen() {
   const { t } = useTranslation();
+  const profile = useAuthStore((s) => s.profile);
   const { candidates, loading, loadCandidates, handleSwipe } = useDiscover();
 
+  const voiceReady = profile?.voice_clone_status === 'ready';
+  const bioReady = Boolean(profile?.bio && profile.bio.trim().length > 0);
+  const gated = !voiceReady || !bioReady;
+
   useEffect(() => {
-    loadCandidates();
-  }, [loadCandidates]);
+    if (!gated) loadCandidates();
+  }, [gated, loadCandidates]);
+
+  if (gated) {
+    return (
+      <PhotoBackground variant="app">
+        <GateScreen voiceReady={voiceReady} t={t} />
+      </PhotoBackground>
+    );
+  }
 
   const onSwipe = async (direction: 'like' | 'pass') => {
     const candidate = candidates[0];
@@ -24,9 +43,6 @@ export default function DiscoverScreen() {
     if (res?.match) {
       Alert.alert(t('discover.match'), t('discover.matchedWith', { name: candidate.display_name }));
     }
-
-    // handleSwipe removes the candidate from the array,
-    // so the next candidate slides into the same index.
   };
 
   if (loading && candidates.length === 0) {
@@ -37,19 +53,70 @@ export default function DiscoverScreen() {
 
   if (!current) {
     return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>{t('discover.noMoreProfiles')}</Text>
-        <Text style={styles.emptyText}>{t('discover.checkBackLater')}</Text>
-      </View>
+      <PhotoBackground variant="app">
+        <View style={styles.empty}>
+          <LinearGradient
+            colors={[...gradients.glow]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.emptyHalo, shadows.glow]}
+          >
+            <Ionicons name="sparkles" size={38} color={colors.white} />
+          </LinearGradient>
+          <Text style={styles.emptyTitle}>{t('discover.noMoreProfiles')}</Text>
+          <Text style={styles.emptyText}>{t('discover.checkBackLater')}</Text>
+        </View>
+      </PhotoBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <SwipeCard
-        candidate={current}
-        onLike={() => onSwipe('like')}
-        onPass={() => onSwipe('pass')}
+    <PhotoBackground variant="app">
+      <View style={styles.container}>
+        <SwipeCard
+          candidate={current}
+          onLike={() => onSwipe('like')}
+          onPass={() => onSwipe('pass')}
+        />
+      </View>
+    </PhotoBackground>
+  );
+}
+
+function GateScreen({
+  voiceReady,
+  t,
+}: {
+  voiceReady: boolean;
+  t: (key: string) => string;
+}) {
+  // Guide the user through the missing step in the natural signup order:
+  // voice first, bio next.
+  const goVoice = () => router.push('/(main)/setup/voice');
+  const goBio = () => router.push('/(main)/setup/profile');
+
+  return (
+    <View style={styles.empty}>
+      <LinearGradient
+        colors={[...gradients.glow]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.emptyHalo, shadows.glow]}
+      >
+        <Ionicons
+          name={voiceReady ? 'create-outline' : 'mic-outline'}
+          size={38}
+          color={colors.white}
+        />
+      </LinearGradient>
+      <Text style={styles.emptyTitle}>{t('discover.lockedTitle')}</Text>
+      <Text style={styles.emptyText}>
+        {voiceReady ? t('discover.lockedBioHint') : t('discover.lockedVoiceHint')}
+      </Text>
+      <Button
+        title={voiceReady ? t('discover.lockedGoBio') : t('discover.lockedGoVoice')}
+        onPress={voiceReady ? goBio : goVoice}
+        style={styles.ctaBtn}
       />
     </View>
   );
@@ -58,7 +125,6 @@ export default function DiscoverScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -66,18 +132,38 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
     paddingHorizontal: 32,
   },
+  emptyHalo: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
   emptyTitle: {
-    fontSize: 20,
-    fontFamily: fonts.semibold,
+    fontSize: 22,
+    fontFamily: fonts.bold,
     color: colors.text,
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(255,244,238,0.9)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   emptyText: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 8,
+    marginTop: 10,
     textAlign: 'center',
+    lineHeight: 21,
+    textShadowColor: 'rgba(255,244,238,0.9)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  ctaBtn: {
+    marginTop: 28,
+    paddingHorizontal: 36,
+    borderRadius: radii.pill,
   },
 });

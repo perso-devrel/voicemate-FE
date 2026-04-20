@@ -1,5 +1,6 @@
-import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
-import { colors } from '@/constants/colors';
+import { Pressable, Text, StyleSheet, ActivityIndicator, View, ViewStyle, TextStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
 interface ButtonProps {
@@ -32,6 +33,15 @@ export function Button({
   accessibilityLabel,
 }: ButtonProps) {
   const isDisabled = isButtonDisabled(disabled, loading);
+  const isPrimary = variant === 'primary';
+
+  const content = loading ? (
+    <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.white} />
+  ) : (
+    <Text style={[styles.text, styles[`${variant}Text` as keyof typeof styles], textStyle]}>
+      {title}
+    </Text>
+  );
 
   return (
     <Pressable
@@ -41,34 +51,43 @@ export function Button({
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
-        styles.base,
-        styles[variant],
+        styles.shell,
+        isPrimary && shadows.glow,
         pressed && styles.pressed,
         isDisabled && styles.disabled,
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.white} />
+      {isPrimary ? (
+        <LinearGradient
+          colors={[...gradients.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.base, styles.primary]}
+        >
+          {content}
+        </LinearGradient>
       ) : (
-        <Text style={[styles.text, styles[`${variant}Text` as keyof typeof styles], textStyle]}>
-          {title}
-        </Text>
+        <View style={[styles.base, styles[variant]]}>{content}</View>
       )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  shell: {
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+  },
   base: {
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primary: {
-    backgroundColor: colors.primary,
+    // gradient handles the fill; keep for shape.
   },
   secondary: {
     backgroundColor: colors.secondary,
@@ -82,7 +101,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
   },
   pressed: {
-    opacity: 0.85,
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   disabled: {
     opacity: 0.5,
@@ -91,9 +111,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: fonts.semibold,
     color: colors.white,
+    letterSpacing: 0.3,
   },
   primaryText: {},
-  secondaryText: {},
+  secondaryText: {
+    color: colors.text,
+  },
   outlineText: {
     color: colors.primary,
   },

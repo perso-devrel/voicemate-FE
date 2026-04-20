@@ -12,12 +12,13 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { createAudioPlayer } from 'expo-audio';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { useChat } from '@/hooks/useChat';
-import { colors } from '@/constants/colors';
+import { colors, gradients } from '@/constants/colors';
 import { createAudioPlayerManager } from '@/utils/audioPlayerManager';
 import type { Message } from '@/types';
 
@@ -144,9 +145,20 @@ export default function ChatScreen() {
           <Pressable
             onPress={handleSend}
             disabled={!text.trim() || sending}
-            style={[styles.sendBtn, (!text.trim() || sending) && styles.sendBtnDisabled]}
+            style={({ pressed }) => [
+              styles.sendShell,
+              pressed && { transform: [{ scale: 0.94 }] },
+              (!text.trim() || sending) && styles.sendBtnDisabled,
+            ]}
           >
-            <Ionicons name="send" size={20} color={colors.white} />
+            <LinearGradient
+              colors={[...gradients.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.sendBtn}
+            >
+              <Ionicons name="send" size={20} color={colors.white} />
+            </LinearGradient>
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -160,34 +172,40 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   messageList: {
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.white,
+    paddingVertical: 10,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.borderSoft,
+    backgroundColor: colors.card,
     gap: 8,
   },
   input: {
     flex: 1,
-    minHeight: 40,
-    maxHeight: 100,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    minHeight: 44,
+    maxHeight: 110,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     backgroundColor: colors.surface,
     fontSize: 15,
     color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+  sendShell: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.primary,
+    flex: 1,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },

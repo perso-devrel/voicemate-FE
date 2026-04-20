@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { MatchItem } from '@/components/matches/MatchItem';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { PhotoBackground } from '@/components/ui/PhotoBackground';
 import { useMatches } from '@/hooks/useMatches';
 import { colors } from '@/constants/colors';
 import type { MatchListItem } from '@/types';
@@ -27,7 +28,7 @@ export default function MatchesScreen() {
     if (loading) return null;
     return (
       <EmptyState
-        iconName="people-outline"
+        iconName="sparkles-outline"
         title={t('matches.noMatches')}
         subtitle={t('matches.startSwiping')}
         ctaLabel={t('matches.goToDiscover')}
@@ -37,32 +38,43 @@ export default function MatchesScreen() {
   };
 
   return (
-    <FlatList
-      data={matches}
-      renderItem={renderItem}
-      keyExtractor={(item) => item.match_id}
-      contentContainerStyle={matches.length === 0 ? styles.emptyContainer : undefined}
-      ListEmptyComponent={renderEmpty}
-      onEndReached={hasMore ? loadMore : undefined}
-      onEndReachedThreshold={0.3}
-      refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={loadMatches} />
-      }
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
-      style={styles.list}
-    />
+    <PhotoBackground variant="app">
+      <FlatList
+        data={matches}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.match_id}
+        contentContainerStyle={
+          matches.length === 0 ? styles.emptyContainer : styles.listContent
+        }
+        ListEmptyComponent={renderEmpty}
+        onEndReached={hasMore ? loadMore : undefined}
+        onEndReachedThreshold={0.3}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={loadMatches}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        style={styles.list}
+      />
+    </PhotoBackground>
   );
 }
 
 const styles = StyleSheet.create({
   list: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
+  },
+  listContent: {
+    padding: 14,
+    paddingBottom: 24,
   },
   separator: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginLeft: 80,
+    height: 12,
   },
   emptyContainer: {
     flex: 1,

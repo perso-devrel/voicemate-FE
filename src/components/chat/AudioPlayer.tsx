@@ -79,10 +79,12 @@ export function AudioPlayer({ url, compact = false, showProgressBar = false, tin
       <Ionicons
         name={isPlaying ? 'pause-circle' : 'play-circle'}
         size={compact ? 24 : 32}
-        color={colors.primary}
+        color={tintColor}
       />
       {!compact && (
-        <Text style={styles.label}>{isPlaying ? t('audioPlayer.stop') : t('audioPlayer.play')}</Text>
+        <Text style={[styles.label, { color: tintColor }]}>
+          {isPlaying ? t('audioPlayer.stop') : t('audioPlayer.play')}
+        </Text>
       )}
     </Pressable>
   );

@@ -3,7 +3,7 @@ import { View, Text, FlatList, Pressable, StyleSheet, Alert } from 'react-native
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/Avatar';
-import { colors } from '@/constants/colors';
+import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import * as blockService from '@/services/block';
 import type { BlockListItem } from '@/types';
@@ -88,8 +88,14 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginHorizontal: 12,
+    marginTop: 10,
     gap: 12,
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    ...shadows.soft,
   },
   name: {
     flex: 1,
@@ -99,8 +105,8 @@ const styles = StyleSheet.create({
   },
   unblockBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 7,
+    borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.error,
   },
@@ -110,9 +116,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
   },
   separator: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginLeft: 72,
+    height: 0,
   },
   emptyContainer: {
     flex: 1,

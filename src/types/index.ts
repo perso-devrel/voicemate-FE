@@ -73,6 +73,7 @@ export interface DiscoverCandidate {
   nationality: string;
   language: string;
   bio: string | null;
+  bio_audio_url: string | null;
   interests: string[];
   photos: string[];
 }

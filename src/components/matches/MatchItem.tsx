@@ -1,7 +1,8 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/Avatar';
-import { colors } from '@/constants/colors';
+import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { formatRelativeTime } from '@/utils/age';
 import type { MatchListItem } from '@/types';
@@ -14,10 +15,14 @@ interface MatchItemProps {
 export function MatchItem({ item, onPress }: MatchItemProps) {
   const { t } = useTranslation();
   const partner = item.partner;
+  const hasUnread = item.unread_count > 0;
 
   return (
-    <Pressable style={styles.container} onPress={onPress}>
-      <Avatar uri={partner?.photos[0]} size={52} />
+    <Pressable
+      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+      onPress={onPress}
+    >
+      <Avatar uri={partner?.photos[0]} size={54} ringed={hasUnread} />
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>
@@ -30,15 +35,23 @@ export function MatchItem({ item, onPress }: MatchItemProps) {
           )}
         </View>
         <View style={styles.messageRow}>
-          <Text style={styles.lastMessage} numberOfLines={1}>
+          <Text
+            style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]}
+            numberOfLines={1}
+          >
             {item.last_message?.original_text ?? t('matches.startConversation')}
           </Text>
-          {item.unread_count > 0 && (
-            <View style={styles.badge}>
+          {hasUnread && (
+            <LinearGradient
+              colors={[...gradients.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.badge}
+            >
               <Text style={styles.badgeText}>
                 {item.unread_count > 99 ? '99+' : item.unread_count}
               </Text>
-            </View>
+            </LinearGradient>
           )}
         </View>
       </View>
@@ -50,9 +63,18 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    gap: 14,
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    ...shadows.soft,
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.99 }],
   },
   content: {
     flex: 1,
@@ -67,6 +89,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     color: colors.text,
     flex: 1,
+    letterSpacing: 0.2,
   },
   time: {
     fontSize: 12,
@@ -83,14 +106,17 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     flex: 1,
   },
+  lastMessageUnread: {
+    color: colors.text,
+    fontFamily: fonts.medium,
+  },
   badge: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 11,
+    minWidth: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
     marginLeft: 8,
   },
   badgeText: {

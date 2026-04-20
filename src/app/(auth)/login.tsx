@@ -1,12 +1,13 @@
-import { View, Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, Keyboard, Platform, Pressable } from 'react-native';
 import { Redirect } from 'expo-router';
 import Constants from 'expo-constants';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { GoogleLoginButton } from '@/components/ui/GoogleLoginButton';
+import { PhotoBackground } from '@/components/ui/PhotoBackground';
 import { useAuthStore } from '@/stores/authStore';
-import { colors } from '@/constants/colors';
+import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
 const isExpoGo = Constants.appOwnership === 'expo';
@@ -18,6 +19,25 @@ export default function LoginScreen() {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [kbHeight, setKbHeight] = useState(0);
+
+  // Manual keyboard tracking: KeyboardAvoidingView's behavior leaves a residual
+  // gap under the sheet on Android new-arch edge-to-edge builds after the
+  // keyboard dismisses. Owning the padding ourselves makes show/hide symmetric.
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvt, (e) => {
+      setKbHeight(e.endCoordinates.height);
+    });
+    const onHide = Keyboard.addListener(hideEvt, () => {
+      setKbHeight(0);
+    });
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   const handleGooglePress = async () => {
     if (loadingAction) return;
@@ -74,105 +94,127 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('auth.appName')}</Text>
-        <Text style={styles.subtitle}>{t('auth.tagline')}</Text>
-      </View>
-
-      <View style={styles.bottom}>
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder={t('auth.email')}
-            placeholderTextColor={colors.textSecondary}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder={t('auth.password')}
-            placeholderTextColor={colors.textSecondary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <Button
-            title={isSignup ? t('auth.signup') : t('auth.login')}
-            onPress={handleEmailAuth}
-            loading={loadingAction === 'email'}
-          />
-          <Pressable onPress={() => setIsSignup((v) => !v)}>
-            <Text style={styles.toggleText}>
-              {isSignup ? t('auth.toggleToLogin') : t('auth.toggleToSignup')}
-            </Text>
-          </Pressable>
+    <PhotoBackground>
+      <View style={[styles.container, { paddingBottom: kbHeight }]}>
+        <View style={styles.header}>
+          <Text style={styles.title}>{t('auth.appName')}</Text>
+          <Text style={styles.subtitle}>{t('auth.tagline')}</Text>
         </View>
 
-        <View style={styles.divider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>{t('auth.or')}</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        <View style={styles.sheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.form}>
+            <TextInput
+              style={styles.input}
+              placeholder={t('auth.email')}
+              placeholderTextColor={colors.textLight}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder={t('auth.password')}
+              placeholderTextColor={colors.textLight}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+            <Button
+              title={isSignup ? t('auth.signup') : t('auth.login')}
+              onPress={handleEmailAuth}
+              loading={loadingAction === 'email'}
+            />
+            <Pressable onPress={() => setIsSignup((v) => !v)}>
+              <Text style={styles.toggleText}>
+                {isSignup ? t('auth.toggleToLogin') : t('auth.toggleToSignup')}
+              </Text>
+            </Pressable>
+          </View>
 
-        <GoogleLoginButton
-          onPress={handleGooglePress}
-          loading={loadingAction === 'google'}
-        />
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>{t('auth.or')}</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <GoogleLoginButton
+            onPress={handleGooglePress}
+            loading={loadingAction === 'google'}
+          />
+        </View>
       </View>
-    </KeyboardAvoidingView>
+    </PhotoBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 120,
-    paddingBottom: 60,
+    paddingTop: 140,
   },
   header: {
     alignItems: 'center',
+    paddingHorizontal: 24,
   },
   title: {
-    fontSize: 40,
+    fontSize: 46,
     fontFamily: fonts.extrabold,
-    color: colors.primary,
+    color: colors.white,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(226,122,160,0.45)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 14,
   },
   subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginTop: 8,
+    fontSize: 15,
+    color: 'rgba(255,240,245,0.88)',
+    marginTop: 12,
+    letterSpacing: 0.6,
+    fontFamily: fonts.medium,
   },
-  bottom: {
-    gap: 12,
+  sheet: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: radii.xl + 8,
+    borderTopRightRadius: radii.xl + 8,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 40,
+    gap: 14,
+    ...shadows.soft,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    marginBottom: 10,
   },
   form: {
     gap: 10,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
+    borderColor: colors.borderSoft,
+    borderRadius: radii.md,
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
     color: colors.text,
     backgroundColor: colors.surface,
+    fontFamily: fonts.regular,
   },
   toggleText: {
     textAlign: 'center',
     color: colors.primary,
     fontSize: 14,
-    marginTop: 4,
+    fontFamily: fonts.semibold,
+    marginTop: 8,
+    letterSpacing: 0.3,
   },
   divider: {
     flexDirection: 'row',
@@ -182,10 +224,11 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.borderSoft,
   },
   dividerText: {
     color: colors.textSecondary,
     fontSize: 13,
+    letterSpacing: 0.3,
   },
 });

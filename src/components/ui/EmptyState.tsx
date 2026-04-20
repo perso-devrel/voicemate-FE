@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Button } from './Button';
-import { colors } from '@/constants/colors';
+import { colors, gradients, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
 interface EmptyStateProps {
@@ -25,12 +26,14 @@ export function EmptyState({
   return (
     <View style={[styles.container, style]}>
       {iconName ? (
-        <Ionicons
-          name={iconName}
-          size={48}
-          color={colors.textSecondary}
-          style={styles.icon}
-        />
+        <LinearGradient
+          colors={[...gradients.glow]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.iconHalo, shadows.glow]}
+        >
+          <Ionicons name={iconName} size={40} color={colors.white} />
+        </LinearGradient>
       ) : null}
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -53,23 +56,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 24,
   },
-  icon: {
-    marginBottom: 16,
+  iconHalo: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 22,
   },
   title: {
     fontSize: 20,
     fontFamily: fonts.semibold,
     color: colors.text,
     textAlign: 'center',
+    letterSpacing: 0.2,
+    // Rescues contrast when the state sits directly on the photo background
+    // without a card — the shadow is invisible on cream surfaces.
+    textShadowColor: 'rgba(255,244,238,0.9)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   subtitle: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
+    lineHeight: 21,
+    textShadowColor: 'rgba(255,244,238,0.9)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   cta: {
-    marginTop: 20,
-    paddingHorizontal: 40,
+    marginTop: 28,
+    paddingHorizontal: 36,
   },
 });

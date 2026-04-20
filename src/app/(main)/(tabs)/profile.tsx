@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,24 +8,55 @@ import {
   StyleSheet,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
+import { PhotoBackground } from '@/components/ui/PhotoBackground';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/stores/authStore';
-import { colors } from '@/constants/colors';
+import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { calculateAge } from '@/utils/age';
 
+const BIO_AUDIO_POLL_INTERVAL_MS = 3000;
+const BIO_AUDIO_POLL_TIMEOUT_MS = 60_000;
+
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const { profile, uploadPhoto, deletePhoto, replacePhoto } = useProfile();
+  const { profile, uploadPhoto, deletePhoto, replacePhoto, loadProfile } = useProfile();
   const logout = useAuthStore((s) => s.logout);
+
+  // BE generates bio audio asynchronously (fire-and-forget TTS). When bio is
+  // present but bio_audio_url is still null, poll for the URL to appear so
+  // the play button shows up without requiring a manual reload.
+  const bioSet = Boolean(profile?.bio && profile.bio.trim().length > 0);
+  const audioReady = Boolean(profile?.bio_audio_url);
+  const [synthesizing, setSynthesizing] = useState(false);
+  useEffect(() => {
+    if (!bioSet || audioReady) {
+      setSynthesizing(false);
+      return;
+    }
+    setSynthesizing(true);
+    const interval = setInterval(() => {
+      loadProfile();
+    }, BIO_AUDIO_POLL_INTERVAL_MS);
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      setSynthesizing(false);
+    }, BIO_AUDIO_POLL_TIMEOUT_MS);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [bioSet, audioReady, loadProfile]);
 
   const pickAndValidate = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -101,14 +133,17 @@ export default function ProfileScreen() {
 
   if (!profile) {
     return (
-      <View style={styles.center}>
-        <Text>{t('profile.loadingProfile')}</Text>
-      </View>
+      <PhotoBackground variant="app">
+        <View style={styles.center}>
+          <Text>{t('profile.loadingProfile')}</Text>
+        </View>
+      </PhotoBackground>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <PhotoBackground variant="app">
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Profile Photo (single) */}
       {profile.photos[0] ? (
         <Pressable key="photo-tile" style={styles.photoSlot} onPress={handlePhotoPress}>
@@ -121,13 +156,25 @@ export default function ProfileScreen() {
         </Pressable>
       ) : (
         <Pressable key="add-tile" style={[styles.photoSlot, styles.addPhoto]} onPress={handleAddPhoto}>
-          <Ionicons name="add" size={48} color={colors.textLight} />
+          <LinearGradient
+            colors={[...gradients.glow]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.addIcon}
+          >
+            <Ionicons name="add" size={32} color={colors.white} />
+          </LinearGradient>
           <Text style={styles.addPhotoLabel}>{t('profile.addPhoto')}</Text>
         </Pressable>
       )}
 
       {/* Profile Info */}
-      <View style={styles.section}>
+      <LinearGradient
+        colors={[...gradients.blush]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.section}
+      >
         <Text style={styles.name}>
           {profile.display_name}, {calculateAge(profile.birth_date)}
         </Text>
@@ -136,9 +183,16 @@ export default function ProfileScreen() {
         </Text>
         {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
 
-        {profile.bio_audio_url && (
+        {profile.bio_audio_url ? (
           <AudioPlayer url={profile.bio_audio_url} />
-        )}
+        ) : synthesizing ? (
+          <View style={styles.synthesizing}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.synthesizingText}>
+              {t('profile.synthesizingBio')}
+            </Text>
+          </View>
+        ) : null}
 
         {profile.interests.length > 0 && (
           <View style={styles.tags}>
@@ -149,13 +203,19 @@ export default function ProfileScreen() {
             ))}
           </View>
         )}
-      </View>
+      </LinearGradient>
 
       {/* Voice Clone CTA (only when not yet registered) */}
       {profile.voice_clone_status === 'pending' && (
-        <View style={styles.voiceCtaBox}>
+        <LinearGradient
+          colors={[...gradients.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.voiceCtaBox}
+        >
+          <Ionicons name="mic-outline" size={18} color={colors.white} />
           <Text style={styles.voiceCtaText}>{t('profile.registerVoicePrompt')}</Text>
-        </View>
+        </LinearGradient>
       )}
 
       {/* Actions */}
@@ -186,7 +246,8 @@ export default function ProfileScreen() {
           onPress={handleLogout}
         />
       </View>
-    </ScrollView>
+      </ScrollView>
+    </PhotoBackground>
   );
 }
 
@@ -197,7 +258,7 @@ const PHOTO_HEIGHT = (PHOTO_WIDTH * 4) / 3; // 3:4 portrait
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: 16,
@@ -211,41 +272,59 @@ const styles = StyleSheet.create({
   photoSlot: {
     width: PHOTO_WIDTH,
     height: PHOTO_HEIGHT,
-    borderRadius: 16,
+    borderRadius: radii.xl,
     overflow: 'hidden',
+    ...shadows.card,
   },
   photo: {
     width: '100%',
     height: '100%',
   },
   addPhoto: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.cardAlt,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: colors.border,
     borderStyle: 'dashed',
-    gap: 8,
+    gap: 14,
+  },
+  addIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addPhotoLabel: {
     fontSize: 14,
-    color: colors.textLight,
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
   },
   section: {
-    marginTop: 20,
+    marginTop: 22,
+    padding: 18,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    ...shadows.soft,
   },
   voiceCtaBox: {
-    marginTop: 20,
-    backgroundColor: '#FFE4EC',
-    borderRadius: 12,
+    marginTop: 18,
+    borderRadius: radii.md,
     paddingVertical: 14,
     paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    ...shadows.glow,
   },
   voiceCtaText: {
     fontSize: 14,
     fontFamily: fonts.semibold,
-    color: '#D63384',
-    textAlign: 'center',
+    color: colors.white,
+    letterSpacing: 0.3,
   },
   sectionTitle: {
     fontSize: 16,
@@ -254,39 +333,64 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   name: {
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: fonts.bold,
     color: colors.text,
+    letterSpacing: 0.3,
   },
   detail: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 4,
+    marginTop: 6,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.2,
   },
   bio: {
     fontSize: 14,
     color: colors.text,
-    marginTop: 8,
-    lineHeight: 20,
+    marginTop: 12,
+    lineHeight: 22,
   },
   tags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 10,
+    marginTop: 14,
   },
   tag: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.white,
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tagText: {
     fontSize: 13,
-    color: colors.white,
+    color: colors.primaryDark,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.2,
   },
   actions: {
-    marginTop: 24,
+    marginTop: 28,
     gap: 10,
+  },
+  synthesizing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.white,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignSelf: 'flex-start',
+  },
+  synthesizingText: {
+    fontSize: 13,
+    color: colors.primaryDark,
+    fontFamily: fonts.medium,
   },
 });

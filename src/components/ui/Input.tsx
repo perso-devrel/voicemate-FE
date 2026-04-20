@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { TextInput, View, Text, StyleSheet, TextInputProps } from 'react-native';
-import { colors } from '@/constants/colors';
+import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
 interface InputProps extends TextInputProps {
@@ -7,13 +8,27 @@ interface InputProps extends TextInputProps {
   error?: string;
 }
 
-export function Input({ label, error, style, ...props }: InputProps) {
+export function Input({ label, error, style, onFocus, onBlur, ...props }: InputProps) {
+  const [focused, setFocused] = useState(false);
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
-        style={[styles.input, error && styles.inputError, style]}
+        style={[
+          styles.input,
+          focused && styles.inputFocused,
+          error && styles.inputError,
+          style,
+        ]}
         placeholderTextColor={colors.textLight}
+        onFocus={(e) => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
         {...props}
       />
       {error && <Text style={styles.error}>{error}</Text>}
@@ -26,19 +41,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: fonts.medium,
-    color: colors.text,
-    marginBottom: 6,
+    color: colors.textSecondary,
+    marginBottom: 8,
+    letterSpacing: 0.3,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderColor: colors.borderSoft,
+    borderRadius: radii.md,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
     fontSize: 16,
     color: colors.text,
+    backgroundColor: colors.card,
+    fontFamily: fonts.regular,
+  },
+  inputFocused: {
+    borderColor: colors.primary,
     backgroundColor: colors.white,
   },
   inputError: {

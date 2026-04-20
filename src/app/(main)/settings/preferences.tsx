@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+  Alert,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { usePreferences } from '@/hooks/usePreferences';
-import { colors } from '@/constants/colors';
+import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { SUPPORTED_LANGUAGES, isLanguageCode } from '@/constants/languages';
 import { MIN_AGE, MAX_AGE, validateAgeRange } from '@/utils/preferences';
@@ -19,6 +28,18 @@ export default function PreferencesScreen() {
   const [maxAge, setMaxAge] = useState('100');
   const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>([...GENDER_OPTIONS]);
   const [languages, setLanguages] = useState<string[]>([]);
+  const [kbHeight, setKbHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
+    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   useEffect(() => {
     loadPreferences();
@@ -76,7 +97,11 @@ export default function PreferencesScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingBottom: 40 + kbHeight }]}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>{t('preferences.title')}</Text>
 
       <Input
@@ -161,10 +186,11 @@ const styles = StyleSheet.create({
   },
   genderBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 12,
+    borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
   },
   genderActive: {
@@ -189,10 +215,10 @@ const styles = StyleSheet.create({
   langChip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 18,
+    borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   langChipActive: {
     borderColor: colors.primary,

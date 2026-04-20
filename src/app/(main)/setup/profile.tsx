@@ -7,14 +7,17 @@ import {
   Alert,
   Pressable,
   BackHandler,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { router, useNavigation } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/stores/authStore';
-import { colors } from '@/constants/colors';
+import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
 import type { ProfileUpsertRequest } from '@/types';
@@ -25,6 +28,7 @@ export default function ProfileSetupScreen() {
   const { t } = useTranslation();
   const { profile, loading, upsertProfile } = useProfile();
   const navigation = useNavigation();
+  const voiceReady = profile?.voice_clone_status === 'ready';
 
   // First-time user: back = logout
   useEffect(() => {
@@ -52,6 +56,18 @@ export default function ProfileSetupScreen() {
       backHandler.remove();
     };
   }, [profile, navigation]);
+
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
+    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   const [form, setForm] = useState<ProfileUpsertRequest>({
     display_name: '',
@@ -131,7 +147,11 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingBottom: 40 + kbHeight }]}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>
         {profile ? t('setupProfile.editProfile') : t('setupProfile.createProfile')}
       </Text>
@@ -197,11 +217,25 @@ export default function ProfileSetupScreen() {
         label={t('setupProfile.bio')}
         value={form.bio ?? ''}
         onChangeText={(v) => updateField('bio', v)}
-        placeholder={t('setupProfile.bioPlaceholder')}
+        placeholder={
+          voiceReady
+            ? t('setupProfile.bioPlaceholder')
+            : t('setupProfile.bioLockedPlaceholder')
+        }
         multiline
         maxLength={500}
-        style={{ height: 100, textAlignVertical: 'top' }}
+        editable={voiceReady}
+        style={[
+          { height: 100, textAlignVertical: 'top' },
+          !voiceReady && styles.bioDisabled,
+        ]}
       />
+      {!voiceReady && (
+        <View style={styles.bioLockBox}>
+          <Ionicons name="mic-off-outline" size={16} color={colors.primaryDark} />
+          <Text style={styles.bioLockText}>{t('setupProfile.bioLockedHint')}</Text>
+        </View>
+      )}
 
       <Text style={styles.label}>
         {t('setupProfile.interests', { count: form.interests?.length ?? 0 })}
@@ -262,10 +296,11 @@ const styles = StyleSheet.create({
   },
   genderBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: 12,
+    borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
+    backgroundColor: colors.card,
     alignItems: 'center',
   },
   genderActive: {
@@ -290,10 +325,10 @@ const styles = StyleSheet.create({
   langChip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    borderRadius: 18,
+    borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
-    backgroundColor: colors.white,
+    backgroundColor: colors.card,
   },
   langChipActive: {
     borderColor: colors.primary,
@@ -316,13 +351,41 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tag: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: colors.white,
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   tagText: {
     fontSize: 13,
-    color: colors.white,
+    color: colors.primaryDark,
+    fontFamily: fonts.medium,
+  },
+  bioDisabled: {
+    backgroundColor: colors.surface,
+    color: colors.textLight,
+    opacity: 0.7,
+  },
+  bioLockBox: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  bioLockText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.primaryDark,
+    fontFamily: fonts.medium,
   },
 });

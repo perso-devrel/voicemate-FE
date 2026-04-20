@@ -11,6 +11,6 @@ module.exports = {
     '\\.(ttf|otf|woff|woff2|png|jpg|jpeg|gif|svg)$': '<rootDir>/__mocks__/fileMock.js',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|react-navigation|@react-navigation/.*)/)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|expo-linear-gradient|@expo(nent)?/.*|react-navigation|@react-navigation/.*)/)',
   ],
 };

@@ -39,6 +39,14 @@ export default {
     matchedWith: 'You matched with {{name}}!',
     noMoreProfiles: 'No more profiles',
     checkBackLater: 'Check back later for new people',
+    playBio: 'Play bio',
+    lockedTitle: 'Finish your profile first',
+    lockedVoiceHint:
+      "Register your voice before you start discovering — others' bios will play in your own voice.",
+    lockedBioHint:
+      'Write a short bio. It will be turned into your voice and played for others.',
+    lockedGoVoice: 'Register voice',
+    lockedGoBio: 'Write bio',
   },
 
   matches: {
@@ -51,6 +59,7 @@ export default {
 
   profile: {
     loadingProfile: 'Loading profile...',
+    synthesizingBio: 'Synthesizing your bio...',
     registerVoicePrompt: 'Register your voice!',
     editProfile: 'Edit Profile',
     voiceSettings: 'Voice Settings',
@@ -93,6 +102,8 @@ export default {
     selectLanguageRequired: 'Please select a language',
     bio: 'Bio (optional)',
     bioPlaceholder: 'Tell about yourself',
+    bioLockedPlaceholder: 'Register your voice clone first to write a bio',
+    bioLockedHint: "Your bio is turned into voice using your voice clone, so please register your voice in 'Voice Settings' first.",
     interests: 'Interests ({{count}}/10)',
     addInterest: 'Add interest',
   },

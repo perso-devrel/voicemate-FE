@@ -17,10 +17,10 @@ import { Button } from "@/components/ui/Button";
 import { AudioPlayer } from "@/components/chat/AudioPlayer";
 import { useVoice } from "@/hooks/useVoice";
 import { useAuthStore } from "@/stores/authStore";
-import { colors } from "@/constants/colors";
+import { colors, radii, shadows } from "@/constants/colors";
 
-const RECORD_ORANGE = "#FF8C42";
-const REGISTERED_PINK = "#FF4F8B";
+const RECORD_ORANGE = "#E8945F"; // warm sunset coral — stays distinct from brand primary.
+const REGISTERED_PINK = colors.like;
 const MAX_DURATION_MS = 60_000; // ring fills toward this; auto-stops at this mark
 
 const RING_SIZE = 56;
@@ -329,20 +329,25 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontFamily: fonts.bold,
         color: colors.text,
+        letterSpacing: 0.2,
     },
     subtitle: {
         fontSize: 14,
         color: colors.textSecondary,
         marginTop: 8,
         marginBottom: 32,
+        lineHeight: 20,
     },
     statusCard: {
         alignItems: "center",
-        padding: 24,
-        backgroundColor: colors.surface,
-        borderRadius: 16,
+        padding: 28,
+        backgroundColor: colors.card,
+        borderRadius: radii.xl,
+        borderWidth: 1,
+        borderColor: colors.border,
         marginBottom: 24,
         gap: 12,
+        ...shadows.soft,
     },
     statusText: {
         fontSize: 16,
@@ -377,7 +382,7 @@ const styles = StyleSheet.create({
     },
     scriptBox: {
         backgroundColor: colors.surface,
-        borderRadius: 12,
+        borderRadius: radii.md,
         borderWidth: 1,
         borderColor: colors.border,
         overflow: "hidden",
