@@ -50,7 +50,10 @@ export function useChat(matchId: string) {
     setError(null);
     try {
       const msg = await messageService.sendMessage(matchId, text);
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
       return msg;
     } catch (e) {
       setError(describeError(e));
