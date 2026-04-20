@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,9 +20,19 @@ import { useAuthStore } from '@/stores/authStore';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
+import { SUPPORTED_NATIONALITIES, type NationalityCode } from '@/constants/nationalities';
+import { INTEREST_OPTIONS, MAX_INTERESTS } from '@/constants/interests';
 import type { ProfileUpsertRequest } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
+
+// Auto-format digits as YYYY-MM-DD while the user types.
+const formatBirthDate = (input: string): string => {
+  const digits = input.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+};
 
 export default function ProfileSetupScreen() {
   const { t } = useTranslation();
@@ -78,7 +88,10 @@ export default function ProfileSetupScreen() {
     bio: '',
     interests: [],
   });
-  const [interestInput, setInterestInput] = useState('');
+  const [nationalityOpen, setNationalityOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const bioAnchorY = useRef(0);
 
   useEffect(() => {
     if (profile) {
@@ -101,24 +114,42 @@ export default function ProfileSetupScreen() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const addInterest = () => {
-    const trimmed = interestInput.trim();
-    if (!trimmed || (form.interests?.length ?? 0) >= 10) return;
-    updateField('interests', [...(form.interests ?? []), trimmed]);
-    setInterestInput('');
-  };
+  // Map localized interest labels -> ids so selection survives language changes.
+  const labelToId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const opt of INTEREST_OPTIONS) {
+      map.set(t(opt.labelKey), opt.id);
+    }
+    return map;
+  }, [t]);
 
-  const removeInterest = (index: number) => {
-    updateField(
-      'interests',
-      (form.interests ?? []).filter((_, i) => i !== index),
-    );
+  const selectedIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const label of form.interests ?? []) {
+      const id = labelToId.get(label);
+      if (id) ids.add(id);
+    }
+    return ids;
+  }, [form.interests, labelToId]);
+
+  const toggleInterest = (id: string, label: string) => {
+    const current = form.interests ?? [];
+    if (selectedIds.has(id)) {
+      updateField(
+        'interests',
+        current.filter((v) => v !== label),
+      );
+      return;
+    }
+    if (current.length >= MAX_INTERESTS) return;
+    updateField('interests', [...current, label]);
   };
 
   const handleSubmit = async () => {
-    // Invariant: form.language is either '' (initial) or a SUPPORTED LanguageCode.
-    // The Picker below only emits codes sourced from SUPPORTED_LANGUAGES so no
-    // legacy value can leak in from local state.
+    if (!form.nationality) {
+      Alert.alert(t('common.error'), t('setupProfile.selectNationalityRequired'));
+      return;
+    }
     if (!form.language) {
       Alert.alert(t('common.error'), t('setupProfile.selectLanguageRequired'));
       return;
@@ -130,7 +161,6 @@ export default function ProfileSetupScreen() {
       };
       await upsertProfile(payload);
       if (!profile) {
-        // First-time setup - go to voice setup
         router.replace('/(main)/setup/voice');
       } else {
         router.back();
@@ -148,6 +178,7 @@ export default function ProfileSetupScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingBottom: 40 + kbHeight }]}
       keyboardShouldPersistTaps="handled"
@@ -167,8 +198,9 @@ export default function ProfileSetupScreen() {
       <Input
         label={t('setupProfile.birthDate')}
         value={form.birth_date}
-        onChangeText={(v) => updateField('birth_date', v)}
+        onChangeText={(v) => updateField('birth_date', formatBirthDate(v))}
         placeholder={t('setupProfile.birthDatePlaceholder')}
+        keyboardType="number-pad"
         maxLength={10}
       />
 
@@ -187,49 +219,122 @@ export default function ProfileSetupScreen() {
         ))}
       </View>
 
-      <Input
-        label={t('setupProfile.nationality')}
-        value={form.nationality}
-        onChangeText={(v) => updateField('nationality', v)}
-        placeholder={t('setupProfile.nationalityPlaceholder')}
-        maxLength={5}
-      />
+      <Text style={styles.label}>{t('setupProfile.nationality')}</Text>
+      <Pressable
+        style={[styles.selectBtn, nationalityOpen && styles.selectBtnOpen]}
+        onPress={() => setNationalityOpen((v) => !v)}
+      >
+        <Text
+          style={[
+            styles.selectText,
+            !form.nationality && styles.selectPlaceholder,
+          ]}
+        >
+          {form.nationality
+            ? t(`nationalities.${form.nationality}`)
+            : t('setupProfile.nationalityPlaceholder')}
+        </Text>
+        <Ionicons
+          name={nationalityOpen ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.textSecondary}
+        />
+      </Pressable>
+      {nationalityOpen && (
+        <View style={[styles.chipRow, styles.dropdownPanel]}>
+          {SUPPORTED_NATIONALITIES.map(({ code, labelKey }) => {
+            const selected = form.nationality === code;
+            return (
+              <Pressable
+                key={code}
+                style={[styles.chip, selected && styles.chipActive]}
+                onPress={() => {
+                  updateField('nationality', code as NationalityCode);
+                  setNationalityOpen(false);
+                }}
+              >
+                <Text style={[styles.chipText, selected && styles.chipActiveText]}>
+                  {t(labelKey)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
 
       <Text style={styles.label}>{t('setupProfile.language')}</Text>
-      <View style={styles.langRow}>
-        {SUPPORTED_LANGUAGES.map(({ code, labelKey }) => {
-          const selected = form.language === code;
-          return (
-            <Pressable
-              key={code}
-              style={[styles.langChip, selected && styles.langChipActive]}
-              onPress={() => updateField('language', code as LanguageCode)}
-            >
-              <Text style={[styles.langChipText, selected && styles.langChipActiveText]}>
-                {t(labelKey)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <Pressable
+        style={[styles.selectBtn, languageOpen && styles.selectBtnOpen]}
+        onPress={() => setLanguageOpen((v) => !v)}
+      >
+        <Text
+          style={[
+            styles.selectText,
+            !form.language && styles.selectPlaceholder,
+          ]}
+        >
+          {form.language
+            ? t(`languages.${form.language}`)
+            : t('setupProfile.languagePlaceholder')}
+        </Text>
+        <Ionicons
+          name={languageOpen ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={colors.textSecondary}
+        />
+      </Pressable>
+      {languageOpen && (
+        <View style={[styles.chipRow, styles.dropdownPanel]}>
+          {SUPPORTED_LANGUAGES.map(({ code, labelKey }) => {
+            const selected = form.language === code;
+            return (
+              <Pressable
+                key={code}
+                style={[styles.chip, selected && styles.chipActive]}
+                onPress={() => {
+                  updateField('language', code as LanguageCode);
+                  setLanguageOpen(false);
+                }}
+              >
+                <Text style={[styles.chipText, selected && styles.chipActiveText]}>
+                  {t(labelKey)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
 
-      <Input
-        label={t('setupProfile.bio')}
-        value={form.bio ?? ''}
-        onChangeText={(v) => updateField('bio', v)}
-        placeholder={
-          voiceReady
-            ? t('setupProfile.bioPlaceholder')
-            : t('setupProfile.bioLockedPlaceholder')
-        }
-        multiline
-        maxLength={500}
-        editable={voiceReady}
-        style={[
-          { height: 100, textAlignVertical: 'top' },
-          !voiceReady && styles.bioDisabled,
-        ]}
-      />
+      <View onLayout={(e) => { bioAnchorY.current = e.nativeEvent.layout.y; }}>
+        <Input
+          label={t('setupProfile.bio')}
+          value={form.bio ?? ''}
+          onChangeText={(v) => updateField('bio', v)}
+          onFocus={() => {
+            // Let the keyboard begin opening, then scroll the bio row above it.
+            // kbHeight updates asynchronously via the keyboardDidShow listener,
+            // so delay and use a generous offset tied to current kbHeight.
+            setTimeout(() => {
+              scrollRef.current?.scrollTo({
+                y: Math.max(0, bioAnchorY.current - 40),
+                animated: true,
+              });
+            }, 250);
+          }}
+          placeholder={
+            voiceReady
+              ? t('setupProfile.bioPlaceholder')
+              : t('setupProfile.bioLockedPlaceholder')
+          }
+          multiline
+          maxLength={500}
+          editable={voiceReady}
+          style={[
+            { height: 100, textAlignVertical: 'top' },
+            !voiceReady && styles.bioDisabled,
+          ]}
+        />
+      </View>
       {!voiceReady && (
         <View style={styles.bioLockBox}>
           <Ionicons name="mic-off-outline" size={16} color={colors.primaryDark} />
@@ -240,21 +345,36 @@ export default function ProfileSetupScreen() {
       <Text style={styles.label}>
         {t('setupProfile.interests', { count: form.interests?.length ?? 0 })}
       </Text>
-      <View style={styles.interestInput}>
-        <Input
-          value={interestInput}
-          onChangeText={setInterestInput}
-          placeholder={t('setupProfile.addInterest')}
-          maxLength={30}
-          onSubmitEditing={addInterest}
-        />
-      </View>
-      <View style={styles.tags}>
-        {(form.interests ?? []).map((tag, i) => (
-          <Pressable key={i} onPress={() => removeInterest(i)} style={styles.tag}>
-            <Text style={styles.tagText}>{tag} x</Text>
-          </Pressable>
-        ))}
+      <Text style={styles.hint}>{t('setupProfile.interestsHint')}</Text>
+      <View style={styles.chipRow}>
+        {INTEREST_OPTIONS.map(({ id, labelKey }) => {
+          const label = t(labelKey);
+          const selected = selectedIds.has(id);
+          const disabled =
+            !selected && (form.interests?.length ?? 0) >= MAX_INTERESTS;
+          return (
+            <Pressable
+              key={id}
+              disabled={disabled}
+              style={[
+                styles.chip,
+                selected && styles.chipActive,
+                disabled && styles.chipDisabled,
+              ]}
+              onPress={() => toggleInterest(id, label)}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  selected && styles.chipActiveText,
+                  disabled && styles.chipDisabledText,
+                ]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       <Button
@@ -289,6 +409,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
+  hint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: -4,
+    marginBottom: 8,
+    fontFamily: fonts.regular,
+  },
   genderRow: {
     flexDirection: 'row',
     gap: 10,
@@ -316,13 +443,46 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: fonts.semibold,
   },
-  langRow: {
+  selectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.card,
+    marginBottom: 12,
+  },
+  selectBtnOpen: {
+    borderColor: colors.primary,
+    backgroundColor: colors.white,
+  },
+  selectText: {
+    fontSize: 16,
+    color: colors.text,
+    fontFamily: fonts.regular,
+  },
+  selectPlaceholder: {
+    color: colors.textLight,
+  },
+  dropdownPanel: {
+    padding: 12,
+    marginTop: -4,
+    marginBottom: 16,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.surface,
+  },
+  chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 16,
   },
-  langChip: {
+  chip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: radii.pill,
@@ -330,38 +490,23 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
-  langChipActive: {
+  chipActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
-  langChipText: {
+  chipDisabled: {
+    opacity: 0.4,
+  },
+  chipText: {
     fontSize: 14,
     color: colors.textSecondary,
   },
-  langChipActiveText: {
+  chipActiveText: {
     color: colors.white,
     fontFamily: fonts.semibold,
   },
-  interestInput: {
-    marginBottom: 0,
-  },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tag: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  tagText: {
-    fontSize: 13,
-    color: colors.primaryDark,
-    fontFamily: fonts.medium,
+  chipDisabledText: {
+    color: colors.textLight,
   },
   bioDisabled: {
     backgroundColor: colors.surface,

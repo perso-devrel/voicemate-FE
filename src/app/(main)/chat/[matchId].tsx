@@ -5,7 +5,7 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Alert,
   ActivityIndicator,
@@ -45,8 +45,20 @@ export default function ChatScreen() {
 
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [kbHeight, setKbHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const audio = useMemo(() => createAudioPlayerManager(createAudioPlayer), []);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
+    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   useEffect(() => {
     // Safety net: leaving the chat screen (navigation away, soft unmount)
@@ -99,14 +111,16 @@ export default function ChatScreen() {
     />
   );
 
+  const keyboardOpen = kbHeight > 0;
+  const bottomSafePad = keyboardOpen ? 8 : 8 + Math.max(insets.bottom, MIN_BOTTOM_SAFE_PAD);
+  // Reserve vertical space under the list so the last message is never
+  // occluded by the absolute-positioned input bar (approx 44 input + 10 top padding + safe pad).
+  const listBottomPad = 54 + bottomSafePad + kbHeight;
+
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: t('chat.title') }} />
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
+      <View style={styles.container}>
         <FlatList
           ref={flatListRef}
           data={messages}
@@ -114,7 +128,8 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           onStartReached={hasMore ? loadOlder : undefined}
           onStartReachedThreshold={0.1}
-          contentContainerStyle={styles.messageList}
+          contentContainerStyle={[styles.messageList, { paddingBottom: listBottomPad }]}
+          style={styles.list}
           ListHeaderComponent={
             loading ? (
               <ActivityIndicator color={colors.primary} style={{ padding: 12 }} />
@@ -130,7 +145,10 @@ export default function ChatScreen() {
         <View
           style={[
             styles.inputBar,
-            { paddingBottom: 8 + Math.max(insets.bottom, MIN_BOTTOM_SAFE_PAD) },
+            {
+              bottom: keyboardOpen ? kbHeight + insets.bottom : 0,
+              paddingBottom: bottomSafePad,
+            },
           ]}
         >
           <TextInput
@@ -161,7 +179,7 @@ export default function ChatScreen() {
             </LinearGradient>
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </>
   );
 }
@@ -171,14 +189,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  list: {
+    flex: 1,
+  },
   messageList: {
-    paddingVertical: 10,
+    paddingTop: 10,
   },
   inputBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 10,
     borderTopWidth: 0.5,
     borderTopColor: colors.borderSoft,
     backgroundColor: colors.card,

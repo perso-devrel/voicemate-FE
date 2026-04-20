@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,10 +51,23 @@ export default function DiscoverScreen() {
 
   const current = candidates[0];
 
+  const refreshControl = (
+    <RefreshControl
+      refreshing={loading}
+      onRefresh={() => loadCandidates()}
+      tintColor={colors.primary}
+      colors={[colors.primary]}
+    />
+  );
+
   if (!current) {
     return (
       <PhotoBackground variant="app">
-        <View style={styles.empty}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.empty}
+          refreshControl={refreshControl}
+        >
           <LinearGradient
             colors={[...gradients.glow]}
             start={{ x: 0, y: 0 }}
@@ -65,20 +78,25 @@ export default function DiscoverScreen() {
           </LinearGradient>
           <Text style={styles.emptyTitle}>{t('discover.noMoreProfiles')}</Text>
           <Text style={styles.emptyText}>{t('discover.checkBackLater')}</Text>
-        </View>
+        </ScrollView>
       </PhotoBackground>
     );
   }
 
   return (
     <PhotoBackground variant="app">
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        refreshControl={refreshControl}
+      >
         <SwipeCard
+          key={current.id}
           candidate={current}
           onLike={() => onSwipe('like')}
           onPass={() => onSwipe('pass')}
         />
-      </View>
+      </ScrollView>
     </PhotoBackground>
   );
 }
@@ -123,13 +141,18 @@ function GateScreen({
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scroll: {
     flex: 1,
+    backgroundColor: 'transparent',
+  },
+  container: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 16,
   },
   empty: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,

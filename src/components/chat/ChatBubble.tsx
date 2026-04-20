@@ -1,7 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, gradients, radii, shadows } from '@/constants/colors';
+import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import type { Message } from '@/types';
 
@@ -74,18 +73,15 @@ export function ChatBubble({ message, isMine, onPlayAudio, onRetryAudio }: ChatB
 
   return (
     <View style={[styles.container, isMine ? styles.mine : styles.theirs]}>
-      {isMine ? (
-        <LinearGradient
-          colors={[...gradients.primary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.bubble, styles.mineBubble, shadows.soft]}
-        >
-          {inner}
-        </LinearGradient>
-      ) : (
-        <View style={[styles.bubble, styles.theirsBubble, shadows.soft]}>{inner}</View>
-      )}
+      <View
+        style={[
+          styles.bubble,
+          isMine ? styles.mineBubble : styles.theirsBubble,
+          shadows.soft,
+        ]}
+      >
+        {inner}
+      </View>
     </View>
   );
 }
@@ -108,6 +104,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
   },
   mineBubble: {
+    backgroundColor: colors.primary,
     borderBottomRightRadius: 6,
   },
   theirsBubble: {

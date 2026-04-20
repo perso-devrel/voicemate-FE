@@ -28,6 +28,27 @@ import { calculateAge } from '@/utils/age';
 const BIO_AUDIO_POLL_INTERVAL_MS = 3000;
 const BIO_AUDIO_POLL_TIMEOUT_MS = 60_000;
 
+function MenuCardButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [styles.menuShell, pressed && styles.menuPressed]}
+    >
+      <LinearGradient
+        colors={[...gradients.blush]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.menuInner}
+      >
+        <Text style={styles.menuText}>{label}</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const { profile, uploadPhoto, deletePhoto, replacePhoto, loadProfile } = useProfile();
@@ -220,24 +241,20 @@ export default function ProfileScreen() {
 
       {/* Actions */}
       <View style={styles.actions}>
-        <Button
-          title={t('profile.editProfile')}
-          variant="outline"
+        <MenuCardButton
+          label={t('profile.editProfile')}
           onPress={() => router.push('/(main)/setup/profile')}
         />
-        <Button
-          title={t('profile.voiceSettings')}
-          variant="outline"
+        <MenuCardButton
+          label={t('profile.voiceSettings')}
           onPress={() => router.push('/(main)/setup/voice')}
         />
-        <Button
-          title={t('profile.matchingPreferences')}
-          variant="outline"
+        <MenuCardButton
+          label={t('profile.matchingPreferences')}
           onPress={() => router.push('/(main)/settings/preferences')}
         />
-        <Button
-          title={t('profile.blockedUsers')}
-          variant="outline"
+        <MenuCardButton
+          label={t('profile.blockedUsers')}
           onPress={() => router.push('/(main)/settings/blocked')}
         />
         <Button
@@ -333,7 +350,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   name: {
-    fontSize: 28,
+    fontSize: 22,
     fontFamily: fonts.bold,
     color: colors.text,
     letterSpacing: 0.3,
@@ -374,6 +391,30 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 28,
     gap: 10,
+  },
+  menuShell: {
+    borderRadius: radii.lg,
+    ...shadows.soft,
+  },
+  menuInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+  },
+  menuText: {
+    fontSize: 15,
+    fontFamily: fonts.semibold,
+    color: colors.text,
+    letterSpacing: 0.2,
+  },
+  menuPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.99 }],
   },
   synthesizing: {
     flexDirection: 'row',

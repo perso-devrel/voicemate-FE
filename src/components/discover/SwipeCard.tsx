@@ -1,8 +1,8 @@
+import { useCallback } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
-import { AudioPlayer } from '@/components/chat/AudioPlayer';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { calculateAge } from '@/utils/age';
@@ -10,8 +10,7 @@ import type { DiscoverCandidate } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 32;
-const CARD_HEIGHT = CARD_WIDTH * 1.35;
-const FADE_HEIGHT = 260;
+const COVER_SIZE = Math.round((CARD_WIDTH - 40) * 0.8);
 
 interface SwipeCardProps {
   candidate: DiscoverCandidate;
@@ -22,90 +21,91 @@ interface SwipeCardProps {
 export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
   const age = calculateAge(candidate.birth_date);
   const photo = candidate.photos[0];
+  const audioUrl = candidate.bio_audio_url;
+
+  const player = useAudioPlayer(audioUrl ?? undefined);
+  const status = useAudioPlayerStatus(player);
+  const isPlaying = audioUrl ? status.playing : false;
+  const duration = status.duration || 0;
+  const currentTime = status.currentTime || 0;
+  const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0;
+
+  const togglePlay = useCallback(() => {
+    if (!audioUrl) return;
+    if (isPlaying) {
+      player.pause();
+      return;
+    }
+    if (duration > 0 && currentTime >= duration) {
+      player.seekTo(0);
+    }
+    player.play();
+  }, [audioUrl, player, isPlaying, duration, currentTime]);
 
   return (
     <View style={styles.card}>
-      {photo ? (
-        <Image source={{ uri: photo }} style={styles.image} />
-      ) : (
-        <View style={[styles.image, styles.placeholder]}>
-          <Ionicons name="person" size={80} color={colors.white} />
-        </View>
-      )}
-
-      {/* Sunset fade: warm rose glow climbing from the bottom. */}
-      <Svg
-        width={CARD_WIDTH}
-        height={FADE_HEIGHT}
-        style={styles.fade}
-        pointerEvents="none"
-      >
-        <Defs>
-          <SvgLinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0%" stopColor="#3D2347" stopOpacity="0" />
-            <Stop offset="45%" stopColor="#6B3D5F" stopOpacity="0.32" />
-            <Stop offset="80%" stopColor="#3D2347" stopOpacity="0.72" />
-            <Stop offset="100%" stopColor="#2B1832" stopOpacity="0.9" />
-          </SvgLinearGradient>
-        </Defs>
-        <Rect width={CARD_WIDTH} height={FADE_HEIGHT} fill="url(#fade)" />
-      </Svg>
-
-      <View style={styles.info}>
-        <View style={styles.nameRow}>
-          <Text style={styles.name}>
-            {candidate.display_name}, {age}
-          </Text>
-          {candidate.bio_audio_url && (
-            <View style={styles.audioWrap}>
-              <AudioPlayer
-                url={candidate.bio_audio_url}
-                compact
-                tintColor={colors.white}
-              />
-            </View>
-          )}
-        </View>
-        <Text style={styles.detail}>
-          {candidate.nationality} · {candidate.language}
-        </Text>
-        {candidate.bio && (
-          <Text style={styles.bio} numberOfLines={2}>
-            {candidate.bio}
-          </Text>
-        )}
-        {candidate.interests.length > 0 && (
-          <View style={styles.interests}>
-            {candidate.interests.slice(0, 4).map((interest, i) => (
-              <View key={i} style={styles.tag}>
-                <Text style={styles.tagText}>{interest}</Text>
-              </View>
-            ))}
+      <View style={styles.cover}>
+        {photo ? (
+          <Image source={{ uri: photo }} style={styles.photo} />
+        ) : (
+          <View style={[styles.photo, styles.placeholder]}>
+            <Ionicons name="person" size={80} color={colors.white} />
           </View>
         )}
       </View>
 
-      <View style={styles.actions}>
+      <View style={styles.meta}>
+        <Text style={styles.name} numberOfLines={1}>
+          {candidate.display_name}, {age}
+        </Text>
+        <Text style={styles.detail} numberOfLines={1}>
+          {candidate.nationality} · {candidate.language}
+        </Text>
+      </View>
+
+      <View style={styles.progressWrap}>
+        <View style={styles.track}>
+          <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+          <View style={[styles.knob, { left: `${progress * 100}%` }]} />
+        </View>
+      </View>
+
+      <View style={styles.controls}>
         <Pressable
-          style={({ pressed }) => [styles.actionBtn, styles.passBtn, pressed && styles.actionPressed]}
           onPress={onPass}
           accessibilityLabel="pass"
+          style={({ pressed }) => [styles.sideBtn, pressed && styles.pressed]}
         >
-          <Ionicons name="close" size={30} color={colors.textSecondary} />
+          <Ionicons name="play-skip-back" size={28} color={colors.white} />
         </Pressable>
+
+        <Pressable
+          onPress={togglePlay}
+          disabled={!audioUrl}
+          accessibilityLabel="play-bio"
+          style={({ pressed }) => [styles.playShell, pressed && styles.pressed]}
+        >
+          <LinearGradient
+            colors={[...gradients.primary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.playBtn, !audioUrl && styles.playBtnDisabled]}
+          >
+            <Ionicons
+              name={isPlaying ? 'pause' : 'play'}
+              size={30}
+              color={colors.white}
+              style={isPlaying ? undefined : styles.playIconOffset}
+            />
+          </LinearGradient>
+        </Pressable>
+
         <Pressable
           onPress={onLike}
           accessibilityLabel="like"
-          style={({ pressed }) => [styles.likeShell, pressed && styles.actionPressed]}
+          style={({ pressed }) => [styles.sideBtn, pressed && styles.pressed]}
         >
-          <LinearGradient
-            colors={[...gradients.glow]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.actionBtn, styles.likeBtn]}
-          >
-            <Ionicons name="heart" size={30} color={colors.white} />
-          </LinearGradient>
+          <Ionicons name="play-skip-forward" size={28} color={colors.like} />
         </Pressable>
       </View>
     </View>
@@ -115,13 +115,24 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    height: CARD_HEIGHT,
     borderRadius: radii.xl,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 22,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(20,10,25,0.55)',
+  },
+  cover: {
+    width: COVER_SIZE,
+    height: COVER_SIZE,
+    borderRadius: radii.lg,
     overflow: 'hidden',
     backgroundColor: colors.secondary,
-    ...shadows.card,
+    ...shadows.soft,
   },
-  image: {
+  photo: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
@@ -131,95 +142,82 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 80,
-  },
-  info: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    bottom: 104,
-  },
-  nameRow: {
-    flexDirection: 'row',
+  meta: {
+    marginTop: 14,
     alignItems: 'center',
-    gap: 10,
+    width: '100%',
   },
   name: {
-    fontSize: 28,
+    fontSize: 22,
     fontFamily: fonts.bold,
     color: colors.white,
     letterSpacing: 0.3,
-    flexShrink: 1,
-  },
-  audioWrap: {
-    backgroundColor: 'rgba(255,255,255,0.22)',
-    borderRadius: radii.pill,
-    paddingHorizontal: 4,
   },
   detail: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.92)',
-    marginTop: 6,
+    color: 'rgba(255,255,255,0.75)',
+    marginTop: 4,
+    fontFamily: fonts.medium,
     letterSpacing: 0.3,
-    fontFamily: fonts.medium,
   },
-  bio: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.88)',
-    marginTop: 8,
-    lineHeight: 19,
+  progressWrap: {
+    width: '100%',
+    paddingHorizontal: 6,
+    marginTop: 14,
   },
-  interests: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 6,
-  },
-  tag: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: radii.pill,
-  },
-  tagText: {
-    fontSize: 12,
-    color: colors.white,
-    fontFamily: fonts.medium,
-  },
-  actions: {
-    position: 'absolute',
-    bottom: 18,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
+  track: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    position: 'relative',
     justifyContent: 'center',
-    alignItems: 'center',
-    gap: 30,
   },
-  likeShell: {
-    borderRadius: 32,
-    overflow: 'hidden',
+  fill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+  },
+  knob: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.white,
+    marginLeft: -6,
+    top: -4,
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 36,
+    marginTop: 14,
+  },
+  sideBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playShell: {
+    borderRadius: 36,
     ...shadows.glow,
   },
-  actionBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
+  playBtn: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  passBtn: {
-    backgroundColor: colors.card,
-    ...shadows.card,
+  playBtnDisabled: {
+    opacity: 0.5,
   },
-  likeBtn: {
-    // gradient fill applied by wrapping LinearGradient.
+  playIconOffset: {
+    marginLeft: 3,
   },
-  actionPressed: {
+  pressed: {
     transform: [{ scale: 0.92 }],
   },
 });

@@ -25,8 +25,8 @@ describe('isLanguageCode', () => {
   });
 
   it('returns false for unsupported ISO codes', () => {
-    expect(isLanguageCode('fr')).toBe(false);
-    expect(isLanguageCode('de')).toBe(false);
+    expect(isLanguageCode('nl')).toBe(false);
+    expect(isLanguageCode('sv')).toBe(false);
   });
 
   it('returns false for legacy Korean label "한국어" (historical data)', () => {
