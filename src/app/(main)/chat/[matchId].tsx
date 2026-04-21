@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   FlatList,
@@ -13,13 +13,11 @@ import {
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { createAudioPlayer } from 'expo-audio';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { useChat } from '@/hooks/useChat';
 import { colors, gradients } from '@/constants/colors';
-import { createAudioPlayerManager } from '@/utils/audioPlayerManager';
 import type { Message } from '@/types';
 
 // Minimum padding under the chat input bar so the send button never sits
@@ -47,7 +45,6 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [kbHeight, setKbHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
-  const audio = useMemo(() => createAudioPlayerManager(createAudioPlayer), []);
 
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -59,12 +56,6 @@ export default function ChatScreen() {
       onHide.remove();
     };
   }, []);
-
-  useEffect(() => {
-    // Safety net: leaving the chat screen (navigation away, soft unmount)
-    // must never leave a native audio player attached.
-    return () => audio.release();
-  }, [audio]);
 
   useEffect(() => {
     loadMessages();
@@ -93,20 +84,10 @@ export default function ChatScreen() {
     }
   };
 
-  const handlePlayAudio = async (url: string) => {
-    try {
-      audio.play(url);
-    } catch (e: any) {
-      audio.release();
-      Alert.alert(t('chat.playbackError'), e.message);
-    }
-  };
-
   const renderMessage = ({ item }: { item: Message }) => (
     <ChatBubble
       message={item}
       isMine={item.sender_id === userId}
-      onPlayAudio={handlePlayAudio}
       onRetryAudio={retryAudio}
     />
   );

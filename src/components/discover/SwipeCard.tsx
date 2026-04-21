@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,44 @@ import type { DiscoverCandidate } from '@/types';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 32;
 const COVER_SIZE = Math.round((CARD_WIDTH - 40) * 0.8);
+
+const WAVE_BAR_COUNT = 36;
+const WAVE_BAR_WIDTH = 3;
+const WAVE_MAX_HEIGHT = 28;
+const WAVE_MIN_HEIGHT = 4;
+
+// Cheap deterministic PRNG so every candidate gets a distinct waveform
+// silhouette that does not jitter between re-renders.
+function hashSeed(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function mulberry32(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function buildWaveform(seed: string): number[] {
+  const rand = mulberry32(hashSeed(seed));
+  return Array.from({ length: WAVE_BAR_COUNT }, (_, i) => {
+    // Sine envelope quiets the ends so the shape reads as a single utterance
+    // instead of a flat rectangle of noise.
+    const envelope = Math.sin((Math.PI * (i + 0.5)) / WAVE_BAR_COUNT);
+    const raw = WAVE_MIN_HEIGHT + rand() * (WAVE_MAX_HEIGHT - WAVE_MIN_HEIGHT);
+    return Math.max(WAVE_MIN_HEIGHT, Math.round(raw * (0.4 + 0.6 * envelope)));
+  });
+}
 
 interface SwipeCardProps {
   candidate: DiscoverCandidate;
@@ -29,6 +67,7 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
   const duration = status.duration || 0;
   const currentTime = status.currentTime || 0;
   const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0;
+  const waveform = useMemo(() => buildWaveform(candidate.id), [candidate.id]);
 
   const togglePlay = useCallback(() => {
     if (!audioUrl) return;
@@ -64,9 +103,24 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
       </View>
 
       <View style={styles.progressWrap}>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-          <View style={[styles.knob, { left: `${progress * 100}%` }]} />
+        <View style={styles.waveform}>
+          {waveform.map((h, i) => {
+            const played = (i + 0.5) / WAVE_BAR_COUNT <= progress;
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.waveBar,
+                  {
+                    height: h,
+                    backgroundColor: played
+                      ? colors.primary
+                      : 'rgba(255,255,255,0.28)',
+                  },
+                ]}
+              />
+            );
+          })}
         </View>
       </View>
 
@@ -165,26 +219,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     marginTop: 14,
   },
-  track: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    position: 'relative',
-    justifyContent: 'center',
+  waveform: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: WAVE_MAX_HEIGHT,
   },
-  fill: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-  },
-  knob: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.white,
-    marginLeft: -6,
-    top: -4,
+  waveBar: {
+    width: WAVE_BAR_WIDTH,
+    borderRadius: WAVE_BAR_WIDTH / 2,
   },
   controls: {
     flexDirection: 'row',

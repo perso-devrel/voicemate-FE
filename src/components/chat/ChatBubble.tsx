@@ -2,16 +2,16 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
+import { AudioPlayer } from './AudioPlayer';
 import type { Message } from '@/types';
 
 interface ChatBubbleProps {
   message: Message;
   isMine: boolean;
-  onPlayAudio?: (url: string) => void;
   onRetryAudio?: (messageId: string) => void;
 }
 
-export function ChatBubble({ message, isMine, onPlayAudio, onRetryAudio }: ChatBubbleProps) {
+export function ChatBubble({ message, isMine, onRetryAudio }: ChatBubbleProps) {
   const showTranslation = !isMine && message.translated_text;
 
   const inner = (
@@ -26,17 +26,13 @@ export function ChatBubble({ message, isMine, onPlayAudio, onRetryAudio }: ChatB
 
       <View style={styles.footer}>
         {message.audio_status === 'ready' && message.audio_url && (
-          <Pressable
-            onPress={() => onPlayAudio?.(message.audio_url!)}
-            style={styles.audioBtn}
-            accessibilityLabel="play audio"
-          >
-            <Ionicons
-              name="play-circle"
-              size={22}
-              color={isMine ? 'rgba(255,255,255,0.95)' : colors.primary}
+          <View style={styles.audioBtn}>
+            <AudioPlayer
+              url={message.audio_url}
+              compact
+              tintColor={isMine ? 'rgba(255,255,255,0.95)' : colors.primary}
             />
-          </Pressable>
+          </View>
         )}
         {message.audio_status === 'processing' && (
           <View style={styles.audioBtn}>
