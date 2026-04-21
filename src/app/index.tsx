@@ -9,7 +9,7 @@ export default function Index() {
   }
 
   if (!hasProfile) {
-    return <Redirect href="/(main)/setup/profile" />;
+    return <Redirect href="/(main)/setup/step1" />;
   }
 
   return <Redirect href="/(main)/(tabs)/discover" />;

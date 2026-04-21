@@ -27,6 +27,27 @@ export default {
     error: 'Error',
     loading: 'Loading...',
     logout: 'Logout',
+    skip: 'Skip',
+    back: 'Back',
+  },
+
+  signupWizard: {
+    progress: '{{current}} / {{total}}',
+    step1Title: 'Basic Info',
+    step1Subtitle: 'Enter the basics that will appear on your profile.',
+    step2Title: 'Voice & Bio',
+    step2Subtitle: 'Register your voice and write a short bio.',
+    step3Title: 'Interests',
+    step3Subtitle: 'Pick a few interests so we can match you better.',
+    step4Title: 'Matching Preferences',
+    step4Subtitle: 'Tell us who you want to meet. You can change this later.',
+    bioRequired: 'Please write a short bio',
+    voiceRequired: 'Please register your voice first',
+    displayNameRequired: 'Please enter your name',
+    birthDateRequired: 'Birth date must be YYYY-MM-DD',
+    register: 'Register Profile',
+    skipAndRegister: 'Skip & Register',
+    registerFailed: 'Profile registration failed. Please try again.',
   },
 
   auth: {
@@ -74,8 +95,15 @@ export default {
     registerVoicePrompt: 'Register your voice!',
     editProfile: 'Edit Profile',
     voiceSettings: 'Voice Settings',
+    interestsSettings: 'Interests',
     matchingPreferences: 'Matching Preferences',
     blockedUsers: 'Blocked Users',
+    editBio: 'Edit Bio',
+    bioEmpty: 'Write a short bio about yourself',
+    editProfileSubtitle: 'Manage your basic info and voice.',
+    editInterestsSubtitle: 'Pick interests so we can match you better.',
+    editBioSubtitle: 'A voice bio is auto-generated from your registered voice.',
+    voiceSectionTitle: 'Voice',
     deletePhoto: 'Delete Photo',
     removePhotoConfirm: 'Remove this photo?',
     addPhoto: 'Add Profile Photo',
@@ -216,6 +244,10 @@ export default {
     leaveEmptyAllLanguages: 'Leave empty to match all languages',
     invalidAgeRange: 'Minimum age must be less than or equal to maximum age.',
     ageOutOfBounds: 'Age must be between {{min}} and {{max}}.',
+  },
+
+  settings: {
+    title: 'Settings',
   },
 
   blocked: {

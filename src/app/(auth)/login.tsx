@@ -90,7 +90,7 @@ export default function LoginScreen() {
   };
 
   if (isAuthenticated) {
-    return <Redirect href={hasProfile ? '/(main)/(tabs)/discover' : '/(main)/setup/profile'} />;
+    return <Redirect href={hasProfile ? '/(main)/(tabs)/discover' : '/(main)/setup/step1'} />;
   }
 
   return (

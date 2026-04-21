@@ -27,6 +27,27 @@ export default {
         error: "오류",
         loading: "불러오는 중...",
         logout: "로그아웃",
+        skip: "건너뛰기",
+        back: "뒤로",
+    },
+
+    signupWizard: {
+        progress: "{{current}} / {{total}}",
+        step1Title: "기본 정보",
+        step1Subtitle: "프로필에 표시될 기본 정보를 입력해주세요.",
+        step2Title: "음성과 자기소개",
+        step2Subtitle: "목소리를 등록하고 자기소개를 작성해주세요.",
+        step3Title: "관심사",
+        step3Subtitle: "관심사를 선택하면 더 잘 맞는 상대를 찾을 수 있어요.",
+        step4Title: "매칭 선호 설정",
+        step4Subtitle: "어떤 사람을 만나고 싶은지 알려주세요. 나중에 바꿀 수 있어요.",
+        bioRequired: "자기소개를 입력해주세요",
+        voiceRequired: "음성 등록을 먼저 완료해주세요",
+        displayNameRequired: "이름을 입력해주세요",
+        birthDateRequired: "생년월일을 YYYY-MM-DD 형식으로 입력해주세요",
+        register: "프로필 등록",
+        skipAndRegister: "건너뛰고 등록",
+        registerFailed: "프로필 등록에 실패했어요. 다시 시도해주세요.",
     },
 
     auth: {
@@ -74,8 +95,15 @@ export default {
         registerVoicePrompt: "나의 목소리를 등록하세요!",
         editProfile: "프로필 수정",
         voiceSettings: "음성 설정",
+        interestsSettings: "관심사 설정",
         matchingPreferences: "매칭 선호 설정",
         blockedUsers: "차단한 사용자",
+        editBio: "자기소개 수정",
+        bioEmpty: "자기소개를 작성해보세요",
+        editProfileSubtitle: "기본 정보와 목소리를 관리할 수 있어요.",
+        editInterestsSubtitle: "더 잘 맞는 상대를 찾기 위한 관심사를 골라주세요.",
+        editBioSubtitle: "등록된 목소리로 자기소개 음성이 자동 생성돼요.",
+        voiceSectionTitle: "음성 등록",
         deletePhoto: "사진 삭제",
         removePhotoConfirm: "이 사진을 삭제하시겠습니까?",
         addPhoto: "프로필 사진 추가",
@@ -218,6 +246,10 @@ export default {
         leaveEmptyAllLanguages: "비워두면 모든 언어와 매칭됩니다",
         invalidAgeRange: "최소 나이는 최대 나이보다 작거나 같아야 합니다.",
         ageOutOfBounds: "나이는 {{min}}–{{max}}세 사이여야 합니다.",
+    },
+
+    settings: {
+        title: "환경설정",
     },
 
     blocked: {

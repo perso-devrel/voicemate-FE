@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import { saveTokens, clearTokens, getAccessToken, getRefreshToken } from '@/services/api';
+import {
+  saveTokens,
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  ApiRequestError,
+} from '@/services/api';
 import { loginWithGoogle, loginWithEmail as loginEmailApi, signupWithEmail as signupEmailApi } from '@/services/auth';
 import { getMyProfile } from '@/services/profile';
 import type { Profile } from '@/types';
@@ -86,12 +92,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ isLoading: false });
         return;
       }
-      // Validate token by fetching profile
-      await get().loadProfile();
-      set({ isAuthenticated: true });
-    } catch {
-      await clearTokens();
-      set({ isAuthenticated: false, profile: null, hasProfile: false });
+      // Validate the session by fetching the profile directly so we can
+      // distinguish "auth is dead" from "auth works but no profile yet".
+      // loadProfile() swallows errors for its other callers, so we can't
+      // reuse it here.
+      try {
+        const profile = await getMyProfile();
+        set({
+          profile,
+          hasProfile: true,
+          userId: profile.id,
+          isAuthenticated: true,
+        });
+      } catch (e) {
+        // 404: auth is valid, profile just doesn't exist yet → route to setup.
+        if (e instanceof ApiRequestError && e.status === 404) {
+          set({
+            profile: null,
+            hasProfile: false,
+            isAuthenticated: true,
+          });
+        } else {
+          // 401 (user deleted / token invalid) or network error → session
+          // cannot be recovered. Wipe tokens and drop to login.
+          await clearTokens();
+          set({
+            isAuthenticated: false,
+            profile: null,
+            hasProfile: false,
+            userId: null,
+            email: null,
+          });
+        }
+      }
     } finally {
       set({ isLoading: false });
     }
@@ -101,8 +134,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const profile = await getMyProfile();
       set({ profile, hasProfile: true, userId: profile.id });
-    } catch {
-      set({ profile: null, hasProfile: false });
+    } catch (e) {
+      if (e instanceof ApiRequestError && e.status === 404) {
+        // Auth still works, just no profile row → signup wizard path.
+        set({ profile: null, hasProfile: false });
+        return;
+      }
+      // Anything else (401 from a deleted user, network errors) leaves the
+      // previous profile in place; api.ts fires onSessionExpired → logout
+      // for unrecoverable 401s separately.
     }
   },
 

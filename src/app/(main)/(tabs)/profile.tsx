@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTranslation } from 'react-i18next';
@@ -51,8 +52,8 @@ function MenuCardButton({ label, onPress }: { label: string; onPress: () => void
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { profile, uploadPhoto, deletePhoto, replacePhoto, loadProfile } = useProfile();
-  const logout = useAuthStore((s) => s.logout);
 
   // BE generates bio audio asynchronously (fire-and-forget TTS). When bio is
   // present but bio_audio_url is still null, poll for the URL to appear so
@@ -138,20 +139,6 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handleLogout = () => {
-    Alert.alert(t('profile.logoutTitle'), t('profile.logoutConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.logout'),
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/');
-        },
-      },
-    ]);
-  };
-
   if (!profile) {
     return (
       <PhotoBackground variant="app">
@@ -164,6 +151,15 @@ export default function ProfileScreen() {
 
   return (
     <PhotoBackground variant="app">
+      <Pressable
+        onPress={() => router.push('/(main)/settings')}
+        accessibilityRole="button"
+        accessibilityLabel={t('settings.title')}
+        hitSlop={12}
+        style={[styles.gearBtn, { top: insets.top + 8 }]}
+      >
+        <Ionicons name="settings-outline" size={22} color={colors.text} />
+      </Pressable>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Profile Photo (single) */}
       {profile.photos[0] ? (
@@ -202,7 +198,20 @@ export default function ProfileScreen() {
         <Text style={styles.detail}>
           {profile.nationality} / {profile.language}
         </Text>
-        {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+        <Pressable
+          style={styles.bioRow}
+          onPress={() => router.push('/(main)/settings/edit-bio')}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.editBio')}
+        >
+          <Text
+            style={[styles.bio, !profile.bio && styles.bioEmpty]}
+            numberOfLines={0}
+          >
+            {profile.bio || t('profile.bioEmpty')}
+          </Text>
+          <Ionicons name="pencil" size={16} color={colors.primaryDark} style={styles.bioPencil} />
+        </Pressable>
 
         {profile.bio_audio_url ? (
           <AudioPlayer url={profile.bio_audio_url} />
@@ -243,24 +252,15 @@ export default function ProfileScreen() {
       <View style={styles.actions}>
         <MenuCardButton
           label={t('profile.editProfile')}
-          onPress={() => router.push('/(main)/setup/profile')}
+          onPress={() => router.push('/(main)/settings/edit-profile')}
         />
         <MenuCardButton
-          label={t('profile.voiceSettings')}
-          onPress={() => router.push('/(main)/setup/voice')}
+          label={t('profile.interestsSettings')}
+          onPress={() => router.push('/(main)/settings/edit-interests')}
         />
         <MenuCardButton
           label={t('profile.matchingPreferences')}
           onPress={() => router.push('/(main)/settings/preferences')}
-        />
-        <MenuCardButton
-          label={t('profile.blockedUsers')}
-          onPress={() => router.push('/(main)/settings/blocked')}
-        />
-        <Button
-          title={t('common.logout')}
-          variant="danger"
-          onPress={handleLogout}
         />
       </View>
       </ScrollView>
@@ -276,6 +276,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+  },
+  gearBtn: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    ...shadows.soft,
   },
   content: {
     padding: 16,
@@ -362,11 +374,30 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     letterSpacing: 0.2,
   },
+  bioRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.white,
+  },
   bio: {
+    flex: 1,
     fontSize: 14,
     color: colors.text,
-    marginTop: 12,
     lineHeight: 22,
+  },
+  bioEmpty: {
+    color: colors.textLight,
+    fontStyle: 'italic',
+  },
+  bioPencil: {
+    marginTop: 3,
   },
   tags: {
     flexDirection: 'row',
