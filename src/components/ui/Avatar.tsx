@@ -8,9 +8,10 @@ interface AvatarProps {
   size?: number;
   style?: ViewStyle;
   ringed?: boolean;
+  blur?: boolean;
 }
 
-export function Avatar({ uri, size = 48, style, ringed = false }: AvatarProps) {
+export function Avatar({ uri, size = 48, style, ringed = false, blur = false }: AvatarProps) {
   const radius = size / 2;
   const ringPad = ringed ? 2 : 0;
   const inner = (
@@ -27,7 +28,11 @@ export function Avatar({ uri, size = 48, style, ringed = false }: AvatarProps) {
       ]}
     >
       {uri ? (
-        <Image source={{ uri }} style={{ width: size, height: size, borderRadius: radius }} />
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: radius }}
+          blurRadius={blur ? Math.max(8, size * 0.35) : 0}
+        />
       ) : (
         <Ionicons name="person" size={size * 0.5} color={colors.white} />
       )}

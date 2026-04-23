@@ -109,6 +109,11 @@ export default {
     addPhoto: 'Add Profile Photo',
     photoActionsTitle: 'Profile Photo',
     changePhoto: 'Change Photo',
+    setAsMain: 'Set as Main Photo',
+    cropPhoto: 'Crop',
+    editPhoto: 'Edit',
+    reorderingPhotos: 'Reordering photos...',
+    maxPhotosReached: 'You can upload up to 6 photos.',
     logoutTitle: 'Logout',
     logoutConfirm: 'Are you sure you want to log out?',
     invalidFormat: 'Invalid Format',
@@ -122,6 +127,11 @@ export default {
     title: 'Chat',
     typeMessage: 'Type a message...',
     playbackError: 'Playback Error',
+    intimacy: 'Intimacy',
+    intimacyUntilMain: '{{count}} more to unlock main photo',
+    intimacyUntilAll: '{{count}} more to unlock all photos',
+    intimacyAllUnlocked: 'All photos unlocked',
+    swipeForMore: 'Swipe for more',
   },
 
   setupProfile: {

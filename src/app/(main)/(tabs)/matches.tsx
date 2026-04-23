@@ -20,7 +20,16 @@ export default function MatchesScreen() {
   const renderItem = useCallback(({ item }: { item: MatchListItem }) => (
     <MatchItem
       item={item}
-      onPress={() => router.push(`/(main)/chat/${item.match_id}`)}
+      onPress={() =>
+        router.push({
+          pathname: '/(main)/chat/[matchId]',
+          params: {
+            matchId: item.match_id,
+            partnerPhoto: item.partner?.photos[0] ?? '',
+            partnerName: item.partner?.display_name ?? '',
+          },
+        })
+      }
     />
   ), []);
 

@@ -3,7 +3,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/constants/config';
 import { getAccessToken, getRefreshToken } from './api';
 import type { Message } from '@/types';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,20 +7,20 @@ import {
   Pressable,
   StyleSheet,
   Alert,
+  Modal,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { PhotoBackground } from '@/components/ui/PhotoBackground';
-import { useProfile } from '@/hooks/useProfile';
+import { useProfile, MAX_PHOTOS } from '@/hooks/useProfile';
 import { useAuthStore } from '@/stores/authStore';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
@@ -52,8 +52,32 @@ function MenuCardButton({ label, onPress }: { label: string; onPress: () => void
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
-  const { profile, uploadPhoto, deletePhoto, replacePhoto, loadProfile } = useProfile();
+  const navigation = useNavigation();
+  const {
+    profile,
+    loading: photoBusy,
+    uploadPhoto,
+    deletePhoto,
+    setPrimaryPhoto,
+    replacePhotoAt,
+    loadProfile,
+  } = useProfile();
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => router.push('/(main)/settings')}
+          accessibilityRole="button"
+          accessibilityLabel={t('settings.title')}
+          hitSlop={12}
+          style={({ pressed }) => [styles.headerGear, pressed && { opacity: 0.6 }]}
+        >
+          <Ionicons name="settings-outline" size={22} color={colors.text} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, t]);
 
   // BE generates bio audio asynchronously (fire-and-forget TTS). When bio is
   // present but bio_audio_url is still null, poll for the URL to appear so
@@ -105,6 +129,10 @@ export default function ProfileScreen() {
   };
 
   const handleAddPhoto = async () => {
+    if ((profile?.photos.length ?? 0) >= MAX_PHOTOS) {
+      Alert.alert(t('profile.photoActionsTitle'), t('profile.maxPhotosReached'));
+      return;
+    }
     const uri = await pickAndValidate();
     if (!uri) return;
     try {
@@ -114,29 +142,50 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleChangePhoto = async () => {
-    const uri = await pickAndValidate();
-    if (!uri) return;
+  const handleSetMain = async (index: number) => {
     try {
-      await replacePhoto(uri);
+      await setPrimaryPhoto(index);
     } catch (e: any) {
       Alert.alert(t('profile.uploadFailed'), e.message);
     }
   };
 
-  const handleDeletePhoto = () => {
+  const handleEditPhoto = async (index: number) => {
+    const uri = await pickAndValidate();
+    if (!uri) return;
+    try {
+      await replacePhotoAt(index, uri);
+    } catch (e: any) {
+      Alert.alert(t('profile.uploadFailed'), e.message);
+    }
+  };
+
+  const handleDeletePhotoAt = (index: number) => {
     Alert.alert(t('profile.deletePhoto'), t('profile.removePhotoConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => deletePhoto(0) },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deletePhoto(index);
+          } catch (e: any) {
+            Alert.alert(t('profile.uploadFailed'), e.message);
+          }
+        },
+      },
     ]);
   };
 
-  const handlePhotoPress = () => {
-    Alert.alert(t('profile.photoActionsTitle'), undefined, [
-      { text: t('profile.changePhoto'), onPress: handleChangePhoto },
-      { text: t('common.delete'), style: 'destructive', onPress: handleDeletePhoto },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+  const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
+  const closeSheet = () => setActivePhotoIndex(null);
+  const handlePhotoPress = (index: number) => setActivePhotoIndex(index);
+
+  const runSheetAction = (action: (index: number) => void | Promise<void>) => {
+    const index = activePhotoIndex;
+    closeSheet();
+    if (index === null) return;
+    action(index);
   };
 
   if (!profile) {
@@ -151,28 +200,10 @@ export default function ProfileScreen() {
 
   return (
     <PhotoBackground variant="app">
-      <Pressable
-        onPress={() => router.push('/(main)/settings')}
-        accessibilityRole="button"
-        accessibilityLabel={t('settings.title')}
-        hitSlop={12}
-        style={[styles.gearBtn, { top: insets.top + 8 }]}
-      >
-        <Ionicons name="settings-outline" size={22} color={colors.text} />
-      </Pressable>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Profile Photo (single) */}
-      {profile.photos[0] ? (
-        <Pressable key="photo-tile" style={styles.photoSlot} onPress={handlePhotoPress}>
-          <Image
-            key={profile.photos[0]}
-            source={{ uri: profile.photos[0] }}
-            style={styles.photo}
-            resizeMode="cover"
-          />
-        </Pressable>
-      ) : (
-        <Pressable key="add-tile" style={[styles.photoSlot, styles.addPhoto]} onPress={handleAddPhoto}>
+      {/* Profile Photos: main on left, thumbnails stacked on right */}
+      {profile.photos.length === 0 ? (
+        <Pressable key="add-tile" style={[styles.mainPhoto, styles.addPhoto]} onPress={handleAddPhoto}>
           <LinearGradient
             colors={[...gradients.glow]}
             start={{ x: 0, y: 0 }}
@@ -183,6 +214,66 @@ export default function ProfileScreen() {
           </LinearGradient>
           <Text style={styles.addPhotoLabel}>{t('profile.addPhoto')}</Text>
         </Pressable>
+      ) : (
+        <View style={styles.photoGrid}>
+          <Pressable
+            style={styles.mainPhotoSlot}
+            onPress={() => handlePhotoPress(0)}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.photoActionsTitle')}
+          >
+            <Image
+              key={profile.photos[0]}
+              source={{ uri: profile.photos[0] }}
+              style={styles.photo}
+              resizeMode="cover"
+            />
+            <View style={styles.mainBadge}>
+              <Ionicons name="star" size={12} color={colors.white} />
+            </View>
+          </Pressable>
+
+          <View style={styles.thumbColumn}>
+            {Array.from({ length: THUMB_COUNT }).map((_, i) => {
+              const photoIndex = i + 1;
+              const uri = profile.photos[photoIndex];
+              if (uri) {
+                return (
+                  <Pressable
+                    key={`thumb-${photoIndex}`}
+                    style={styles.thumbSlot}
+                    onPress={() => handlePhotoPress(photoIndex)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('profile.photoActionsTitle')}
+                  >
+                    <Image source={{ uri }} style={styles.photo} resizeMode="cover" />
+                  </Pressable>
+                );
+              }
+              if (profile.photos.length + 1 > photoIndex && profile.photos.length < MAX_PHOTOS) {
+                return (
+                  <Pressable
+                    key={`thumb-add-${photoIndex}`}
+                    style={[styles.thumbSlot, styles.addThumb]}
+                    onPress={handleAddPhoto}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('profile.addPhoto')}
+                  >
+                    <Ionicons name="add" size={24} color={colors.textSecondary} />
+                  </Pressable>
+                );
+              }
+              return <View key={`thumb-empty-${photoIndex}`} style={[styles.thumbSlot, styles.emptyThumb]} />;
+            })}
+          </View>
+        </View>
+      )}
+
+      {photoBusy && (
+        <View style={styles.photoBusyOverlay} pointerEvents="none">
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.photoBusyText}>{t('profile.reorderingPhotos')}</Text>
+        </View>
       )}
 
       {/* Profile Info */}
@@ -264,30 +355,75 @@ export default function ProfileScreen() {
         />
       </View>
       </ScrollView>
+
+      <Modal
+        visible={activePhotoIndex !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeSheet}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={closeSheet}>
+          <Pressable style={styles.sheetGroup} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheet}>
+              {activePhotoIndex !== null && activePhotoIndex !== 0 && (
+                <Pressable
+                  style={({ pressed }) => [styles.sheetBtn, pressed && styles.sheetBtnPressed]}
+                  onPress={() => runSheetAction(handleSetMain)}
+                >
+                  <Text style={styles.sheetBtnText}>{t('profile.setAsMain')}</Text>
+                </Pressable>
+              )}
+              <Pressable
+                style={({ pressed }) => [styles.sheetBtn, styles.sheetBtnBordered, pressed && styles.sheetBtnPressed]}
+                onPress={() => runSheetAction(handleEditPhoto)}
+              >
+                <Text style={styles.sheetBtnText}>{t('profile.editPhoto')}</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.sheetBtn, styles.sheetBtnBordered, pressed && styles.sheetBtnPressed]}
+                onPress={() => runSheetAction(handleDeletePhotoAt)}
+              >
+                <Text style={[styles.sheetBtnText, styles.sheetBtnDestructive]}>
+                  {t('common.delete')}
+                </Text>
+              </Pressable>
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.sheet, styles.sheetCancel, pressed && styles.sheetBtnPressed]}
+              onPress={closeSheet}
+            >
+              <Text style={[styles.sheetBtnText, styles.sheetBtnCancelText]}>
+                {t('common.cancel')}
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </PhotoBackground>
   );
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const PHOTO_WIDTH = SCREEN_WIDTH - 32; // matches contentContainerStyle padding (16 * 2)
-const PHOTO_HEIGHT = (PHOTO_WIDTH * 4) / 3; // 3:4 portrait
+const GRID_WIDTH = SCREEN_WIDTH - 32; // matches contentContainerStyle padding (16 * 2)
+const GRID_GAP = 10;
+const THUMB_COUNT = 3; // three thumbnails stacked vertically beside the main photo
+const MAIN_PHOTO_WIDTH = Math.round(GRID_WIDTH * (2 / 3));
+const MAIN_PHOTO_HEIGHT = Math.round((MAIN_PHOTO_WIDTH * 4) / 3); // 3:4 portrait
+const THUMB_WIDTH = GRID_WIDTH - MAIN_PHOTO_WIDTH - GRID_GAP;
+const THUMB_HEIGHT = Math.round((MAIN_PHOTO_HEIGHT - GRID_GAP * (THUMB_COUNT - 1)) / THUMB_COUNT);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
   },
-  gearBtn: {
-    position: 'absolute',
-    right: 16,
-    zIndex: 10,
-    width: 40,
-    height: 40,
+  headerGear: {
+    marginRight: 16,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
-    ...shadows.soft,
+    borderRadius: 18,
   },
   content: {
     padding: 16,
@@ -298,12 +434,60 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  photoSlot: {
-    width: PHOTO_WIDTH,
-    height: PHOTO_HEIGHT,
+  photoGrid: {
+    flexDirection: 'row',
+    gap: GRID_GAP,
+    width: GRID_WIDTH,
+  },
+  mainPhoto: {
+    width: GRID_WIDTH,
+    height: MAIN_PHOTO_HEIGHT,
     borderRadius: radii.xl,
     overflow: 'hidden',
     ...shadows.card,
+  },
+  mainPhotoSlot: {
+    width: MAIN_PHOTO_WIDTH,
+    height: MAIN_PHOTO_HEIGHT,
+    borderRadius: radii.xl,
+    overflow: 'hidden',
+    ...shadows.card,
+  },
+  mainBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.soft,
+  },
+  thumbColumn: {
+    width: THUMB_WIDTH,
+    height: MAIN_PHOTO_HEIGHT,
+    gap: GRID_GAP,
+  },
+  thumbSlot: {
+    width: THUMB_WIDTH,
+    height: THUMB_HEIGHT,
+    borderRadius: radii.lg,
+    overflow: 'hidden',
+    ...shadows.soft,
+  },
+  addThumb: {
+    backgroundColor: colors.cardAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+  },
+  emptyThumb: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
   },
   photo: {
     width: '100%',
@@ -317,6 +501,25 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderStyle: 'dashed',
     gap: 14,
+  },
+  photoBusyOverlay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    alignSelf: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: colors.white,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    ...shadows.soft,
+  },
+  photoBusyText: {
+    fontSize: 13,
+    color: colors.primaryDark,
+    fontFamily: fonts.medium,
   },
   addIcon: {
     width: 72,
@@ -464,5 +667,49 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.primaryDark,
     fontFamily: fonts.medium,
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  sheetGroup: {
+    gap: 10,
+  },
+  sheet: {
+    borderRadius: radii.lg,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
+    ...shadows.card,
+  },
+  sheetBtn: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetBtnBordered: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderSoft,
+  },
+  sheetBtnPressed: {
+    backgroundColor: colors.cardAlt,
+  },
+  sheetBtnText: {
+    fontSize: 16,
+    fontFamily: fonts.semibold,
+    color: colors.text,
+    letterSpacing: 0.2,
+  },
+  sheetBtnDestructive: {
+    color: colors.primary,
+  },
+  sheetCancel: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetBtnCancelText: {
+    fontFamily: fonts.bold,
   },
 });

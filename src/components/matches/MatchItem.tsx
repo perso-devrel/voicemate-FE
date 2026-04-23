@@ -22,7 +22,7 @@ export function MatchItem({ item, onPress }: MatchItemProps) {
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
       onPress={onPress}
     >
-      <Avatar uri={partner?.photos[0]} size={54} ringed={hasUnread} />
+      <Avatar uri={partner?.photos[0]} size={54} ringed={hasUnread} blur />
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>

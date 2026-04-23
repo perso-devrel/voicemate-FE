@@ -109,6 +109,11 @@ export default {
         addPhoto: "프로필 사진 추가",
         photoActionsTitle: "프로필 사진",
         changePhoto: "사진 변경",
+        setAsMain: "메인 프로필로 등록",
+        cropPhoto: "자르기",
+        editPhoto: "변경",
+        reorderingPhotos: "사진 순서 변경 중...",
+        maxPhotosReached: "사진은 최대 6장까지 등록할 수 있어요.",
         logoutTitle: "로그아웃",
         logoutConfirm: "정말 로그아웃 하시겠습니까?",
         invalidFormat: "잘못된 형식",
@@ -122,6 +127,11 @@ export default {
         title: "채팅",
         typeMessage: "메시지를 입력하세요...",
         playbackError: "재생 오류",
+        intimacy: "친밀도",
+        intimacyUntilMain: "메인 사진 공개까지 {{count}}회",
+        intimacyUntilAll: "모든 사진 공개까지 {{count}}회",
+        intimacyAllUnlocked: "모든 사진 공개",
+        swipeForMore: "옆으로 넘겨 더 보기",
     },
 
     setupProfile: {

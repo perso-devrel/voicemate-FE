@@ -1,5 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Avatar } from '@/components/ui/Avatar';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { AudioPlayer } from './AudioPlayer';
@@ -8,10 +9,24 @@ import type { Message } from '@/types';
 interface ChatBubbleProps {
   message: Message;
   isMine: boolean;
+  partnerPhoto?: string | null;
+  showAvatar?: boolean;
+  blurAvatar?: boolean;
+  onAvatarPress?: () => void;
   onRetryAudio?: (messageId: string) => void;
 }
 
-export function ChatBubble({ message, isMine, onRetryAudio }: ChatBubbleProps) {
+const AVATAR_SIZE = 36;
+
+export function ChatBubble({
+  message,
+  isMine,
+  partnerPhoto,
+  showAvatar = true,
+  blurAvatar = false,
+  onAvatarPress,
+  onRetryAudio,
+}: ChatBubbleProps) {
   const showTranslation = !isMine && message.translated_text;
 
   const inner = (
@@ -69,6 +84,20 @@ export function ChatBubble({ message, isMine, onRetryAudio }: ChatBubbleProps) {
 
   return (
     <View style={[styles.container, isMine ? styles.mine : styles.theirs]}>
+      {!isMine && (
+        <View style={styles.avatarSlot}>
+          {showAvatar ? (
+            <Pressable
+              onPress={onAvatarPress}
+              hitSlop={6}
+              accessibilityRole="button"
+              style={({ pressed }) => pressed && { opacity: 0.7 }}
+            >
+              <Avatar uri={partnerPhoto ?? undefined} size={AVATAR_SIZE} blur={blurAvatar} />
+            </Pressable>
+          ) : null}
+        </View>
+      )}
       <View
         style={[
           styles.bubble,
@@ -86,12 +115,18 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 14,
     marginVertical: 4,
+    flexDirection: 'row',
   },
   mine: {
-    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
   },
   theirs: {
+    justifyContent: 'flex-start',
     alignItems: 'flex-start',
+  },
+  avatarSlot: {
+    width: AVATAR_SIZE,
+    marginRight: 8,
   },
   bubble: {
     maxWidth: '78%',
@@ -105,7 +140,8 @@ const styles = StyleSheet.create({
   },
   theirsBubble: {
     backgroundColor: colors.card,
-    borderBottomLeftRadius: 6,
+    borderBottomLeftRadius: radii.lg,
+    borderTopLeftRadius: 6,
     borderWidth: 1,
     borderColor: colors.borderSoft,
   },

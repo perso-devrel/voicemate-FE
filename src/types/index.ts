@@ -106,6 +106,12 @@ export interface MatchPartner {
   language: string;
 }
 
+export interface PartnerDetail {
+  birth_date: string;
+  interests: string[];
+  bio_audio_url: string | null;
+}
+
 export interface MatchListItem {
   match_id: string;
   created_at: string;
