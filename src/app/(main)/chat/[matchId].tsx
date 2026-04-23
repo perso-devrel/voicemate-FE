@@ -128,6 +128,7 @@ export default function ChatScreen() {
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [selectedEmotion, setSelectedEmotion] = useState<Emotion>(DEFAULT_EMOTION);
   const [emotionPickerOpen, setEmotionPickerOpen] = useState(false);
+  const [inputDockHeight, setInputDockHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   // Track previous list state so we only auto-scroll when a NEW message is
   // appended at the end — not when older messages are prepended via loadOlder.
@@ -160,16 +161,51 @@ export default function ChatScreen() {
     }
   }, [messages.length, markRead]);
 
-  // Initial scroll-to-bottom once messages finish loading for the first time.
+  // Initial scroll-to-bottom: variable-height bubbles + lazy-mounted audio bars
+  // mean the content size grows over multiple frames after first render. Fire
+  // scrollToEnd at several delays — scrollToEnd uses the internal contentLength
+  // at call time, so a single rAF call can land short if the footer spacer or
+  // audio bars are still settling.
   useEffect(() => {
     if (loading) return;
     if (initialScrolledRef.current) return;
     if (messages.length === 0) return;
-    initialScrolledRef.current = true;
+    const scroll = () => flatListRef.current?.scrollToEnd({ animated: false });
+    const rafId = requestAnimationFrame(scroll);
+    const timeouts = [50, 150, 350, 700, 1200].map((d) => setTimeout(scroll, d));
+    const finalize = setTimeout(() => {
+      initialScrolledRef.current = true;
+    }, 1500);
+    return () => {
+      cancelAnimationFrame(rafId);
+      timeouts.forEach(clearTimeout);
+      clearTimeout(finalize);
+    };
+  }, [loading, messages.length]);
+
+  // Re-snap when the input dock height is measured. The footer spacer height
+  // depends on inputDockHeight; the first paint uses a fallback, and when the
+  // real measurement arrives the content grows — without this the last
+  // message can remain hidden behind the dock.
+  useEffect(() => {
+    if (loading) return;
+    if (messages.length === 0) return;
+    if (!inputDockHeight) return;
+    if (initialScrolledRef.current && !isNearBottomRef.current) return;
     requestAnimationFrame(() => {
       flatListRef.current?.scrollToEnd({ animated: false });
     });
-  }, [loading, messages.length]);
+  }, [inputDockHeight, loading, messages.length]);
+
+  const handleContentSizeChange = () => {
+    if (loading) return;
+    if (messages.length === 0) return;
+    // During the initial window always snap. After, only snap when the user
+    // is still near the bottom so late-arriving audio bars don't yank users
+    // who have scrolled up.
+    if (initialScrolledRef.current && !isNearBottomRef.current) return;
+    flatListRef.current?.scrollToEnd({ animated: false });
+  };
 
   // Auto-scroll when a NEW message lands at the end (sent or received).
   // Skip when older messages are prepended via loadOlder — detected by the
@@ -210,6 +246,11 @@ export default function ChatScreen() {
     const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
     const nearBottom = distanceFromBottom < NEAR_BOTTOM_THRESHOLD;
     isNearBottomRef.current = nearBottom;
+    // First time the user scrolls away from the bottom, end the initial
+    // auto-snap window so we don't fight their scroll input.
+    if (!nearBottom && !initialScrolledRef.current) {
+      initialScrolledRef.current = true;
+    }
     if (nearBottom && newMessagesCount > 0) {
       setNewMessagesCount(0);
     }
@@ -267,16 +308,16 @@ export default function ChatScreen() {
 
   const keyboardOpen = kbHeight > 0;
   const bottomSafePad = keyboardOpen ? 8 : 8 + Math.max(insets.bottom, MIN_BOTTOM_SAFE_PAD);
-  // Reserve vertical space under the list so the last message is never
-  // occluded by the absolute-positioned input bar (approx 44 input + 10 top
-  // padding + safe pad), plus EXTRA_BUBBLE_GAP for visual breathing room.
-  // When the emotion chip row is expanded we add its height as well.
+  // The input dock (emotion row + input bar) is absolutely positioned over the
+  // list. Reserve exactly its measured height as bottom padding so the last
+  // message is never occluded, plus EXTRA_BUBBLE_GAP for breathing room. When
+  // the keyboard is open the dock floats above it via the bottom offset, so
+  // that distance must be added too. inputDockHeight is measured by onLayout
+  // and falls back to a conservative estimate before the first measurement.
+  const dockBottomOffset = keyboardOpen ? kbHeight + insets.bottom : 0;
+  const dockHeightFallback = 54 + bottomSafePad + (emotionPickerOpen ? EMOTION_PICKER_ROW_HEIGHT : 0);
   const listBottomPad =
-    54 +
-    bottomSafePad +
-    kbHeight +
-    EXTRA_BUBBLE_GAP +
-    (emotionPickerOpen ? EMOTION_PICKER_ROW_HEIGHT : 0);
+    (inputDockHeight || dockHeightFallback) + dockBottomOffset + EXTRA_BUBBLE_GAP;
 
   return (
     <>
@@ -292,13 +333,15 @@ export default function ChatScreen() {
           onStartReachedThreshold={0.1}
           onScroll={handleScroll}
           scrollEventThrottle={16}
-          contentContainerStyle={[styles.messageList, { paddingBottom: listBottomPad }]}
+          onContentSizeChange={handleContentSizeChange}
+          contentContainerStyle={styles.messageList}
           style={styles.list}
           ListHeaderComponent={
             loading ? (
               <ActivityIndicator color={colors.primary} style={{ padding: 12 }} />
             ) : null
           }
+          ListFooterComponent={<View style={{ height: listBottomPad }} />}
         />
 
         {newMessagesCount > 0 && (
@@ -331,6 +374,7 @@ export default function ChatScreen() {
         )}
 
         <View
+          onLayout={(e) => setInputDockHeight(e.nativeEvent.layout.height)}
           style={[
             styles.inputDock,
             {
