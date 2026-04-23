@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { Message, ReadResponse, RetryResponse } from '@/types';
+import type { Emotion, Message, ReadResponse, RetryResponse } from '@/types';
 
 export async function getMessages(
   matchId: string,
@@ -14,8 +14,13 @@ export async function getMessages(
 export async function sendMessage(
   matchId: string,
   text: string,
+  emotion?: Emotion,
 ): Promise<Message> {
-  return api.post<Message>(`/api/matches/${matchId}/messages`, { text });
+  // BE accepts neutral and stores it as null; omit the field when neutral so
+  // the request body stays minimal.
+  const body: { text: string; emotion?: Emotion } =
+    emotion && emotion !== 'neutral' ? { text, emotion } : { text };
+  return api.post<Message>(`/api/matches/${matchId}/messages`, body);
 }
 
 export async function markAsRead(matchId: string): Promise<ReadResponse> {

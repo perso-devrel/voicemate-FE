@@ -1,18 +1,30 @@
 import type { Message } from '@/types';
 
-// A "round-trip" = you send a message and the partner replies.
-// Count the number of user→partner sender transitions in chronological order.
-export function countRoundTrips(messages: Message[], userId: string | null): number {
-  if (!userId) return 0;
+// A "round-trip" = both users have each sent at least one message in a pair.
+// Symmetric definition: walk messages chronologically and count each completed
+// pair where both senders contributed. The result is identical regardless of
+// which user (A or B) is viewing — both clients see the same messages array
+// and therefore the same count.
+export function countRoundTrips(messages: Message[]): number {
   let count = 0;
-  let awaitingReply = false;
+  let seenA = false;
+  let seenB = false;
+  let firstSender: string | null = null;
   for (const m of messages) {
-    const mine = m.sender_id === userId;
-    if (mine) {
-      awaitingReply = true;
-    } else if (awaitingReply) {
+    if (firstSender === null) {
+      firstSender = m.sender_id;
+      seenA = true;
+      continue;
+    }
+    if (m.sender_id === firstSender) {
+      seenA = true;
+    } else {
+      seenB = true;
+    }
+    if (seenA && seenB) {
       count++;
-      awaitingReply = false;
+      seenA = false;
+      seenB = false;
     }
   }
   return count;

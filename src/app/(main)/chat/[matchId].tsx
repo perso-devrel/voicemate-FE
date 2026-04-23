@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,13 +25,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { IntimacyGauge } from '@/components/chat/IntimacyGauge';
+import {
+  EmotionPicker,
+  EmotionChipRow,
+  EMOTION_PICKER_ROW_HEIGHT,
+} from '@/components/chat/EmotionPicker';
 import { useChat } from '@/hooks/useChat';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
+import { DEFAULT_EMOTION } from '@/constants/emotions';
 import * as matchService from '@/services/matches';
 import { calculateAge } from '@/utils/age';
 import { countRoundTrips, photoRevealStage } from '@/utils/chat';
-import type { Message } from '@/types';
+import type { Emotion, Message } from '@/types';
 
 // Minimum padding under the chat input bar so the send button never sits
 // directly on top of the Android gesture bar when useSafeAreaInsets() reports
@@ -38,6 +46,14 @@ const MIN_BOTTOM_SAFE_PAD = 12;
 
 // Match modalCard { maxWidth: 360, width: '100%', backdrop padding: 24 }.
 const MODAL_SLIDE_WIDTH = Math.min(360, Dimensions.get('window').width - 48);
+
+// Visual breathing room between the last chat bubble and the input bar.
+const EXTRA_BUBBLE_GAP = 16;
+
+// Distance (px) from the bottom of the list within which a newly appended
+// message will trigger an auto-scroll. Beyond this threshold we surface a
+// "new messages" badge instead of yanking the viewport.
+const NEAR_BOTTOM_THRESHOLD = 120;
 
 export default function ChatScreen() {
   const { t } = useTranslation();
@@ -109,7 +125,19 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
   const [kbHeight, setKbHeight] = useState(0);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
+  const [selectedEmotion, setSelectedEmotion] = useState<Emotion>(DEFAULT_EMOTION);
+  const [emotionPickerOpen, setEmotionPickerOpen] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  // Track previous list state so we only auto-scroll when a NEW message is
+  // appended at the end — not when older messages are prepended via loadOlder.
+  const prevLengthRef = useRef(0);
+  const prevFirstIdRef = useRef<string | null>(null);
+  const prevLastIdRef = useRef<string | null>(null);
+  const initialScrolledRef = useRef(false);
+  // Tracks whether the user is parked near the bottom of the list. Updated by
+  // FlatList.onScroll. Starts true so the initial auto-scroll path runs.
+  const isNearBottomRef = useRef(true);
 
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -132,16 +160,78 @@ export default function ChatScreen() {
     }
   }, [messages.length, markRead]);
 
+  // Initial scroll-to-bottom once messages finish loading for the first time.
+  useEffect(() => {
+    if (loading) return;
+    if (initialScrolledRef.current) return;
+    if (messages.length === 0) return;
+    initialScrolledRef.current = true;
+    requestAnimationFrame(() => {
+      flatListRef.current?.scrollToEnd({ animated: false });
+    });
+  }, [loading, messages.length]);
+
+  // Auto-scroll when a NEW message lands at the end (sent or received).
+  // Skip when older messages are prepended via loadOlder — detected by the
+  // first item's id changing while length grows.
+  // When the user has scrolled away from the bottom and the appended message
+  // is from the partner, surface a "new messages" badge instead of yanking
+  // them back. Self-sent messages always scroll (the sender expects to see
+  // their own message).
+  useEffect(() => {
+    const prevLen = prevLengthRef.current;
+    const prevFirstId = prevFirstIdRef.current;
+    const currLen = messages.length;
+    const currFirstId = messages[0]?.id ?? null;
+    const lastMessage = messages[currLen - 1];
+    const currLastId = lastMessage?.id ?? null;
+
+    if (currLen > prevLen) {
+      const prependedOlder = prevFirstId !== null && currFirstId !== prevFirstId;
+      const appendedNew = !prependedOlder && currLastId !== prevLastIdRef.current;
+      if (appendedNew && initialScrolledRef.current) {
+        const isMine = lastMessage?.sender_id === userId;
+        if (isMine || isNearBottomRef.current) {
+          flatListRef.current?.scrollToEnd({ animated: true });
+          setNewMessagesCount(0);
+        } else {
+          setNewMessagesCount((c) => c + 1);
+        }
+      }
+    }
+
+    prevLengthRef.current = currLen;
+    prevFirstIdRef.current = currFirstId;
+    prevLastIdRef.current = currLastId;
+  }, [messages, userId]);
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+    const nearBottom = distanceFromBottom < NEAR_BOTTOM_THRESHOLD;
+    isNearBottomRef.current = nearBottom;
+    if (nearBottom && newMessagesCount > 0) {
+      setNewMessagesCount(0);
+    }
+  };
+
+  const handleNewMessagesBadgePress = () => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+    setNewMessagesCount(0);
+  };
+
   const handleSend = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
     setSending(true);
     setText('');
+    const emotionForSend = selectedEmotion;
+    // Reset emotion immediately so the user opts in for each message — avoids
+    // accidentally sending a follow-up with the previous tone.
+    setSelectedEmotion(DEFAULT_EMOTION);
+    setEmotionPickerOpen(false);
     try {
-      await send(trimmed);
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      await send(trimmed, emotionForSend);
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);
     } finally {
@@ -149,7 +239,12 @@ export default function ChatScreen() {
     }
   };
 
-  const roundTrips = countRoundTrips(messages, userId ?? null);
+  const handleEmotionSelect = (emotion: Emotion) => {
+    setSelectedEmotion(emotion);
+    setEmotionPickerOpen(false);
+  };
+
+  const roundTrips = useMemo(() => countRoundTrips(messages), [messages]);
   const revealStage = photoRevealStage(roundTrips);
   const blurMainPhoto = revealStage === 'blurred';
 
@@ -173,8 +268,15 @@ export default function ChatScreen() {
   const keyboardOpen = kbHeight > 0;
   const bottomSafePad = keyboardOpen ? 8 : 8 + Math.max(insets.bottom, MIN_BOTTOM_SAFE_PAD);
   // Reserve vertical space under the list so the last message is never
-  // occluded by the absolute-positioned input bar (approx 44 input + 10 top padding + safe pad).
-  const listBottomPad = 54 + bottomSafePad + kbHeight;
+  // occluded by the absolute-positioned input bar (approx 44 input + 10 top
+  // padding + safe pad), plus EXTRA_BUBBLE_GAP for visual breathing room.
+  // When the emotion chip row is expanded we add its height as well.
+  const listBottomPad =
+    54 +
+    bottomSafePad +
+    kbHeight +
+    EXTRA_BUBBLE_GAP +
+    (emotionPickerOpen ? EMOTION_PICKER_ROW_HEIGHT : 0);
 
   return (
     <>
@@ -188,6 +290,8 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           onStartReached={hasMore ? loadOlder : undefined}
           onStartReachedThreshold={0.1}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={[styles.messageList, { paddingBottom: listBottomPad }]}
           style={styles.list}
           ListHeaderComponent={
@@ -195,49 +299,94 @@ export default function ChatScreen() {
               <ActivityIndicator color={colors.primary} style={{ padding: 12 }} />
             ) : null
           }
-          onContentSizeChange={() => {
-            if (!loading) {
-              flatListRef.current?.scrollToEnd({ animated: false });
-            }
-          }}
         />
 
-        <View
-          style={[
-            styles.inputBar,
-            {
-              bottom: keyboardOpen ? kbHeight + insets.bottom : 0,
-              paddingBottom: bottomSafePad,
-            },
-          ]}
-        >
-          <TextInput
-            style={styles.input}
-            value={text}
-            onChangeText={setText}
-            placeholder={t('chat.typeMessage')}
-            placeholderTextColor={colors.textLight}
-            maxLength={1000}
-            multiline
-          />
+        {newMessagesCount > 0 && (
           <Pressable
-            onPress={handleSend}
-            disabled={!text.trim() || sending}
+            onPress={handleNewMessagesBadgePress}
+            accessibilityRole="button"
+            accessibilityLabel={t('chat.newMessagesBadge', { count: newMessagesCount })}
+            hitSlop={8}
             style={({ pressed }) => [
-              styles.sendShell,
-              pressed && { transform: [{ scale: 0.94 }] },
-              (!text.trim() || sending) && styles.sendBtnDisabled,
+              styles.newMessagesBadge,
+              {
+                bottom:
+                  (keyboardOpen ? kbHeight + insets.bottom : 0) + 54 + bottomSafePad + 8,
+              },
+              pressed && { transform: [{ scale: 0.97 }] },
             ]}
           >
             <LinearGradient
               colors={[...gradients.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.sendBtn}
+              style={styles.newMessagesBadgeInner}
             >
-              <Ionicons name="send" size={20} color={colors.white} />
+              <Text style={styles.newMessagesBadgeText}>
+                {t('chat.newMessagesBadge', { count: newMessagesCount })}
+              </Text>
+              <Ionicons name="arrow-down" size={14} color={colors.white} />
             </LinearGradient>
           </Pressable>
+        )}
+
+        <View
+          style={[
+            styles.inputDock,
+            {
+              bottom: keyboardOpen ? kbHeight + insets.bottom : 0,
+            },
+          ]}
+        >
+          {emotionPickerOpen && (
+            <View style={styles.emotionRowWrapper}>
+              <EmotionChipRow
+                value={selectedEmotion}
+                onSelect={handleEmotionSelect}
+              />
+            </View>
+          )}
+          <View
+            style={[
+              styles.inputBar,
+              {
+                paddingBottom: bottomSafePad,
+              },
+            ]}
+          >
+            <EmotionPicker
+              value={selectedEmotion}
+              expanded={emotionPickerOpen}
+              onToggleExpanded={() => setEmotionPickerOpen((v) => !v)}
+            />
+            <TextInput
+              style={styles.input}
+              value={text}
+              onChangeText={setText}
+              placeholder={t('chat.typeMessage')}
+              placeholderTextColor={colors.textLight}
+              maxLength={1000}
+              multiline
+            />
+            <Pressable
+              onPress={handleSend}
+              disabled={!text.trim() || sending}
+              style={({ pressed }) => [
+                styles.sendShell,
+                pressed && { transform: [{ scale: 0.94 }] },
+                (!text.trim() || sending) && styles.sendBtnDisabled,
+              ]}
+            >
+              <LinearGradient
+                colors={[...gradients.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.sendBtn}
+              >
+                <Ionicons name="send" size={20} color={colors.white} />
+              </LinearGradient>
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -333,11 +482,14 @@ const styles = StyleSheet.create({
   messageList: {
     paddingTop: 10,
   },
-  inputBar: {
+  inputDock: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: colors.card,
+  },
+  inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
@@ -346,6 +498,11 @@ const styles = StyleSheet.create({
     borderTopColor: colors.borderSoft,
     backgroundColor: colors.card,
     gap: 8,
+  },
+  emotionRowWrapper: {
+    backgroundColor: colors.card,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.borderSoft,
   },
   input: {
     flex: 1,
@@ -374,6 +531,27 @@ const styles = StyleSheet.create({
   },
   sendBtnDisabled: {
     opacity: 0.4,
+  },
+  newMessagesBadge: {
+    position: 'absolute',
+    alignSelf: 'center',
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+    ...shadows.glow,
+  },
+  newMessagesBadgeInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+  },
+  newMessagesBadgeText: {
+    color: colors.white,
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
   modalBackdrop: {
     flex: 1,

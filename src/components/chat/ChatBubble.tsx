@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/ui/Avatar';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
+import { getEmotionMeta } from '@/constants/emotions';
 import { AudioPlayer } from './AudioPlayer';
 import type { Message } from '@/types';
 
@@ -98,14 +99,28 @@ export function ChatBubble({
           ) : null}
         </View>
       )}
-      <View
-        style={[
-          styles.bubble,
-          isMine ? styles.mineBubble : styles.theirsBubble,
-          shadows.soft,
-        ]}
-      >
-        {inner}
+      <View style={styles.bubbleStack}>
+        <View
+          style={[
+            styles.bubble,
+            isMine ? styles.mineBubble : styles.theirsBubble,
+            shadows.soft,
+          ]}
+        >
+          {inner}
+        </View>
+        {message.emotion && message.emotion !== 'neutral' && (
+          <View
+            style={[
+              styles.emotionBadge,
+              isMine ? styles.emotionBadgeMine : styles.emotionBadgeTheirs,
+            ]}
+          >
+            <Text style={styles.emotionBadgeText}>
+              {getEmotionMeta(message.emotion).emoji}
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -128,8 +143,11 @@ const styles = StyleSheet.create({
     width: AVATAR_SIZE,
     marginRight: 8,
   },
-  bubble: {
+  bubbleStack: {
     maxWidth: '78%',
+    position: 'relative',
+  },
+  bubble: {
     paddingVertical: 11,
     paddingHorizontal: 15,
     borderRadius: radii.lg,
@@ -176,5 +194,28 @@ const styles = StyleSheet.create({
   },
   mineTime: {
     color: 'rgba(255,255,255,0.8)',
+  },
+  emotionBadge: {
+    position: 'absolute',
+    top: -8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    ...shadows.soft,
+  },
+  emotionBadgeMine: {
+    left: -6,
+  },
+  emotionBadgeTheirs: {
+    right: -6,
+  },
+  emotionBadgeText: {
+    fontSize: 12,
+    lineHeight: 14,
   },
 });

@@ -15,6 +15,11 @@ android/
 .env.local
 .env.*.local
 
+# secrets / credentials
+credentials/
+*.pem
+*.key
+
 # IDE / tooling
 .vscode/
 .idea/

@@ -132,6 +132,20 @@ export default {
         intimacyUntilAll: "모든 사진 공개까지 {{count}}회",
         intimacyAllUnlocked: "모든 사진 공개",
         swipeForMore: "옆으로 넘겨 더 보기",
+        newMessagesBadge: "새 메시지 {{count}}개",
+        emotion: {
+            neutral: "기본",
+            happy: "기쁨",
+            sad: "슬픔",
+            angry: "화남",
+            surprised: "놀람",
+            excited: "신남",
+            whispering: "속삭임",
+            laughing: "웃음",
+        },
+        emotionPicker: {
+            toggleLabel: "감정 선택",
+        },
     },
 
     setupProfile: {

@@ -126,6 +126,18 @@ export interface MatchListItem {
 }
 
 // === Message ===
+export type Emotion =
+  | 'neutral'
+  | 'happy'
+  | 'sad'
+  | 'angry'
+  | 'surprised'
+  | 'excited'
+  | 'whispering'
+  | 'laughing';
+
+export type AudioStatus = 'pending' | 'processing' | 'ready' | 'failed';
+
 export interface Message {
   id: string;
   match_id: string;
@@ -135,13 +147,16 @@ export interface Message {
   translated_text: string | null;
   translated_language: string | null;
   audio_url: string | null;
-  audio_status: 'pending' | 'processing' | 'ready' | 'failed';
+  audio_status: AudioStatus;
+  // BE normalises 'neutral' → null for storage; both shapes are observed.
+  emotion: Emotion | null;
   read_at: string | null;
   created_at: string;
 }
 
 export interface SendMessageRequest {
   text: string;
+  emotion?: Emotion;
 }
 
 export interface ReadResponse {

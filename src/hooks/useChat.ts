@@ -5,7 +5,7 @@ import { subscribeToMessages, unsubscribeFromMessages } from '@/services/realtim
 import { useAuthStore } from '@/stores/authStore';
 import { computeBackoffDelay } from '@/utils/backoff';
 import { describeError } from '@/utils/errors';
-import type { Message } from '@/types';
+import type { Emotion, Message } from '@/types';
 
 export function useChat(matchId: string) {
   const userId = useAuthStore((s) => s.userId);
@@ -46,10 +46,10 @@ export function useChat(matchId: string) {
     }
   }, [matchId, messages, hasMore]);
 
-  const send = useCallback(async (text: string) => {
+  const send = useCallback(async (text: string, emotion?: Emotion) => {
     setError(null);
     try {
-      const msg = await messageService.sendMessage(matchId, text);
+      const msg = await messageService.sendMessage(matchId, text, emotion);
       setMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev;
         return [...prev, msg];

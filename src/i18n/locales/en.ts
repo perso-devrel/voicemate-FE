@@ -132,6 +132,20 @@ export default {
     intimacyUntilAll: '{{count}} more to unlock all photos',
     intimacyAllUnlocked: 'All photos unlocked',
     swipeForMore: 'Swipe for more',
+    newMessagesBadge: '{{count}} new messages',
+    emotion: {
+      neutral: 'Neutral',
+      happy: 'Happy',
+      sad: 'Sad',
+      angry: 'Angry',
+      surprised: 'Surprised',
+      excited: 'Excited',
+      whispering: 'Whispering',
+      laughing: 'Laughing',
+    },
+    emotionPicker: {
+      toggleLabel: 'Choose emotion',
+    },
   },
 
   setupProfile: {
