@@ -6,14 +6,14 @@ import { colors } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
 interface WizardHeaderProps {
-  step: 1 | 2 | 3 | 4;
+  step: 1 | 2 | 3 | 4 | 5;
   total?: number;
   title: string;
   subtitle?: string;
   onBack?: () => void;
 }
 
-export function WizardHeader({ step, total = 4, title, subtitle, onBack }: WizardHeaderProps) {
+export function WizardHeader({ step, total = 5, title, subtitle, onBack }: WizardHeaderProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 

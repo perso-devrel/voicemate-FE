@@ -15,6 +15,7 @@ export default function MainLayout() {
       <Stack.Screen name="setup/step2" />
       <Stack.Screen name="setup/step3" />
       <Stack.Screen name="setup/step4" />
+      <Stack.Screen name="setup/step5" />
       <Stack.Screen name="setup/profile" />
       <Stack.Screen name="setup/voice" />
       <Stack.Screen name="settings/index" />

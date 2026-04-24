@@ -1,6 +1,6 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Avatar } from '@/components/ui/Avatar';
+import { ProfilePhoto } from '@/components/ui/ProfilePhoto';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { getEmotionMeta } from '@/constants/emotions';
@@ -10,9 +10,9 @@ import type { Message } from '@/types';
 interface ChatBubbleProps {
   message: Message;
   isMine: boolean;
+  partnerId?: string | null;
   partnerPhoto?: string | null;
   showAvatar?: boolean;
-  blurAvatar?: boolean;
   onAvatarPress?: () => void;
   onRetryAudio?: (messageId: string) => void;
 }
@@ -22,9 +22,9 @@ const AVATAR_SIZE = 36;
 export function ChatBubble({
   message,
   isMine,
+  partnerId,
   partnerPhoto,
   showAvatar = true,
-  blurAvatar = false,
   onAvatarPress,
   onRetryAudio,
 }: ChatBubbleProps) {
@@ -94,7 +94,12 @@ export function ChatBubble({
               accessibilityRole="button"
               style={({ pressed }) => pressed && { opacity: 0.7 }}
             >
-              <Avatar uri={partnerPhoto ?? undefined} size={AVATAR_SIZE} blur={blurAvatar} />
+              <ProfilePhoto
+                userId={partnerId}
+                uri={partnerPhoto ?? undefined}
+                size={AVATAR_SIZE}
+                variant="avatar"
+              />
             </Pressable>
           ) : null}
         </View>

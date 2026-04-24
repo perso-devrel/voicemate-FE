@@ -15,14 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/stores/authStore';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
-import { SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
 import { SUPPORTED_NATIONALITIES, type NationalityCode } from '@/constants/nationalities';
 import { INTEREST_OPTIONS, MAX_INTERESTS } from '@/constants/interests';
-import type { ProfileUpsertRequest } from '@/types';
+import type { LanguageProficiency, ProfileUpsertRequest } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
@@ -84,23 +84,31 @@ export default function ProfileSetupScreen() {
     birth_date: '',
     gender: 'male',
     nationality: '',
-    language: '',
+    languages: [],
     bio: '',
     interests: [],
   });
   const [nationalityOpen, setNationalityOpen] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const bioAnchorY = useRef(0);
 
   useEffect(() => {
     if (profile) {
+      // Pre-006 profile rows may not yet have `languages` populated. Synthesize
+      // a single Lv.3 entry from the legacy `language` so the form has a
+      // sensible starting state rather than appearing empty.
+      const initialLanguages: LanguageProficiency[] =
+        profile.languages && profile.languages.length > 0
+          ? profile.languages
+          : profile.language
+            ? [{ code: profile.language, level: 3 }]
+            : [];
       setForm({
         display_name: profile.display_name,
         birth_date: profile.birth_date,
         gender: profile.gender,
         nationality: profile.nationality,
-        language: profile.language,
+        languages: initialLanguages,
         bio: profile.bio ?? '',
         interests: profile.interests,
       });
@@ -150,8 +158,8 @@ export default function ProfileSetupScreen() {
       Alert.alert(t('common.error'), t('setupProfile.selectNationalityRequired'));
       return;
     }
-    if (!form.language) {
-      Alert.alert(t('common.error'), t('setupProfile.selectLanguageRequired'));
+    if (!form.languages || form.languages.length === 0) {
+      Alert.alert(t('common.error'), t('setupProfile.addAtLeastOneLanguage'));
       return;
     }
     try {
@@ -262,48 +270,12 @@ export default function ProfileSetupScreen() {
         </View>
       )}
 
-      <Text style={styles.label}>{t('setupProfile.language')}</Text>
-      <Pressable
-        style={[styles.selectBtn, languageOpen && styles.selectBtnOpen]}
-        onPress={() => setLanguageOpen((v) => !v)}
-      >
-        <Text
-          style={[
-            styles.selectText,
-            !form.language && styles.selectPlaceholder,
-          ]}
-        >
-          {form.language
-            ? t(`languages.${form.language}`)
-            : t('setupProfile.languagePlaceholder')}
-        </Text>
-        <Ionicons
-          name={languageOpen ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.textSecondary}
-        />
-      </Pressable>
-      {languageOpen && (
-        <View style={[styles.chipRow, styles.dropdownPanel]}>
-          {SUPPORTED_LANGUAGES.map(({ code, labelKey }) => {
-            const selected = form.language === code;
-            return (
-              <Pressable
-                key={code}
-                style={[styles.chip, selected && styles.chipActive]}
-                onPress={() => {
-                  updateField('language', code as LanguageCode);
-                  setLanguageOpen(false);
-                }}
-              >
-                <Text style={[styles.chipText, selected && styles.chipActiveText]}>
-                  {t(labelKey)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+      <Text style={styles.label}>{t('setupProfile.languages')}</Text>
+      <LanguageProficiencyEditor
+        value={form.languages ?? []}
+        onChange={(next) => updateField('languages', next)}
+        emptyHint={t('setupProfile.languagesHint')}
+      />
 
       <View onLayout={(e) => { bioAnchorY.current = e.nativeEvent.layout.y; }}>
         <Input

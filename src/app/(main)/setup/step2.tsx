@@ -189,6 +189,11 @@ export default function SetupStep2() {
     router.push('/(main)/setup/step3');
   };
 
+  const handleSkip = () => {
+    draft.setBio(bio.trim());
+    router.push('/(main)/setup/step3');
+  };
+
   const formatDuration = (ms: number) => {
     const totalSec = Math.floor(ms / 1000);
     const m = Math.floor(totalSec / 60);
@@ -305,7 +310,15 @@ export default function SetupStep2() {
         </View>
       )}
 
-      <Button title={t('common.next')} onPress={handleNext} style={{ marginTop: 24 }} />
+      <View style={styles.skipWarnBox}>
+        <Ionicons name="information-circle-outline" size={16} color={colors.primaryDark} />
+        <Text style={styles.skipWarnText}>{t('signupWizard.step2SkipWarning')}</Text>
+      </View>
+
+      <View style={styles.actions}>
+        <Button title={t('common.next')} onPress={handleNext} />
+        <Button title={t('common.skip')} variant="outline" onPress={handleSkip} />
+      </View>
       </ScrollView>
     </View>
   );
@@ -364,7 +377,6 @@ const styles = StyleSheet.create({
   scriptContent: { padding: 14 },
   scriptTitle: { fontSize: 13, fontFamily: fonts.semibold, color: colors.primary },
   scriptText: { fontSize: 14, color: colors.text, lineHeight: 24 },
-  actions: { gap: 10 },
   hint: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
   bioDisabled: { backgroundColor: colors.surface, color: colors.textLight, opacity: 0.7 },
   bioLockBox: {
@@ -386,4 +398,24 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontFamily: fonts.medium,
   },
+  skipWarnBox: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: 16,
+  },
+  skipWarnText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.primaryDark,
+    fontFamily: fonts.medium,
+  },
+  actions: { gap: 10, marginTop: 16 },
 });

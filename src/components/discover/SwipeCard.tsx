@@ -1,8 +1,9 @@
 import { useCallback, useMemo } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { ProfilePhoto } from '@/components/ui/ProfilePhoto';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { calculateAge } from '@/utils/age';
@@ -84,13 +85,13 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.cover}>
-        {photo ? (
-          <Image source={{ uri: photo }} style={styles.photo} />
-        ) : (
-          <View style={[styles.photo, styles.placeholder]}>
-            <Ionicons name="person" size={80} color={colors.white} />
-          </View>
-        )}
+        {/* Discover는 첫인상 음성 중심 UX — photo_access와 무관하게 항상 블러 */}
+        <ProfilePhoto
+          userId={candidate.id}
+          uri={photo}
+          variant="swipe-card"
+          forceBlur
+        />
       </View>
 
       <View style={styles.meta}>
@@ -185,16 +186,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.secondary,
     ...shadows.soft,
-  },
-  photo: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  placeholder: {
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   meta: {
     marginTop: 14,

@@ -1,4 +1,10 @@
 import type { Message } from '@/types';
+import { UNLOCK_MAIN_PHOTO_AT, UNLOCK_ALL_PHOTOS_AT } from '@/constants/photoAccess';
+
+// Re-export from the canonical location so existing call sites (IntimacyGauge,
+// Chat screen) continue to work without import-path churn. Single source of
+// truth is `@/constants/photoAccess`.
+export { UNLOCK_MAIN_PHOTO_AT, UNLOCK_ALL_PHOTOS_AT } from '@/constants/photoAccess';
 
 // A "round-trip" = both users have each sent at least one message in a pair.
 // Symmetric definition: walk messages chronologically and count each completed
@@ -29,9 +35,6 @@ export function countRoundTrips(messages: Message[]): number {
   }
   return count;
 }
-
-export const UNLOCK_MAIN_PHOTO_AT = 5;
-export const UNLOCK_ALL_PHOTOS_AT = 10;
 
 export type PhotoRevealStage = 'blurred' | 'main' | 'all';
 

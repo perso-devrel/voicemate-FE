@@ -1,7 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
-import { Avatar } from '@/components/ui/Avatar';
+import { ProfilePhoto } from '@/components/ui/ProfilePhoto';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { formatRelativeTime } from '@/utils/age';
@@ -22,7 +22,13 @@ export function MatchItem({ item, onPress }: MatchItemProps) {
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
       onPress={onPress}
     >
-      <Avatar uri={partner?.photos[0]} size={54} ringed={hasUnread} blur />
+      <ProfilePhoto
+        userId={partner?.id}
+        uri={partner?.photos[0]}
+        size={54}
+        variant="avatar"
+        ringed={hasUnread}
+      />
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.name} numberOfLines={1}>

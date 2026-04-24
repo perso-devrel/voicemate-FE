@@ -1,6 +1,17 @@
 import { useState, useCallback } from 'react';
 import * as discoverService from '@/services/discover';
+import { photoAccessStore } from '@/stores/photoAccess';
+import { DEFAULT_PHOTO_ACCESS } from '@/types/photoAccess';
 import type { DiscoverCandidate, SwipeResponse } from '@/types';
+
+// Discover candidates are always fully locked by policy — FE forces blur. We
+// still ingest to keep the registry coherent across tabs.
+function ingestCandidates(candidates: DiscoverCandidate[]) {
+  const entries = candidates
+    .filter((c) => Boolean(c.id))
+    .map((c) => ({ userId: c.id, access: c.photo_access ?? DEFAULT_PHOTO_ACCESS }));
+  photoAccessStore.ingest(entries);
+}
 
 export function useDiscover() {
   const [candidates, setCandidates] = useState<DiscoverCandidate[]>([]);
@@ -12,6 +23,7 @@ export function useDiscover() {
     setError(null);
     try {
       const data = await discoverService.getDiscoverCandidates(limit);
+      ingestCandidates(data);
       setCandidates(data);
     } catch (e: any) {
       setError(e.message);

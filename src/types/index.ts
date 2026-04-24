@@ -1,3 +1,9 @@
+import type { PhotoAccess } from './photoAccess';
+
+// Re-exported for convenience so call sites can `import { PhotoAccess } from '@/types'`.
+export type { PhotoAccess } from './photoAccess';
+export { DEFAULT_PHOTO_ACCESS } from './photoAccess';
+
 // === Auth ===
 export interface AuthResponse {
   access_token: string;
@@ -10,6 +16,16 @@ export interface TokenRefreshResponse {
   refresh_token: string;
 }
 
+// === Language proficiency ===
+// 1 = beginner, 2 = intermediate (daily conversation),
+// 3 = native (fluent / unrestricted conversation).
+export type LanguageLevel = 1 | 2 | 3;
+
+export interface LanguageProficiency {
+  code: string;
+  level: LanguageLevel;
+}
+
 // === Profile ===
 export interface Profile {
   id: string;
@@ -17,7 +33,11 @@ export interface Profile {
   birth_date: string;
   gender: 'male' | 'female' | 'other';
   nationality: string;
+  // Primary language code, derived server-side from languages[0].code.
   language: string;
+  // Multi-language proficiency. Optional during BE migration window —
+  // pre-006 rows are absent until backfill runs.
+  languages?: LanguageProficiency[];
   bio: string | null;
   interests: string[];
   photos: string[];
@@ -35,7 +55,10 @@ export interface ProfileUpsertRequest {
   birth_date: string;
   gender: 'male' | 'female' | 'other';
   nationality: string;
-  language: string;
+  // Either languages (preferred) or legacy language must be set. The route
+  // derives `language` = languages[0].code when languages is provided.
+  language?: string;
+  languages?: LanguageProficiency[];
   bio?: string | null;
   interests?: string[];
 }
@@ -75,7 +98,10 @@ export interface DiscoverCandidate {
   bio: string | null;
   bio_audio_url: string | null;
   interests: string[];
+  // Policy: BE restricts to `[photos[0]]`. FE always forceBlurs regardless.
   photos: string[];
+  // Optional until BE ships iter2. Always { false, false } by policy.
+  photo_access?: PhotoAccess;
 }
 
 export interface SwipeRequest {
@@ -123,6 +149,11 @@ export interface MatchListItem {
     created_at: string;
   } | null;
   unread_count: number;
+  // Per-match, viewer-relative photo reveal flags aggregated by BE.
+  // Optional during BE migration window (iter2); will become required once
+  // `/api/matches` ships the field unconditionally. Undefined → treat as
+  // DEFAULT_PHOTO_ACCESS (fully locked).
+  photo_access?: PhotoAccess;
 }
 
 // === Message ===
@@ -197,7 +228,12 @@ export interface UserPreference {
   min_age: number;
   max_age: number;
   preferred_genders: ('male' | 'female' | 'other')[];
+  // Codes-only mirror of preferred_languages_detail (kept in sync server-side).
   preferred_languages: string[];
+  // Codes + minimum required level. Empty = no language preference.
+  preferred_languages_detail?: LanguageProficiency[];
+  // ISO-3166-1 alpha-2 country codes. Empty = no nationality preference.
+  preferred_nationalities?: string[];
   updated_at?: string;
 }
 
@@ -206,6 +242,8 @@ export interface PreferenceUpdateRequest {
   max_age?: number;
   preferred_genders?: ('male' | 'female' | 'other')[];
   preferred_languages?: string[];
+  preferred_languages_detail?: LanguageProficiency[];
+  preferred_nationalities?: string[];
 }
 
 // === Error ===

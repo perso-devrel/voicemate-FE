@@ -15,14 +15,13 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
-import { useProfile } from '@/hooks/useProfile';
-import { usePreferences } from '@/hooks/usePreferences';
+import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
 import { useSignupDraftStore } from '@/stores/signupDraftStore';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
-import { SUPPORTED_LANGUAGES } from '@/constants/languages';
+import { SUPPORTED_NATIONALITIES } from '@/constants/nationalities';
 import { MIN_AGE, MAX_AGE, validateAgeRange } from '@/utils/preferences';
-import type { PreferenceUpdateRequest } from '@/types';
+import type { LanguageProficiency, PreferenceUpdateRequest } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
@@ -30,17 +29,19 @@ export default function SetupStep4() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const draft = useSignupDraftStore();
-  const { upsertProfile, loading: profileLoading } = useProfile();
-  const { updatePreferences, loading: prefLoading } = usePreferences();
 
   const [minAge, setMinAge] = useState(String(draft.preferences?.min_age ?? MIN_AGE));
   const [maxAge, setMaxAge] = useState(String(draft.preferences?.max_age ?? MAX_AGE));
   const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>(
     draft.preferences?.preferred_genders ?? [...GENDER_OPTIONS],
   );
-  const [languages, setLanguages] = useState<string[]>(draft.preferences?.preferred_languages ?? []);
+  const [languages, setLanguages] = useState<LanguageProficiency[]>(
+    draft.preferences?.preferred_languages_detail ?? [],
+  );
+  const [nationalities, setNationalities] = useState<string[]>(
+    draft.preferences?.preferred_nationalities ?? [],
+  );
   const [kbHeight, setKbHeight] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -57,8 +58,10 @@ export default function SetupStep4() {
     setGenders((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
   };
 
-  const toggleLanguage = (code: string) => {
-    setLanguages((prev) => (prev.includes(code) ? prev.filter((l) => l !== code) : [...prev, code]));
+  const toggleNationality = (code: string) => {
+    setNationalities((prev) =>
+      prev.includes(code) ? prev.filter((x) => x !== code) : [...prev, code],
+    );
   };
 
   const genderLabel = (g: typeof GENDER_OPTIONS[number]) => {
@@ -67,29 +70,7 @@ export default function SetupStep4() {
     return t('setupProfile.genderOther');
   };
 
-  const commit = async (prefs: PreferenceUpdateRequest | null) => {
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      await upsertProfile(draft.buildProfilePayload());
-      if (prefs) {
-        try {
-          await updatePreferences(prefs);
-        } catch {
-          // Prefs are secondary — a failure here shouldn't undo the profile.
-          // User can edit preferences from settings later.
-        }
-      }
-      draft.reset();
-      router.replace('/(main)/(tabs)/discover');
-    } catch (e: any) {
-      Alert.alert(t('common.error'), e.message ?? t('signupWizard.registerFailed'));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleRegister = () => {
+  const handleNext = () => {
     const ageCheck = validateAgeRange(minAge, maxAge);
     if (!ageCheck.ok) {
       const message =
@@ -103,18 +84,18 @@ export default function SetupStep4() {
       min_age: ageCheck.min,
       max_age: ageCheck.max,
       preferred_genders: genders,
-      preferred_languages: languages,
+      preferred_languages: languages.map((l) => l.code),
+      preferred_languages_detail: languages,
+      preferred_nationalities: nationalities,
     };
     draft.setPreferences(prefs);
-    commit(prefs);
+    router.push('/(main)/setup/step5');
   };
 
-  const handleSkipAndRegister = () => {
+  const handleSkip = () => {
     draft.setPreferences(null);
-    commit(null);
+    router.push('/(main)/setup/step5');
   };
-
-  const loading = submitting || profileLoading || prefLoading;
 
   return (
     <View style={styles.container}>
@@ -160,37 +141,37 @@ export default function SetupStep4() {
       </View>
 
       <Text style={styles.label}>{t('preferences.preferredLanguages')}</Text>
-      <View style={styles.langRow}>
-        {SUPPORTED_LANGUAGES.map(({ code, labelKey }) => {
-          const selected = languages.includes(code);
+      <LanguageProficiencyEditor
+        value={languages}
+        onChange={setLanguages}
+        emptyHint={t('preferences.leaveEmptyAllLanguages')}
+      />
+      <Text style={styles.hint}>{t('preferences.preferredLevelHint')}</Text>
+
+      <Text style={[styles.label, { marginTop: 20 }]}>
+        {t('preferences.preferredNationalities')}
+      </Text>
+      <View style={styles.chipRow}>
+        {SUPPORTED_NATIONALITIES.map(({ code, labelKey }) => {
+          const selected = nationalities.includes(code);
           return (
             <Pressable
               key={code}
-              onPress={() => toggleLanguage(code)}
-              style={[styles.langChip, selected && styles.langChipActive]}
+              style={[styles.chip, selected && styles.chipActive]}
+              onPress={() => toggleNationality(code)}
             >
-              <Text style={[styles.langChipText, selected && styles.langChipActiveText]}>
+              <Text style={[styles.chipText, selected && styles.chipActiveText]}>
                 {t(labelKey)}
               </Text>
             </Pressable>
           );
         })}
       </View>
-      <Text style={styles.hint}>{t('preferences.leaveEmptyAllLanguages')}</Text>
+      <Text style={styles.hint}>{t('preferences.leaveEmptyAllNationalities')}</Text>
 
       <View style={styles.actions}>
-        <Button
-          title={t('signupWizard.register')}
-          onPress={handleRegister}
-          loading={loading}
-          style={{ marginTop: 24 }}
-        />
-        <Button
-          title={t('signupWizard.skipAndRegister')}
-          variant="outline"
-          onPress={handleSkipAndRegister}
-          loading={loading}
-        />
+        <Button title={t('common.next')} onPress={handleNext} style={{ marginTop: 24 }} />
+        <Button title={t('common.skip')} variant="outline" onPress={handleSkip} />
       </View>
       </ScrollView>
     </View>
@@ -214,8 +195,10 @@ const styles = StyleSheet.create({
   genderActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   genderText: { fontSize: 14, color: colors.textSecondary, textTransform: 'capitalize' },
   genderActiveText: { color: colors.white, fontFamily: fonts.semibold },
-  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-  langChip: {
+  hint: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
+  actions: { gap: 10 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  chip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: radii.pill,
@@ -223,9 +206,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
-  langChipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
-  langChipText: { fontSize: 14, color: colors.textSecondary },
-  langChipActiveText: { color: colors.white, fontFamily: fonts.semibold },
-  hint: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
-  actions: { gap: 10 },
+  chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
+  chipText: { fontSize: 14, color: colors.textSecondary },
+  chipActiveText: { color: colors.white, fontFamily: fonts.semibold },
 });

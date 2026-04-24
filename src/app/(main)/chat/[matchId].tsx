@@ -5,7 +5,6 @@ import {
   FlatList,
   TextInput,
   Pressable,
-  Image,
   StyleSheet,
   Keyboard,
   Platform,
@@ -13,7 +12,6 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Dimensions,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
@@ -30,22 +28,25 @@ import {
   EmotionChipRow,
   EMOTION_PICKER_ROW_HEIGHT,
 } from '@/components/chat/EmotionPicker';
+import { ProfilePhoto } from '@/components/ui/ProfilePhoto';
+import { ProfilePhotoGallery } from '@/components/ui/ProfilePhotoGallery';
 import { useChat } from '@/hooks/useChat';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { DEFAULT_EMOTION } from '@/constants/emotions';
 import * as matchService from '@/services/matches';
 import { calculateAge } from '@/utils/age';
-import { countRoundTrips, photoRevealStage } from '@/utils/chat';
+import { countRoundTrips } from '@/utils/chat';
+import { fromRoundTrips } from '@/constants/photoAccess';
+import { photoAccessStore } from '@/stores/photoAccess';
+import { usePhotoAccess } from '@/hooks/usePhotoAccess';
+import type { PhotoAccess } from '@/types/photoAccess';
 import type { Emotion, Message } from '@/types';
 
 // Minimum padding under the chat input bar so the send button never sits
 // directly on top of the Android gesture bar when useSafeAreaInsets() reports
 // a bottom inset of 0 (seen on some edge-to-edge Android configurations).
 const MIN_BOTTOM_SAFE_PAD = 12;
-
-// Match modalCard { maxWidth: 360, width: '100%', backdrop padding: 24 }.
-const MODAL_SLIDE_WIDTH = Math.min(360, Dimensions.get('window').width - 48);
 
 // Visual breathing room between the last chat bubble and the input bar.
 const EXTRA_BUBBLE_GAP = 16;
@@ -69,6 +70,7 @@ export default function ChatScreen() {
   const [partnerName, setPartnerName] = useState<string | null>(
     partnerNameParam && partnerNameParam.length > 0 ? partnerNameParam : null,
   );
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [partnerPhotos, setPartnerPhotos] = useState<string[]>([]);
   const [partnerInterests, setPartnerInterests] = useState<string[]>([]);
   const [partnerBioAudio, setPartnerBioAudio] = useState<string | null>(null);
@@ -76,6 +78,10 @@ export default function ChatScreen() {
   const [partnerNationality, setPartnerNationality] = useState<string | null>(null);
   const [partnerLanguage, setPartnerLanguage] = useState<string | null>(null);
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
+  // Photo-access unlock popup state. `unlockEvent` is null when there's no
+  // pending announcement; set to 'main' or 'all' the moment the store flips
+  // the corresponding flag from false -> true during this session.
+  const [unlockEvent, setUnlockEvent] = useState<'main' | 'all' | null>(null);
 
   useEffect(() => {
     // BE /api/matches returns only basic MatchPartner fields. We pull the partner
@@ -93,6 +99,7 @@ export default function ChatScreen() {
         if (!partner) return;
         if (!partnerPhoto && partner.photos[0]) setPartnerPhoto(partner.photos[0]);
         if (!partnerName && partner.display_name) setPartnerName(partner.display_name);
+        setPartnerId(partner.id);
         setPartnerPhotos(partner.photos ?? []);
         setPartnerNationality(partner.nationality ?? null);
         setPartnerLanguage(partner.language ?? null);
@@ -286,8 +293,44 @@ export default function ChatScreen() {
   };
 
   const roundTrips = useMemo(() => countRoundTrips(messages), [messages]);
-  const revealStage = photoRevealStage(roundTrips);
-  const blurMainPhoto = revealStage === 'blurred';
+
+  // Client-side bridge for the migration window where BE does not yet ship
+  // `photo_access` on /api/matches. We derive the flags from message history
+  // and push them into the registry so other tabs (Matches list) render the
+  // same unlock state without their own round-trip calculation.
+  // TODO: Remove this effect once BE is deployed and /api/matches returns
+  // photo_access unconditionally. See _workspace/00_planner_design.md §7.4.
+  useEffect(() => {
+    if (!partnerId) return;
+    photoAccessStore.update(partnerId, fromRoundTrips(roundTrips));
+  }, [partnerId, roundTrips]);
+
+  // Subscribe to the partner's photo-access flags and detect in-session
+  // unlock transitions (false -> true). The Zustand store's downgrade guard
+  // guarantees true flags are never flipped back, so the ref-based prev/curr
+  // diff here cannot fire twice for the same transition per partner.
+  const access = usePhotoAccess(partnerId);
+  const prevAccessRef = useRef<PhotoAccess | null>(null);
+  useEffect(() => {
+    // Gate on partnerId: while the match detail is still loading, `access`
+    // is the DEFAULT_PHOTO_ACCESS fallback and must not seed prevAccessRef.
+    if (!partnerId) return;
+    const prev = prevAccessRef.current;
+    // First pass after partnerId resolves: record the entry-state so that
+    // users joining an already-unlocked chat don't see the popup.
+    if (prev === null) {
+      prevAccessRef.current = access;
+      return;
+    }
+    // Pick 'all' over 'main' when both transitioned in the same tick —
+    // 'all' is the strictly stronger announcement and already implies main.
+    if (!prev.all_photos_unlocked && access.all_photos_unlocked) {
+      setUnlockEvent('all');
+    } else if (!prev.main_photo_unlocked && access.main_photo_unlocked) {
+      setUnlockEvent('main');
+    }
+    prevAccessRef.current = access;
+  }, [partnerId, access]);
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
     const prev = index > 0 ? messages[index - 1] : null;
@@ -297,9 +340,9 @@ export default function ChatScreen() {
       <ChatBubble
         message={item}
         isMine={isMine}
+        partnerId={partnerId}
         partnerPhoto={partnerPhoto}
         showAvatar={showAvatar}
-        blurAvatar={blurMainPhoto}
         onAvatarPress={() => setPartnerModalOpen(true)}
         onRetryAudio={retryAudio}
       />
@@ -451,39 +494,14 @@ export default function ChatScreen() {
             >
               <Ionicons name="close" size={22} color={colors.text} />
             </Pressable>
-            {revealStage === 'all' && partnerPhotos.length > 1 ? (
-              <View>
-                <ScrollView
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.modalPhoto}
-                >
-                  {partnerPhotos.map((uri, i) => (
-                    <Image
-                      key={`${uri}-${i}`}
-                      source={{ uri }}
-                      style={styles.modalPhotoSlide}
-                      resizeMode="cover"
-                    />
-                  ))}
-                </ScrollView>
-                <View style={styles.swipeHint} pointerEvents="none">
-                  <Ionicons name="chevron-forward" size={14} color={colors.white} />
-                  <Text style={styles.swipeHintText}>{t('chat.swipeForMore')}</Text>
-                </View>
-              </View>
-            ) : partnerPhoto ? (
-              <Image
-                source={{ uri: partnerPhoto }}
-                style={styles.modalPhoto}
-                resizeMode="cover"
-                blurRadius={blurMainPhoto ? 40 : 0}
-              />
+            {partnerId && partnerPhotos.length > 0 ? (
+              <ProfilePhotoGallery userId={partnerId} photos={partnerPhotos} />
             ) : (
-              <View style={[styles.modalPhoto, styles.modalPhotoEmpty]}>
-                <Ionicons name="person" size={72} color={colors.white} />
-              </View>
+              <ProfilePhoto
+                userId={partnerId}
+                uri={partnerPhoto}
+                variant="detail"
+              />
             )}
             <ScrollView contentContainerStyle={styles.modalBody}>
               {partnerName && (
@@ -510,6 +528,61 @@ export default function ChatScreen() {
             </ScrollView>
           </Pressable>
         </Pressable>
+      </Modal>
+
+      <Modal
+        visible={unlockEvent !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUnlockEvent(null)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.unlockCard}>
+            <LinearGradient
+              colors={[...gradients.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.unlockIcon}
+            >
+              <Ionicons name="lock-open" size={32} color={colors.white} />
+            </LinearGradient>
+            <Text style={styles.unlockTitle}>
+              {unlockEvent === 'all'
+                ? t('photoAccess.unlocked.all.title')
+                : t('photoAccess.unlocked.main.title')}
+            </Text>
+            <Text style={styles.unlockDescription}>
+              {unlockEvent === 'all'
+                ? t('photoAccess.unlocked.all.description', {
+                    name: partnerName || t('photoAccess.unlocked.fallbackName'),
+                  })
+                : t('photoAccess.unlocked.main.description', {
+                    name: partnerName || t('photoAccess.unlocked.fallbackName'),
+                  })}
+            </Text>
+            <Pressable
+              onPress={() => setUnlockEvent(null)}
+              style={({ pressed }) => [
+                styles.unlockButton,
+                pressed && { transform: [{ scale: 0.97 }] },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t('photoAccess.unlocked.confirm')}
+              hitSlop={8}
+            >
+              <LinearGradient
+                colors={[...gradients.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.unlockButtonInner}
+              >
+                <Text style={styles.unlockButtonText}>
+                  {t('photoAccess.unlocked.confirm')}
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
     </>
   );
@@ -625,38 +698,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.92)',
     ...shadows.soft,
   },
-  modalPhoto: {
-    width: '100%',
-    aspectRatio: 3 / 4,
-    backgroundColor: colors.cardAlt,
-  },
-  modalPhotoSlide: {
-    width: MODAL_SLIDE_WIDTH,
-    aspectRatio: 3 / 4,
-    backgroundColor: colors.cardAlt,
-  },
-  modalPhotoEmpty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.secondary,
-  },
-  swipeHint: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  swipeHintText: {
-    fontSize: 11,
-    color: colors.white,
-    fontFamily: fonts.medium,
-  },
   modalBody: {
     padding: 18,
     gap: 12,
@@ -692,5 +733,58 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     letterSpacing: 0.2,
     marginTop: -6,
+  },
+  unlockCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: colors.card,
+    borderRadius: radii.xl,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 20,
+    alignItems: 'center',
+    ...shadows.card,
+  },
+  unlockIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    ...shadows.glow,
+  },
+  unlockTitle: {
+    fontSize: 20,
+    fontFamily: fonts.bold,
+    color: colors.text,
+    letterSpacing: 0.3,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  unlockDescription: {
+    fontSize: 14,
+    fontFamily: fonts.regular,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  unlockButton: {
+    width: '100%',
+    borderRadius: radii.pill,
+    overflow: 'hidden',
+  },
+  unlockButtonInner: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+  },
+  unlockButtonText: {
+    color: colors.white,
+    fontFamily: fonts.bold,
+    fontSize: 15,
+    letterSpacing: 0.3,
   },
 });

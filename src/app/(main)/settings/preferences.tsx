@@ -13,11 +13,14 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
 import { usePreferences } from '@/hooks/usePreferences';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
-import { SUPPORTED_LANGUAGES, isLanguageCode } from '@/constants/languages';
+import { isLanguageCode } from '@/constants/languages';
+import { SUPPORTED_NATIONALITIES } from '@/constants/nationalities';
 import { MIN_AGE, MAX_AGE, validateAgeRange } from '@/utils/preferences';
+import type { LanguageProficiency } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
@@ -27,7 +30,8 @@ export default function PreferencesScreen() {
   const [minAge, setMinAge] = useState('18');
   const [maxAge, setMaxAge] = useState('100');
   const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>([...GENDER_OPTIONS]);
-  const [languages, setLanguages] = useState<string[]>([]);
+  const [languages, setLanguages] = useState<LanguageProficiency[]>([]);
+  const [nationalities, setNationalities] = useState<string[]>([]);
   const [kbHeight, setKbHeight] = useState(0);
 
   useEffect(() => {
@@ -50,8 +54,19 @@ export default function PreferencesScreen() {
       setMinAge(String(preferences.min_age));
       setMaxAge(String(preferences.max_age));
       setGenders(preferences.preferred_genders);
-      // Drop any legacy/invalid entries so the UI stays consistent with supported codes
-      setLanguages(preferences.preferred_languages.filter(isLanguageCode));
+      // Prefer the new detail array; fall back to synthesizing Lv.1 entries
+      // from the legacy codes-only array so pre-006 prefs still load.
+      const detail = preferences.preferred_languages_detail;
+      if (detail && detail.length > 0) {
+        setLanguages(detail.filter((d) => isLanguageCode(d.code)));
+      } else {
+        setLanguages(
+          preferences.preferred_languages
+            .filter(isLanguageCode)
+            .map((code) => ({ code, level: 1 })),
+        );
+      }
+      setNationalities(preferences.preferred_nationalities ?? []);
     }
   }, [preferences]);
 
@@ -61,9 +76,9 @@ export default function PreferencesScreen() {
     );
   };
 
-  const toggleLanguage = (code: string) => {
-    setLanguages((prev) =>
-      prev.includes(code) ? prev.filter((l) => l !== code) : [...prev, code],
+  const toggleNationality = (code: string) => {
+    setNationalities((prev) =>
+      prev.includes(code) ? prev.filter((x) => x !== code) : [...prev, code],
     );
   };
 
@@ -82,7 +97,9 @@ export default function PreferencesScreen() {
         min_age: ageCheck.min,
         max_age: ageCheck.max,
         preferred_genders: genders,
-        preferred_languages: languages,
+        preferred_languages: languages.map((l) => l.code),
+        preferred_languages_detail: languages,
+        preferred_nationalities: nationalities,
       });
       router.back();
     } catch (e: any) {
@@ -133,25 +150,33 @@ export default function PreferencesScreen() {
       </View>
 
       <Text style={styles.label}>{t('preferences.preferredLanguages')}</Text>
-      <View style={styles.langRow}>
-        {SUPPORTED_LANGUAGES.map(({ code, labelKey }) => {
-          const selected = languages.includes(code);
+      <LanguageProficiencyEditor
+        value={languages}
+        onChange={setLanguages}
+        emptyHint={t('preferences.leaveEmptyAllLanguages')}
+      />
+      <Text style={styles.hint}>{t('preferences.preferredLevelHint')}</Text>
+
+      <Text style={[styles.label, { marginTop: 20 }]}>
+        {t('preferences.preferredNationalities')}
+      </Text>
+      <View style={styles.chipRow}>
+        {SUPPORTED_NATIONALITIES.map(({ code, labelKey }) => {
+          const selected = nationalities.includes(code);
           return (
             <Pressable
               key={code}
-              onPress={() => toggleLanguage(code)}
-              style={[styles.langChip, selected && styles.langChipActive]}
+              style={[styles.chip, selected && styles.chipActive]}
+              onPress={() => toggleNationality(code)}
             >
-              <Text style={[styles.langChipText, selected && styles.langChipActiveText]}>
+              <Text style={[styles.chipText, selected && styles.chipActiveText]}>
                 {t(labelKey)}
               </Text>
             </Pressable>
           );
         })}
       </View>
-      <Text style={styles.hint}>
-        {t('preferences.leaveEmptyAllLanguages')}
-      </Text>
+      <Text style={styles.hint}>{t('preferences.leaveEmptyAllNationalities')}</Text>
 
       <Button title={t('common.save')} onPress={handleSave} loading={loading} style={{ marginTop: 24 }} />
     </ScrollView>
@@ -206,13 +231,18 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontFamily: fonts.semibold,
   },
-  langRow: {
+  hint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  langChip: {
+  chip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: radii.pill,
@@ -220,21 +250,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
-  langChipActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  langChipText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  langChipActiveText: {
-    color: colors.white,
-    fontFamily: fonts.semibold,
-  },
-  hint: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
+  chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
+  chipText: { fontSize: 14, color: colors.textSecondary },
+  chipActiveText: { color: colors.white, fontFamily: fonts.semibold },
 });

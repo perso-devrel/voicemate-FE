@@ -24,14 +24,14 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { WizardHeader } from '@/components/setup/WizardHeader';
+import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
 import { useProfile } from '@/hooks/useProfile';
 import { useVoice } from '@/hooks/useVoice';
 import { useAuthStore } from '@/stores/authStore';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
-import { SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
 import { SUPPORTED_NATIONALITIES, type NationalityCode } from '@/constants/nationalities';
-import type { ProfileUpsertRequest } from '@/types';
+import type { LanguageProficiency, ProfileUpsertRequest } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 const RECORD_ORANGE = '#E8945F';
@@ -102,26 +102,42 @@ export default function EditProfileScreen() {
   const [recordingUri, setRecordingUri] = useState<string | null>(null);
   const [recordingDurationMs, setRecordingDurationMs] = useState(0);
 
-  const [form, setForm] = useState<
-    Pick<ProfileUpsertRequest, 'display_name' | 'birth_date' | 'gender' | 'nationality' | 'language'>
-  >({
+  const [form, setForm] = useState<{
+    display_name: string;
+    birth_date: string;
+    gender: 'male' | 'female' | 'other';
+    nationality: string;
+    languages: LanguageProficiency[];
+  }>({
     display_name: profile?.display_name ?? '',
     birth_date: profile?.birth_date ?? '',
     gender: profile?.gender ?? 'male',
     nationality: profile?.nationality ?? '',
-    language: profile?.language ?? '',
+    languages:
+      profile?.languages && profile.languages.length > 0
+        ? profile.languages
+        : profile?.language
+          ? [{ code: profile.language, level: 3 }]
+          : [],
   });
   const [nationalityOpen, setNationalityOpen] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
 
   useEffect(() => {
     if (profile) {
+      // Pre-006 rows may not have `languages` populated. Fall back to a
+      // synthesized Lv.3 entry built from the legacy primary language.
+      const initialLanguages: LanguageProficiency[] =
+        profile.languages && profile.languages.length > 0
+          ? profile.languages
+          : profile.language
+            ? [{ code: profile.language, level: 3 }]
+            : [];
       setForm({
         display_name: profile.display_name,
         birth_date: profile.birth_date,
         gender: profile.gender,
         nationality: profile.nationality,
-        language: profile.language,
+        languages: initialLanguages,
       });
     }
   }, [profile]);
@@ -206,13 +222,15 @@ export default function EditProfileScreen() {
       Alert.alert(t('common.error'), t('setupProfile.selectNationalityRequired'));
       return;
     }
-    if (!form.language) {
-      Alert.alert(t('common.error'), t('setupProfile.selectLanguageRequired'));
+    if (form.languages.length === 0) {
+      Alert.alert(t('common.error'), t('setupProfile.addAtLeastOneLanguage'));
       return;
     }
     try {
+      const { languages, ...rest } = form;
       await upsertProfile({
-        ...form,
+        ...rest,
+        languages,
         bio: profile?.bio ?? null,
         interests: profile?.interests ?? [],
       });
@@ -317,41 +335,12 @@ export default function EditProfileScreen() {
           </View>
         )}
 
-        <Text style={styles.label}>{t('setupProfile.language')}</Text>
-        <Pressable
-          style={[styles.selectBtn, languageOpen && styles.selectBtnOpen]}
-          onPress={() => setLanguageOpen((v) => !v)}
-        >
-          <Text style={[styles.selectText, !form.language && styles.selectPlaceholder]}>
-            {form.language ? t(`languages.${form.language}`) : t('setupProfile.languagePlaceholder')}
-          </Text>
-          <Ionicons
-            name={languageOpen ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={colors.textSecondary}
-          />
-        </Pressable>
-        {languageOpen && (
-          <View style={[styles.chipRow, styles.dropdownPanel]}>
-            {SUPPORTED_LANGUAGES.map(({ code, labelKey }) => {
-              const selected = form.language === code;
-              return (
-                <Pressable
-                  key={code}
-                  style={[styles.chip, selected && styles.chipActive]}
-                  onPress={() => {
-                    setForm((f) => ({ ...f, language: code as LanguageCode }));
-                    setLanguageOpen(false);
-                  }}
-                >
-                  <Text style={[styles.chipText, selected && styles.chipActiveText]}>
-                    {t(labelKey)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
+        <Text style={styles.label}>{t('setupProfile.languages')}</Text>
+        <LanguageProficiencyEditor
+          value={form.languages}
+          onChange={(next) => setForm((f) => ({ ...f, languages: next }))}
+          emptyHint={t('setupProfile.languagesHint')}
+        />
 
         <Text style={[styles.label, { marginTop: 8 }]}>{t('profile.voiceSectionTitle')}</Text>
         <View style={styles.statusCard}>

@@ -15,12 +15,13 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
+import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
 import { useAuthStore } from '@/stores/authStore';
 import { useSignupDraftStore, type Gender } from '@/stores/signupDraftStore';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
-import { SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
 import { SUPPORTED_NATIONALITIES, type NationalityCode } from '@/constants/nationalities';
+import type { LanguageProficiency } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
@@ -60,10 +61,12 @@ export default function SetupStep1() {
     birth_date: draft.birth_date,
     gender: draft.gender as Gender,
     nationality: draft.nationality,
-    language: draft.language,
+    languages: draft.languages,
   });
   const [nationalityOpen, setNationalityOpen] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
+
+  const setLanguages = (next: LanguageProficiency[]) =>
+    setForm((f) => ({ ...f, languages: next }));
 
   const handleNext = () => {
     if (!form.display_name.trim()) {
@@ -78,8 +81,8 @@ export default function SetupStep1() {
       Alert.alert(t('common.error'), t('setupProfile.selectNationalityRequired'));
       return;
     }
-    if (!form.language) {
-      Alert.alert(t('common.error'), t('setupProfile.selectLanguageRequired'));
+    if (form.languages.length === 0) {
+      Alert.alert(t('common.error'), t('setupProfile.addAtLeastOneLanguage'));
       return;
     }
     draft.setStep1({
@@ -87,7 +90,7 @@ export default function SetupStep1() {
       birth_date: form.birth_date,
       gender: form.gender,
       nationality: form.nationality,
-      language: form.language,
+      languages: form.languages,
     });
     router.push('/(main)/setup/step2');
   };
@@ -179,41 +182,12 @@ export default function SetupStep1() {
         </View>
       )}
 
-      <Text style={styles.label}>{t('setupProfile.language')}</Text>
-      <Pressable
-        style={[styles.selectBtn, languageOpen && styles.selectBtnOpen]}
-        onPress={() => setLanguageOpen((v) => !v)}
-      >
-        <Text style={[styles.selectText, !form.language && styles.selectPlaceholder]}>
-          {form.language ? t(`languages.${form.language}`) : t('setupProfile.languagePlaceholder')}
-        </Text>
-        <Ionicons
-          name={languageOpen ? 'chevron-up' : 'chevron-down'}
-          size={18}
-          color={colors.textSecondary}
-        />
-      </Pressable>
-      {languageOpen && (
-        <View style={[styles.chipRow, styles.dropdownPanel]}>
-          {SUPPORTED_LANGUAGES.map(({ code, labelKey }) => {
-            const selected = form.language === code;
-            return (
-              <Pressable
-                key={code}
-                style={[styles.chip, selected && styles.chipActive]}
-                onPress={() => {
-                  setForm((f) => ({ ...f, language: code as LanguageCode }));
-                  setLanguageOpen(false);
-                }}
-              >
-                <Text style={[styles.chipText, selected && styles.chipActiveText]}>
-                  {t(labelKey)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+      <Text style={styles.label}>{t('setupProfile.languages')}</Text>
+      <LanguageProficiencyEditor
+        value={form.languages}
+        onChange={setLanguages}
+        emptyHint={t('setupProfile.languagesHint')}
+      />
 
       <Button title={t('common.next')} onPress={handleNext} style={{ marginTop: 24 }} />
       </ScrollView>
