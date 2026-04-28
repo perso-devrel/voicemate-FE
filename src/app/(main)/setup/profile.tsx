@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
+import { BioPhrasePicker } from '@/components/setup/BioPhrasePicker';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuthStore } from '@/stores/authStore';
 import { colors, radii } from '@/constants/colors';
@@ -277,42 +278,21 @@ export default function ProfileSetupScreen() {
         emptyHint={t('setupProfile.languagesHint')}
       />
 
-      <View onLayout={(e) => { bioAnchorY.current = e.nativeEvent.layout.y; }}>
-        <Input
-          label={t('setupProfile.bio')}
+      <View
+        onLayout={(e) => {
+          bioAnchorY.current = e.nativeEvent.layout.y;
+        }}
+      >
+        <Text style={styles.label}>{t('setupProfile.bio')}</Text>
+        <Text style={styles.hint}>{t('setupProfile.bioPicker.subtitle')}</Text>
+        <BioPhrasePicker
           value={form.bio ?? ''}
-          onChangeText={(v) => updateField('bio', v)}
-          onFocus={() => {
-            // Let the keyboard begin opening, then scroll the bio row above it.
-            // kbHeight updates asynchronously via the keyboardDidShow listener,
-            // so delay and use a generous offset tied to current kbHeight.
-            setTimeout(() => {
-              scrollRef.current?.scrollTo({
-                y: Math.max(0, bioAnchorY.current - 40),
-                animated: true,
-              });
-            }, 250);
-          }}
-          placeholder={
-            voiceReady
-              ? t('setupProfile.bioPlaceholder')
-              : t('setupProfile.bioLockedPlaceholder')
-          }
-          multiline
-          maxLength={500}
-          editable={voiceReady}
-          style={[
-            { height: 100, textAlignVertical: 'top' },
-            !voiceReady && styles.bioDisabled,
-          ]}
+          onChange={(v) => updateField('bio', v)}
+          language={form.languages?.[0]?.code ?? form.language ?? 'ko'}
+          disabled={!voiceReady}
+          lockedHint={!voiceReady ? t('setupProfile.bioLockedHint') : undefined}
         />
       </View>
-      {!voiceReady && (
-        <View style={styles.bioLockBox}>
-          <Ionicons name="mic-off-outline" size={16} color={colors.primaryDark} />
-          <Text style={styles.bioLockText}>{t('setupProfile.bioLockedHint')}</Text>
-        </View>
-      )}
 
       <Text style={styles.label}>
         {t('setupProfile.interests', { count: form.interests?.length ?? 0 })}
@@ -479,30 +459,5 @@ const styles = StyleSheet.create({
   },
   chipDisabledText: {
     color: colors.textLight,
-  },
-  bioDisabled: {
-    backgroundColor: colors.surface,
-    color: colors.textLight,
-    opacity: 0.7,
-  },
-  bioLockBox: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-start',
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginTop: -8,
-    marginBottom: 16,
-  },
-  bioLockText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 17,
-    color: colors.primaryDark,
-    fontFamily: fonts.medium,
   },
 });

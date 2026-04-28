@@ -305,7 +305,11 @@ export default function ProfileScreen() {
         </Pressable>
 
         {profile.bio_audio_url ? (
-          <AudioPlayer url={profile.bio_audio_url} />
+          // Re-key on URL so saving a new bio mounts a fresh player instance
+          // — expo-audio's useAudioPlayer captures source at first render and
+          // wouldn't reload a changed prop, so the previous bio's audio would
+          // keep playing despite a new bio_audio_url.
+          <AudioPlayer key={profile.bio_audio_url} url={profile.bio_audio_url} />
         ) : synthesizing ? (
           <View style={styles.synthesizing}>
             <ActivityIndicator size="small" color={colors.primary} />
