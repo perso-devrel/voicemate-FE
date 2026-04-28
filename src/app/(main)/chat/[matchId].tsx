@@ -364,7 +364,9 @@ export default function ChatScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: t('chat.title') }} />
+      <Stack.Screen
+        options={{ headerShown: true, title: partnerName ?? t('chat.title') }}
+      />
       <View style={styles.container}>
         <IntimacyGauge roundTrips={roundTrips} />
         <FlatList

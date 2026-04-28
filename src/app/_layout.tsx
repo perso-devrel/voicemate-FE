@@ -3,6 +3,7 @@ import { Text, TextInput } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '@/stores/authStore';
@@ -18,11 +19,11 @@ registerOnSessionExpired(() => useAuthStore.getState().logout());
 function applyDefaultFont() {
   const textAny = Text as unknown as { defaultProps?: { style?: unknown } };
   textAny.defaultProps = textAny.defaultProps ?? {};
-  textAny.defaultProps.style = [{ fontFamily: fonts.regular }, textAny.defaultProps.style];
+  textAny.defaultProps.style = [{ fontFamily: fonts.pixel }, textAny.defaultProps.style];
 
   const inputAny = TextInput as unknown as { defaultProps?: { style?: unknown } };
   inputAny.defaultProps = inputAny.defaultProps ?? {};
-  inputAny.defaultProps.style = [{ fontFamily: fonts.regular }, inputAny.defaultProps.style];
+  inputAny.defaultProps.style = [{ fontFamily: fonts.pixel }, inputAny.defaultProps.style];
 }
 
 export default function RootLayout() {
@@ -50,13 +51,15 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(main)" />
-        <Stack.Screen name="index" />
-      </Stack>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(main)" />
+          <Stack.Screen name="index" />
+        </Stack>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

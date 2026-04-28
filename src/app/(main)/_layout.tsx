@@ -1,5 +1,7 @@
 import { Redirect, Stack } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
+import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 
 export default function MainLayout() {
   const { isAuthenticated } = useAuthStore();
@@ -24,7 +26,20 @@ export default function MainLayout() {
       <Stack.Screen name="settings/edit-bio" />
       <Stack.Screen
         name="chat/[matchId]"
-        options={{ headerShown: true, headerBackTitle: 'Back' }}
+        options={{
+          headerShown: true,
+          headerBackTitle: 'Back',
+          headerTintColor: colors.text,
+          headerTitleStyle: {
+            fontFamily: fonts.bold,
+            color: colors.text,
+            fontSize: 19,
+          },
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+          headerShadowVisible: false,
+        }}
       />
     </Stack>
   );

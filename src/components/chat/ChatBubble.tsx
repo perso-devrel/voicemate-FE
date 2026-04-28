@@ -169,20 +169,20 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSoft,
   },
   text: {
-    fontSize: 15,
+    fontSize: 12,
     color: colors.text,
-    lineHeight: 22,
+    lineHeight: 18,
     fontFamily: fonts.regular,
   },
   mineText: {
     color: colors.white,
   },
   translation: {
-    fontSize: 13,
+    fontSize: 11,
     color: colors.textSecondary,
     marginTop: 5,
     fontStyle: 'italic',
-    lineHeight: 19,
+    lineHeight: 16,
   },
   footer: {
     flexDirection: 'row',

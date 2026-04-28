@@ -1,8 +1,20 @@
-import { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, Pressable } from 'react-native';
+import { useCallback, useMemo, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  Pressable,
+  Animated,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import {
+  PanGestureHandler,
+  State,
+  type PanGestureHandlerStateChangeEvent,
+} from 'react-native-gesture-handler';
 import { ProfilePhoto } from '@/components/ui/ProfilePhoto';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
@@ -12,6 +24,10 @@ import type { DiscoverCandidate } from '@/types';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH - 32;
 const COVER_SIZE = Math.round((CARD_WIDTH - 40) * 0.8);
+
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.28;
+const FLY_OUT_DISTANCE = SCREEN_WIDTH * 1.4;
+const ROTATION_RANGE = 14;
 
 const WAVE_BAR_COUNT = 36;
 const WAVE_BAR_WIDTH = 3;
@@ -82,8 +98,100 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
     player.play();
   }, [audioUrl, player, isPlaying, duration, currentTime]);
 
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: translateX, translationY: translateY } }],
+    { useNativeDriver: true },
+  );
+
+  const onHandlerStateChange = (event: PanGestureHandlerStateChangeEvent) => {
+    if (event.nativeEvent.state !== State.END) return;
+    const tx = event.nativeEvent.translationX;
+    if (tx > SWIPE_THRESHOLD) {
+      Animated.timing(translateX, {
+        toValue: FLY_OUT_DISTANCE,
+        duration: 240,
+        useNativeDriver: true,
+      }).start(() => onLike());
+    } else if (tx < -SWIPE_THRESHOLD) {
+      Animated.timing(translateX, {
+        toValue: -FLY_OUT_DISTANCE,
+        duration: 240,
+        useNativeDriver: true,
+      }).start(() => onPass());
+    } else {
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 18,
+        stiffness: 180,
+      }).start();
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 18,
+        stiffness: 180,
+      }).start();
+    }
+  };
+
+  const rotate = translateX.interpolate({
+    inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
+    outputRange: [`-${ROTATION_RANGE}deg`, '0deg', `${ROTATION_RANGE}deg`],
+    extrapolate: 'clamp',
+  });
+
+  const likeOpacity = translateX.interpolate({
+    inputRange: [40, SWIPE_THRESHOLD],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const skipOpacity = translateX.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, -40],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
   return (
-    <View style={styles.card}>
+    <PanGestureHandler
+      onGestureEvent={onGestureEvent}
+      onHandlerStateChange={onHandlerStateChange}
+      activeOffsetX={[-12, 12]}
+      failOffsetY={[-20, 20]}
+    >
+      <Animated.View
+        style={[
+          styles.card,
+          {
+            transform: [
+              { translateX },
+              { translateY },
+              { rotate },
+            ],
+          },
+        ]}
+      >
+      <Animated.View
+        style={[
+          styles.stamp,
+          styles.likeStamp,
+          { opacity: likeOpacity },
+        ]}
+      >
+        <Text style={[styles.stampText, { color: colors.like }]}>LIKE</Text>
+      </Animated.View>
+      <Animated.View
+        style={[
+          styles.stamp,
+          styles.skipStamp,
+          { opacity: skipOpacity },
+        ]}
+      >
+        <Text style={[styles.stampText, { color: colors.white }]}>SKIP</Text>
+      </Animated.View>
       <View style={styles.cover}>
         {/* Discover는 첫인상 음성 중심 UX — photo_access와 무관하게 항상 블러 */}
         <ProfilePhoto
@@ -132,6 +240,7 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
           style={({ pressed }) => [styles.sideBtn, pressed && styles.pressed]}
         >
           <Ionicons name="play-skip-back" size={28} color={colors.white} />
+          <Text style={[styles.sideLabel, { color: colors.white }]}>Skip</Text>
         </Pressable>
 
         <Pressable
@@ -161,9 +270,11 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
           style={({ pressed }) => [styles.sideBtn, pressed && styles.pressed]}
         >
           <Ionicons name="play-skip-forward" size={28} color={colors.like} />
+          <Text style={[styles.sideLabel, { color: colors.like }]}>Like</Text>
         </Pressable>
       </View>
-    </View>
+      </Animated.View>
+    </PanGestureHandler>
   );
 }
 
@@ -234,6 +345,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  sideLabel: {
+    marginTop: 4,
+    fontSize: 11,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.4,
+  },
   playShell: {
     borderRadius: 36,
     ...shadows.glow,
@@ -253,5 +370,29 @@ const styles = StyleSheet.create({
   },
   pressed: {
     transform: [{ scale: 0.92 }],
+  },
+  stamp: {
+    position: 'absolute',
+    top: 28,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: radii.sm,
+    borderWidth: 3,
+    zIndex: 10,
+  },
+  likeStamp: {
+    left: 24,
+    transform: [{ rotate: '-14deg' }],
+    borderColor: colors.like,
+  },
+  skipStamp: {
+    right: 24,
+    transform: [{ rotate: '14deg' }],
+    borderColor: colors.white,
+  },
+  stampText: {
+    fontSize: 22,
+    fontFamily: fonts.bold,
+    letterSpacing: 2,
   },
 });
