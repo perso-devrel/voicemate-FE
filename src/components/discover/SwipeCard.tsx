@@ -76,7 +76,7 @@ interface SwipeCardProps {
 export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
   const age = calculateAge(candidate.birth_date);
   const photo = candidate.photos[0];
-  const audioUrl = candidate.bio_audio_url;
+  const audioUrl = candidate.voice_intro_audio_url;
 
   const player = useAudioPlayer(audioUrl ?? undefined);
   const status = useAudioPlayerStatus(player);

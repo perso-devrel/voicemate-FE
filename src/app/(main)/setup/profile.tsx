@@ -86,7 +86,7 @@ export default function ProfileSetupScreen() {
     gender: 'male',
     nationality: '',
     languages: [],
-    bio: '',
+    voice_intro: '',
     interests: [],
   });
   const [nationalityOpen, setNationalityOpen] = useState(false);
@@ -110,7 +110,7 @@ export default function ProfileSetupScreen() {
         gender: profile.gender,
         nationality: profile.nationality,
         languages: initialLanguages,
-        bio: profile.bio ?? '',
+        voice_intro: profile.voice_intro ?? '',
         interests: profile.interests,
       });
     }
@@ -166,7 +166,7 @@ export default function ProfileSetupScreen() {
     try {
       const payload: ProfileUpsertRequest = {
         ...form,
-        bio: form.bio || null,
+        voice_intro: form.voice_intro || null,
       };
       await upsertProfile(payload);
       if (!profile) {
@@ -276,6 +276,7 @@ export default function ProfileSetupScreen() {
         value={form.languages ?? []}
         onChange={(next) => updateField('languages', next)}
         emptyHint={t('setupProfile.languagesHint')}
+        showPrimary
       />
 
       <View
@@ -286,8 +287,8 @@ export default function ProfileSetupScreen() {
         <Text style={styles.label}>{t('setupProfile.bio')}</Text>
         <Text style={styles.hint}>{t('setupProfile.bioPicker.subtitle')}</Text>
         <BioPhrasePicker
-          value={form.bio ?? ''}
-          onChange={(v) => updateField('bio', v)}
+          value={form.voice_intro ?? ''}
+          onChange={(v) => updateField('voice_intro', v)}
           language={form.languages?.[0]?.code ?? form.language ?? 'ko'}
           disabled={!voiceReady}
           lockedHint={!voiceReady ? t('setupProfile.bioLockedHint') : undefined}
@@ -393,7 +394,6 @@ const styles = StyleSheet.create({
   },
   genderActiveText: {
     color: colors.white,
-    fontFamily: fonts.semibold,
   },
   selectBtn: {
     flexDirection: 'row',
@@ -455,7 +455,6 @@ const styles = StyleSheet.create({
   },
   chipActiveText: {
     color: colors.white,
-    fontFamily: fonts.semibold,
   },
   chipDisabledText: {
     color: colors.textLight,

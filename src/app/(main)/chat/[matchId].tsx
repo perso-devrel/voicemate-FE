@@ -86,7 +86,7 @@ export default function ChatScreen() {
   useEffect(() => {
     // BE /api/matches returns only basic MatchPartner fields. We pull the partner
     // from that list for photo/name/nationality/language (no single-match endpoint),
-    // then call Supabase directly for birth_date/interests/bio_audio_url
+    // then call Supabase directly for birth_date/interests/voice_intro_audio_url
     // (RLS "Anyone can read active profiles" permits it).
     if (!matchId) return;
     let cancelled = false;
@@ -106,7 +106,7 @@ export default function ChatScreen() {
         const detail = await matchService.getPartnerDetail(partner.id);
         if (cancelled || !detail) return;
         setPartnerInterests(detail.interests);
-        setPartnerBioAudio(detail.bio_audio_url);
+        setPartnerBioAudio(detail.voice_intro_audio_url);
         setPartnerBirthDate(detail.birth_date || null);
       } catch {
         // silent — partner details are best-effort

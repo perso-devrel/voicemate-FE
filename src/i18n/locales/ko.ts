@@ -35,7 +35,7 @@ export default {
         progress: "{{current}} / {{total}}",
         step1Title: "기본 정보",
         step1Subtitle: "프로필에 표시될 기본 정보를 입력해주세요.",
-        step2Title: "음성과 자기소개",
+        step2Title: "음성과 보이스 한마디",
         step2Subtitle: "목소리를 등록하고 자기소개를 작성해주세요.",
         step2SkipWarning: "음성과 보이스 한마디를 등록하지 않으면 사용자를 탐색할 수 없어요.",
         step3Title: "관심사",
@@ -75,6 +75,8 @@ export default {
         matchedWith: "{{name}}님과 매치되었습니다!",
         noMoreProfiles: "더 이상 프로필이 없습니다",
         checkBackLater: "나중에 새로운 사람을 확인해보세요",
+        dailyLimitTitle: "오늘은 충분히 살펴보셨어요",
+        dailyLimitText: "내일 새로운 사람을 다시 만나보세요",
         playBio: "자기소개 듣기",
         lockedTitle: "프로필을 먼저 완성해주세요",
         lockedVoiceHint:
@@ -83,6 +85,8 @@ export default {
             "자기소개를 한 줄 적어주세요. 입력한 글이 내 목소리로 자동 변환돼 상대방에게 들려요.",
         lockedGoVoice: "음성 등록하러 가기",
         lockedGoBio: "자기소개 작성하러 가기",
+        voiceProcessingTitle: "음성 생성 중입니다",
+        voiceProcessingHint: "잠시만 기다려주세요. 음성 생성이 끝나면 자동으로 탐색을 시작할 수 있어요.",
     },
 
     matches: {
@@ -182,6 +186,8 @@ export default {
         addAtLeastOneLanguage: "사용 언어를 한 개 이상 추가해주세요",
         languageAlreadyAdded: "이미 추가된 언어예요",
         removeLanguage: "삭제",
+        primaryLanguage: "주 언어",
+        markPrimaryLanguage: "주 언어로 설정",
         bio: "보이스 한마디",
         bioPlaceholder: "마음에 드는 한마디를 골라주세요",
         bioLockedPlaceholder: "보이스 클론 등록 후 고를 수 있어요",

@@ -53,7 +53,7 @@ export default function EditInterestsScreen() {
         gender: profile.gender,
         nationality: profile.nationality,
         language: profile.language,
-        bio: profile.bio,
+        voice_intro: profile.voice_intro,
         interests: selectedLabels,
       });
       router.back();
@@ -72,7 +72,7 @@ export default function EditInterestsScreen() {
         onBack={() => router.back()}
       />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom + 88 }]}
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.label}>
@@ -110,8 +110,11 @@ export default function EditInterestsScreen() {
           })}
         </View>
 
-        <Button title={t('common.save')} onPress={handleSave} loading={loading} style={{ marginTop: 12 }} />
       </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        <Button title={t('common.save')} onPress={handleSave} loading={loading} />
+      </View>
     </View>
   );
 }
@@ -133,6 +136,17 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipDisabled: { opacity: 0.4 },
   chipText: { fontSize: 14, color: colors.textSecondary },
-  chipActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  chipActiveText: { color: colors.white },
   chipDisabledText: { color: colors.textLight },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
 });

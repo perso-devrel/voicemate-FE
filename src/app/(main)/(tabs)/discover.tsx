@@ -16,20 +16,30 @@ import { fonts } from '@/constants/fonts';
 export default function DiscoverScreen() {
   const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
-  const { candidates, loading, loadCandidates, handleSwipe } = useDiscover();
+  const {
+    candidates,
+    loading,
+    loadCandidates,
+    handleSwipe,
+    dailyCountReady,
+    dailyLimitReached,
+  } = useDiscover();
 
   const voiceReady = profile?.voice_clone_status === 'ready';
-  const bioReady = Boolean(profile?.bio && profile.bio.trim().length > 0);
+  const voiceProcessing = profile?.voice_clone_status === 'processing';
+  const bioReady = Boolean(profile?.voice_intro && profile.voice_intro.trim().length > 0);
   const gated = !voiceReady || !bioReady;
 
+  // Wait for the daily count to hydrate before the first fetch so we don't
+  // overshoot the quota by fetching against a stale count of 0.
   useEffect(() => {
-    if (!gated) loadCandidates();
-  }, [gated, loadCandidates]);
+    if (!gated && dailyCountReady) loadCandidates();
+  }, [gated, dailyCountReady, loadCandidates]);
 
   if (gated) {
     return (
       <PhotoBackground variant="app">
-        <GateScreen voiceReady={voiceReady} t={t} />
+        <GateScreen voiceReady={voiceReady} voiceProcessing={voiceProcessing} t={t} />
       </PhotoBackground>
     );
   }
@@ -61,12 +71,15 @@ export default function DiscoverScreen() {
   );
 
   if (!current) {
+    const titleKey = dailyLimitReached ? 'discover.dailyLimitTitle' : 'discover.noMoreProfiles';
+    const textKey = dailyLimitReached ? 'discover.dailyLimitText' : 'discover.checkBackLater';
+    const iconName = dailyLimitReached ? 'time-outline' : 'sparkles';
     return (
       <PhotoBackground variant="app">
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.empty}
-          refreshControl={refreshControl}
+          refreshControl={dailyLimitReached ? undefined : refreshControl}
         >
           <LinearGradient
             colors={[...gradients.glow]}
@@ -74,10 +87,10 @@ export default function DiscoverScreen() {
             end={{ x: 1, y: 1 }}
             style={[styles.emptyHalo, shadows.glow]}
           >
-            <Ionicons name="sparkles" size={38} color={colors.white} />
+            <Ionicons name={iconName} size={38} color={colors.white} />
           </LinearGradient>
-          <Text style={styles.emptyTitle}>{t('discover.noMoreProfiles')}</Text>
-          <Text style={styles.emptyText}>{t('discover.checkBackLater')}</Text>
+          <Text style={styles.emptyTitle}>{t(titleKey)}</Text>
+          <Text style={styles.emptyText}>{t(textKey)}</Text>
         </ScrollView>
       </PhotoBackground>
     );
@@ -103,15 +116,34 @@ export default function DiscoverScreen() {
 
 function GateScreen({
   voiceReady,
+  voiceProcessing,
   t,
 }: {
   voiceReady: boolean;
+  voiceProcessing: boolean;
   t: (key: string) => string;
 }) {
   // Guide the user through the missing step in the natural signup order:
   // voice first, bio next.
   const goVoice = () => router.push('/(main)/setup/voice');
   const goBio = () => router.push('/(main)/setup/profile');
+
+  if (voiceProcessing) {
+    return (
+      <View style={styles.empty}>
+        <LinearGradient
+          colors={[...gradients.glow]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.emptyHalo, shadows.glow]}
+        >
+          <Ionicons name="hourglass-outline" size={38} color={colors.white} />
+        </LinearGradient>
+        <Text style={styles.emptyTitle}>{t('discover.voiceProcessingTitle')}</Text>
+        <Text style={styles.emptyText}>{t('discover.voiceProcessingHint')}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.empty}>
@@ -170,6 +202,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     color: colors.text,
     letterSpacing: 0.3,
+    textAlign: 'center',
     textShadowColor: 'rgba(255,244,238,0.9)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,

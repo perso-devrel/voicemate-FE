@@ -79,11 +79,11 @@ export default function ProfileScreen() {
     });
   }, [navigation, t]);
 
-  // BE generates bio audio asynchronously (fire-and-forget TTS). When bio is
-  // present but bio_audio_url is still null, poll for the URL to appear so
-  // the play button shows up without requiring a manual reload.
-  const bioSet = Boolean(profile?.bio && profile.bio.trim().length > 0);
-  const audioReady = Boolean(profile?.bio_audio_url);
+  // BE generates voice_intro audio asynchronously (fire-and-forget TTS). When
+  // voice_intro is present but voice_intro_audio_url is still null, poll for
+  // the URL to appear so the play button shows up without requiring a manual reload.
+  const bioSet = Boolean(profile?.voice_intro && profile.voice_intro.trim().length > 0);
+  const audioReady = Boolean(profile?.voice_intro_audio_url);
   const [synthesizing, setSynthesizing] = useState(false);
   useEffect(() => {
     if (!bioSet || audioReady) {
@@ -296,20 +296,20 @@ export default function ProfileScreen() {
           accessibilityLabel={t('profile.editBio')}
         >
           <Text
-            style={[styles.bio, !profile.bio && styles.bioEmpty]}
+            style={[styles.bio, !profile.voice_intro && styles.bioEmpty]}
             numberOfLines={0}
           >
-            {profile.bio || t('profile.bioEmpty')}
+            {profile.voice_intro || t('profile.bioEmpty')}
           </Text>
           <Ionicons name="pencil" size={16} color={colors.primaryDark} style={styles.bioPencil} />
         </Pressable>
 
-        {profile.bio_audio_url ? (
-          // Re-key on URL so saving a new bio mounts a fresh player instance
-          // — expo-audio's useAudioPlayer captures source at first render and
-          // wouldn't reload a changed prop, so the previous bio's audio would
-          // keep playing despite a new bio_audio_url.
-          <AudioPlayer key={profile.bio_audio_url} url={profile.bio_audio_url} />
+        {profile.voice_intro_audio_url ? (
+          // Re-key on URL so saving a new voice_intro mounts a fresh player
+          // instance — expo-audio's useAudioPlayer captures source at first
+          // render and wouldn't reload a changed prop, so the previous
+          // intro's audio would keep playing despite a new url.
+          <AudioPlayer key={profile.voice_intro_audio_url} url={profile.voice_intro_audio_url} />
         ) : synthesizing ? (
           <View style={styles.synthesizing}>
             <ActivityIndicator size="small" color={colors.primary} />

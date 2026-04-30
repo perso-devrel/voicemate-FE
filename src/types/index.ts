@@ -38,13 +38,13 @@ export interface Profile {
   // Multi-language proficiency. Optional during BE migration window —
   // pre-006 rows are absent until backfill runs.
   languages?: LanguageProficiency[];
-  bio: string | null;
+  voice_intro: string | null;
   interests: string[];
   photos: string[];
   elevenlabs_voice_id: string | null;
   voice_sample_url: string | null;
   voice_clone_status: 'pending' | 'processing' | 'ready' | 'failed';
-  bio_audio_url: string | null;
+  voice_intro_audio_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -59,7 +59,7 @@ export interface ProfileUpsertRequest {
   // derives `language` = languages[0].code when languages is provided.
   language?: string;
   languages?: LanguageProficiency[];
-  bio?: string | null;
+  voice_intro?: string | null;
   interests?: string[];
 }
 
@@ -95,8 +95,8 @@ export interface DiscoverCandidate {
   gender: 'male' | 'female' | 'other';
   nationality: string;
   language: string;
-  bio: string | null;
-  bio_audio_url: string | null;
+  voice_intro: string | null;
+  voice_intro_audio_url: string | null;
   interests: string[];
   // Policy: BE restricts to `[photos[0]]`. FE always forceBlurs regardless.
   photos: string[];
@@ -112,6 +112,13 @@ export interface SwipeRequest {
 export interface SwipeResponse {
   direction: 'like' | 'pass';
   match: Match | null;
+}
+
+export interface DiscoverQuota {
+  count: number;
+  limit: number;
+  remaining: number;
+  date: string; // YYYY-MM-DD (사용자 로컬 자정 기준 BE 가 계산)
 }
 
 // === Match ===
@@ -135,7 +142,7 @@ export interface MatchPartner {
 export interface PartnerDetail {
   birth_date: string;
   interests: string[];
-  bio_audio_url: string | null;
+  voice_intro_audio_url: string | null;
 }
 
 export interface MatchListItem {
@@ -228,12 +235,10 @@ export interface UserPreference {
   min_age: number;
   max_age: number;
   preferred_genders: ('male' | 'female' | 'other')[];
-  // Codes-only mirror of preferred_languages_detail (kept in sync server-side).
-  preferred_languages: string[];
   // Codes + minimum required level. Empty = no language preference.
-  preferred_languages_detail?: LanguageProficiency[];
+  preferred_languages_detail: LanguageProficiency[];
   // ISO-3166-1 alpha-2 country codes. Empty = no nationality preference.
-  preferred_nationalities?: string[];
+  preferred_nationalities: string[];
   updated_at?: string;
 }
 
@@ -241,7 +246,6 @@ export interface PreferenceUpdateRequest {
   min_age?: number;
   max_age?: number;
   preferred_genders?: ('male' | 'female' | 'other')[];
-  preferred_languages?: string[];
   preferred_languages_detail?: LanguageProficiency[];
   preferred_nationalities?: string[];
 }

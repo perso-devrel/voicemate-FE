@@ -35,7 +35,7 @@ export default {
     progress: '{{current}} / {{total}}',
     step1Title: 'Basic Info',
     step1Subtitle: 'Enter the basics that will appear on your profile.',
-    step2Title: 'Voice & Bio',
+    step2Title: 'Voice & Voice Line',
     step2Subtitle: 'Register your voice and write a short bio.',
     step2SkipWarning: "You can't discover other users until you register your voice and voice line.",
     step3Title: 'Interests',
@@ -75,6 +75,8 @@ export default {
     matchedWith: 'You matched with {{name}}!',
     noMoreProfiles: 'No more profiles',
     checkBackLater: 'Check back later for new people',
+    dailyLimitTitle: "You've seen enough for today",
+    dailyLimitText: 'Come back tomorrow for fresh faces',
     playBio: 'Play bio',
     lockedTitle: 'Finish your profile first',
     lockedVoiceHint:
@@ -83,6 +85,9 @@ export default {
       'Write a short bio. It will be turned into your voice and played for others.',
     lockedGoVoice: 'Register voice',
     lockedGoBio: 'Write bio',
+    voiceProcessingTitle: 'Generating your voice',
+    voiceProcessingHint:
+      "Hang tight — once your voice is ready you'll be able to start discovering.",
   },
 
   matches: {
@@ -182,6 +187,8 @@ export default {
     addAtLeastOneLanguage: 'Please add at least one language',
     languageAlreadyAdded: 'That language is already added',
     removeLanguage: 'Remove',
+    primaryLanguage: 'Primary',
+    markPrimaryLanguage: 'Set as primary',
     bio: 'Voice Line',
     bioPlaceholder: 'Pick the line you like',
     bioLockedPlaceholder: 'Register your voice clone first to pick a line',

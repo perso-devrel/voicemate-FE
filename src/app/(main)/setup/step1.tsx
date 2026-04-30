@@ -18,6 +18,7 @@ import { WizardHeader } from '@/components/setup/WizardHeader';
 import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
 import { useAuthStore } from '@/stores/authStore';
 import { useSignupDraftStore, type Gender } from '@/stores/signupDraftStore';
+import { useProfile } from '@/hooks/useProfile';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { SUPPORTED_NATIONALITIES, type NationalityCode } from '@/constants/nationalities';
@@ -37,6 +38,7 @@ export default function SetupStep1() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const draft = useSignupDraftStore();
+  const { upsertProfile, loading: upserting } = useProfile();
 
   // Wizard entry: swipe-back / hardware-back = logout (same policy as the
   // original first-time setup screen).
@@ -68,7 +70,8 @@ export default function SetupStep1() {
   const setLanguages = (next: LanguageProficiency[]) =>
     setForm((f) => ({ ...f, languages: next }));
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (upserting) return;
     if (!form.display_name.trim()) {
       Alert.alert(t('common.error'), t('signupWizard.displayNameRequired'));
       return;
@@ -85,13 +88,26 @@ export default function SetupStep1() {
       Alert.alert(t('common.error'), t('setupProfile.addAtLeastOneLanguage'));
       return;
     }
-    draft.setStep1({
+    const step1Payload = {
       display_name: form.display_name.trim(),
       birth_date: form.birth_date,
       gender: form.gender,
       nationality: form.nationality,
       languages: form.languages,
-    });
+    };
+    draft.setStep1(step1Payload);
+    // BE에 profiles row 를 미리 INSERT 한다. 이게 없으면 step2의 voice/clone update가
+    // 0-row no-op이 되어 elevenlabs_voice_id / voice_clone_status='ready' 가 영구 유실된다.
+    try {
+      await upsertProfile({
+        ...step1Payload,
+        voice_intro: null,
+        interests: [],
+      });
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message ?? '');
+      return;
+    }
     router.push('/(main)/setup/step2');
   };
 
@@ -187,9 +203,16 @@ export default function SetupStep1() {
         value={form.languages}
         onChange={setLanguages}
         emptyHint={t('setupProfile.languagesHint')}
+        showPrimary
       />
 
-      <Button title={t('common.next')} onPress={handleNext} style={{ marginTop: 24 }} />
+      <Button
+        title={t('common.next')}
+        onPress={handleNext}
+        loading={upserting}
+        disabled={upserting}
+        style={{ marginTop: 24 }}
+      />
       </ScrollView>
     </View>
   );
@@ -216,7 +239,7 @@ const styles = StyleSheet.create({
   },
   genderActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   genderText: { fontSize: 14, color: colors.textSecondary, textTransform: 'capitalize' },
-  genderActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  genderActiveText: { color: colors.white },
   selectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -252,5 +275,5 @@ const styles = StyleSheet.create({
   },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipText: { fontSize: 14, color: colors.textSecondary },
-  chipActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  chipActiveText: { color: colors.white },
 });

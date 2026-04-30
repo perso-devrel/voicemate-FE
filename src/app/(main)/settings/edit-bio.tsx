@@ -22,12 +22,12 @@ export default function EditBioScreen() {
   const { profile, loading, upsertProfile } = useProfile();
   const voiceReady = profile?.voice_clone_status === 'ready';
 
-  const [bio, setBio] = useState(profile?.bio ?? '');
+  const [bio, setBio] = useState(profile?.voice_intro ?? '');
   const [kbHeight, setKbHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    if (profile) setBio(profile.bio ?? '');
+    if (profile) setBio(profile.voice_intro ?? '');
   }, [profile]);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export default function EditBioScreen() {
         gender: profile.gender,
         nationality: profile.nationality,
         language: profile.language,
-        bio: bio.trim() ? bio.trim() : null,
+        voice_intro: bio.trim() ? bio.trim() : null,
         interests: profile.interests,
       });
       router.back();
@@ -72,7 +72,7 @@ export default function EditBioScreen() {
         ref={scrollRef}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: 24 + Math.max(kbHeight, insets.bottom) },
+          { paddingBottom: 24 + Math.max(kbHeight, insets.bottom) + 88 },
         ]}
         keyboardShouldPersistTaps="handled"
       >
@@ -83,15 +83,21 @@ export default function EditBioScreen() {
           disabled={!voiceReady}
           lockedHint={!voiceReady ? t('setupProfile.bioLockedHint') : undefined}
         />
+      </ScrollView>
 
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(kbHeight, insets.bottom) + 12 },
+        ]}
+      >
         <Button
           title={t('common.save')}
           onPress={handleSave}
           loading={loading}
           disabled={!voiceReady}
-          style={{ marginTop: 16 }}
         />
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -99,4 +105,15 @@ export default function EditBioScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 40 },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
 });

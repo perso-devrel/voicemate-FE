@@ -84,7 +84,6 @@ export default function SetupStep4() {
       min_age: ageCheck.min,
       max_age: ageCheck.max,
       preferred_genders: genders,
-      preferred_languages: languages.map((l) => l.code),
       preferred_languages_detail: languages,
       preferred_nationalities: nationalities,
     };
@@ -194,7 +193,7 @@ const styles = StyleSheet.create({
   },
   genderActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   genderText: { fontSize: 14, color: colors.textSecondary, textTransform: 'capitalize' },
-  genderActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  genderActiveText: { color: colors.white },
   hint: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
   actions: { gap: 10 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
@@ -208,5 +207,5 @@ const styles = StyleSheet.create({
   },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipText: { fontSize: 14, color: colors.textSecondary },
-  chipActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  chipActiveText: { color: colors.white },
 });

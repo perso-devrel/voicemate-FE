@@ -62,7 +62,7 @@ export const useSignupDraftStore = create<SignupDraftState>((set, get) => ({
       gender: s.gender,
       nationality: s.nationality,
       languages: s.languages,
-      bio: s.bio.trim() ? s.bio : null,
+      voice_intro: s.bio.trim() ? s.bio : null,
       interests: s.interests,
     };
   },

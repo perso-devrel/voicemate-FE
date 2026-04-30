@@ -22,10 +22,10 @@ import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { WizardHeader } from '@/components/setup/WizardHeader';
+import { BioPhrasePicker } from '@/components/setup/BioPhrasePicker';
 import { useVoice } from '@/hooks/useVoice';
 import { useAuthStore } from '@/stores/authStore';
 import { useSignupDraftStore } from '@/stores/signupDraftStore';
@@ -279,36 +279,16 @@ export default function SetupStep2() {
         }}
         style={{ marginTop: 24 }}
       >
-        <Input
-          label={t('setupProfile.bio')}
+        <Text style={styles.bioLabel}>{t('setupProfile.bio')}</Text>
+        <Text style={styles.bioHint}>{t('setupProfile.bioPicker.subtitle')}</Text>
+        <BioPhrasePicker
           value={bio}
-          onChangeText={setBio}
-          onFocus={() => {
-            setTimeout(() => {
-              scrollRef.current?.scrollTo({
-                y: Math.max(0, bioAnchorY.current - 40),
-                animated: true,
-              });
-            }, 250);
-          }}
-          placeholder={
-            voiceReady ? t('setupProfile.bioPlaceholder') : t('setupProfile.bioLockedPlaceholder')
-          }
-          multiline
-          maxLength={500}
-          editable={voiceReady}
-          style={[
-            { height: 100, textAlignVertical: 'top' as const },
-            !voiceReady && styles.bioDisabled,
-          ]}
+          onChange={setBio}
+          language={draft.languages?.[0]?.code ?? 'ko'}
+          disabled={!voiceReady}
+          lockedHint={!voiceReady ? t('setupProfile.bioLockedHint') : undefined}
         />
       </View>
-      {!voiceReady && (
-        <View style={styles.bioLockBox}>
-          <Ionicons name="mic-off-outline" size={16} color={colors.primaryDark} />
-          <Text style={styles.bioLockText}>{t('setupProfile.bioLockedHint')}</Text>
-        </View>
-      )}
 
       <View style={styles.skipWarnBox}>
         <Ionicons name="information-circle-outline" size={16} color={colors.primaryDark} />
@@ -378,6 +358,8 @@ const styles = StyleSheet.create({
   scriptTitle: { fontSize: 13, fontFamily: fonts.semibold, color: colors.primary },
   scriptText: { fontSize: 14, color: colors.text, lineHeight: 24 },
   hint: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
+  bioLabel: { fontSize: 14, fontFamily: fonts.medium, color: colors.text, marginBottom: 4 },
+  bioHint: { fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginBottom: 8 },
   bioDisabled: { backgroundColor: colors.surface, color: colors.textLight, opacity: 0.7 },
   bioLockBox: {
     flexDirection: 'row',

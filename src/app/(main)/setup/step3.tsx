@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipDisabled: { opacity: 0.4 },
   chipText: { fontSize: 14, color: colors.textSecondary },
-  chipActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  chipActiveText: { color: colors.white },
   chipDisabledText: { color: colors.textLight },
   actions: { gap: 10, marginTop: 12 },
 });

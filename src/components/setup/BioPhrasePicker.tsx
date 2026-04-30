@@ -7,6 +7,7 @@ import {
   StyleSheet,
   type TextInputProps,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
@@ -159,7 +160,10 @@ export function BioPhrasePicker({
       </Pressable>
 
       {disabled && lockedHint ? (
-        <Text style={styles.lockHint}>{lockedHint}</Text>
+        <View style={styles.lockHintBox}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.primaryDark} />
+          <Text style={styles.lockHintText}>{lockedHint}</Text>
+        </View>
       ) : null}
     </View>
   );
@@ -225,7 +229,6 @@ const styles = StyleSheet.create({
   },
   phraseTextSelected: {
     color: colors.primaryDark,
-    fontFamily: fonts.medium,
   },
   customInput: {
     minHeight: 60,
@@ -236,10 +239,23 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     padding: 0,
   },
-  lockHint: {
+  lockHintBox: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: 4,
+  },
+  lockHintText: {
+    flex: 1,
     fontSize: 12,
+    lineHeight: 17,
     color: colors.primaryDark,
     fontFamily: fonts.medium,
-    marginTop: 4,
   },
 });

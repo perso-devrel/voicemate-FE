@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +27,7 @@ const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
 export default function PreferencesScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { preferences, loading, loadPreferences, updatePreferences } = usePreferences();
   const [minAge, setMinAge] = useState('18');
   const [maxAge, setMaxAge] = useState('100');
@@ -54,18 +56,9 @@ export default function PreferencesScreen() {
       setMinAge(String(preferences.min_age));
       setMaxAge(String(preferences.max_age));
       setGenders(preferences.preferred_genders);
-      // Prefer the new detail array; fall back to synthesizing Lv.1 entries
-      // from the legacy codes-only array so pre-006 prefs still load.
-      const detail = preferences.preferred_languages_detail;
-      if (detail && detail.length > 0) {
-        setLanguages(detail.filter((d) => isLanguageCode(d.code)));
-      } else {
-        setLanguages(
-          preferences.preferred_languages
-            .filter(isLanguageCode)
-            .map((code) => ({ code, level: 1 })),
-        );
-      }
+      setLanguages(
+        (preferences.preferred_languages_detail ?? []).filter((d) => isLanguageCode(d.code)),
+      );
       setNationalities(preferences.preferred_nationalities ?? []);
     }
   }, [preferences]);
@@ -97,7 +90,6 @@ export default function PreferencesScreen() {
         min_age: ageCheck.min,
         max_age: ageCheck.max,
         preferred_genders: genders,
-        preferred_languages: languages.map((l) => l.code),
         preferred_languages_detail: languages,
         preferred_nationalities: nationalities,
       });
@@ -114,11 +106,11 @@ export default function PreferencesScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingBottom: 40 + kbHeight }]}
-      keyboardShouldPersistTaps="handled"
-    >
+    <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: 40 + kbHeight + 88 }]}
+        keyboardShouldPersistTaps="handled"
+      >
       <Text style={styles.title}>{t('preferences.title')}</Text>
 
       <Input
@@ -177,9 +169,17 @@ export default function PreferencesScreen() {
         })}
       </View>
       <Text style={styles.hint}>{t('preferences.leaveEmptyAllNationalities')}</Text>
+      </ScrollView>
 
-      <Button title={t('common.save')} onPress={handleSave} loading={loading} style={{ marginTop: 24 }} />
-    </ScrollView>
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(kbHeight, insets.bottom) + 12 },
+        ]}
+      >
+        <Button title={t('common.save')} onPress={handleSave} loading={loading} />
+      </View>
+    </View>
   );
 }
 
@@ -229,7 +229,6 @@ const styles = StyleSheet.create({
   },
   genderActiveText: {
     color: colors.white,
-    fontFamily: fonts.semibold,
   },
   hint: {
     fontSize: 12,
@@ -252,5 +251,16 @@ const styles = StyleSheet.create({
   },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipText: { fontSize: 14, color: colors.textSecondary },
-  chipActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  chipActiveText: { color: colors.white },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
 });

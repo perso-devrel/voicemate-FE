@@ -121,6 +121,7 @@ export default function EditProfileScreen() {
           : [],
   });
   const [nationalityOpen, setNationalityOpen] = useState(false);
+  const [scriptExpanded, setScriptExpanded] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -231,7 +232,7 @@ export default function EditProfileScreen() {
       await upsertProfile({
         ...rest,
         languages,
-        bio: profile?.bio ?? null,
+        voice_intro: profile?.voice_intro ?? null,
         interests: profile?.interests ?? [],
       });
       router.back();
@@ -263,7 +264,7 @@ export default function EditProfileScreen() {
         onBack={() => router.back()}
       />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom + 88 }]}
         keyboardShouldPersistTaps="handled"
       >
         <Input
@@ -340,6 +341,7 @@ export default function EditProfileScreen() {
           value={form.languages}
           onChange={(next) => setForm((f) => ({ ...f, languages: next }))}
           emptyHint={t('setupProfile.languagesHint')}
+          showPrimary
         />
 
         <Text style={[styles.label, { marginTop: 8 }]}>{t('profile.voiceSectionTitle')}</Text>
@@ -374,14 +376,34 @@ export default function EditProfileScreen() {
               <Button title={t('setupVoice.reRecord')} variant="outline" onPress={() => setRecordingUri(null)} />
             </View>
           ) : (
-            <Text style={styles.hint}>{t('setupVoice.recordingGuide')}</Text>
+            <View style={styles.recordSection}>
+              <Text style={styles.guideText}>{t('setupVoice.recordingGuide')}</Text>
+              <View style={styles.scriptBox}>
+                <Pressable style={styles.scriptHeader} onPress={() => setScriptExpanded((v) => !v)}>
+                  <Text style={styles.scriptTitle}>{t('setupVoice.exampleScriptTitle')}</Text>
+                  <Ionicons
+                    name={scriptExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={18}
+                    color={colors.primary}
+                  />
+                </Pressable>
+                {scriptExpanded && (
+                  <ScrollView style={styles.scriptScroll} contentContainerStyle={styles.scriptContent}>
+                    <Text style={styles.scriptText}>{t('setupVoice.exampleScript')}</Text>
+                  </ScrollView>
+                )}
+              </View>
+            </View>
           )
         ) : cloneStatus === 'ready' ? (
           <Button title={t('setupVoice.deleteVoiceClone')} variant="outline" onPress={handleDeleteVoice} />
         ) : null}
 
-        <Button title={t('common.save')} onPress={handleSave} loading={loading} style={{ marginTop: 24 }} />
       </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        <Button title={t('common.save')} onPress={handleSave} loading={loading} />
+      </View>
     </View>
   );
 }
@@ -403,7 +425,7 @@ const styles = StyleSheet.create({
   },
   genderActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   genderText: { fontSize: 14, color: colors.textSecondary, textTransform: 'capitalize' },
-  genderActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  genderActiveText: { color: colors.white },
   selectBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -439,7 +461,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipText: { fontSize: 14, color: colors.textSecondary },
-  chipActiveText: { color: colors.white, fontFamily: fonts.semibold },
+  chipActiveText: { color: colors.white },
   statusCard: {
     alignItems: 'center',
     padding: 22,
@@ -471,4 +493,35 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   voiceActions: { gap: 10, marginBottom: 8 },
+  recordSection: { gap: 12, marginBottom: 8 },
+  guideText: { fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginTop: 4 },
+  scriptBox: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  scriptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  scriptScroll: { maxHeight: 240, borderTopWidth: 1, borderTopColor: colors.border },
+  scriptContent: { padding: 14 },
+  scriptTitle: { fontSize: 13, fontFamily: fonts.semibold, color: colors.primary },
+  scriptText: { fontSize: 14, color: colors.text, lineHeight: 24 },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
 });

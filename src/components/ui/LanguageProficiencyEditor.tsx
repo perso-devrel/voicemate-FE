@@ -19,6 +19,11 @@ interface LanguageProficiencyEditorProps {
   emptyHint?: string;
   // Cap on number of languages a user can add. Defaults to 10 (matches BE).
   max?: number;
+  // When true, render an explicit "주 언어" selector. Promoting a language
+  // moves it to index 0 — the BE translation pipeline + tier comparison key
+  // off entries[0], so this is purely a UX layer over the existing convention.
+  // Preference screens leave this off (primary doesn't apply to filters).
+  showPrimary?: boolean;
 }
 
 // Reusable picker for "list of {code, level}" used in profile setup,
@@ -31,6 +36,7 @@ export function LanguageProficiencyEditor({
   onChange,
   emptyHint,
   max = 10,
+  showPrimary = false,
 }: LanguageProficiencyEditorProps) {
   const { t } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -56,6 +62,14 @@ export function LanguageProficiencyEditor({
     onChange(value.map((entry, i) => (i === index ? { ...entry, level } : entry)));
   };
 
+  const setPrimary = (index: number) => {
+    if (index === 0 || index >= value.length) return;
+    const next = [...value];
+    const [picked] = next.splice(index, 1);
+    next.unshift(picked);
+    onChange(next);
+  };
+
   const levelLabel = (level: LanguageLevel) => {
     if (level === 1) return t('setupProfile.languageLevel1Short');
     if (level === 2) return t('setupProfile.languageLevel2Short');
@@ -68,37 +82,63 @@ export function LanguageProficiencyEditor({
         <Text style={styles.hint}>{emptyHint}</Text>
       ) : null}
 
-      {value.map((entry, index) => (
-        <View key={`${entry.code}-${index}`} style={styles.row}>
-          <View style={styles.rowHeader}>
-            <Text style={styles.rowTitle}>{t(`languages.${entry.code}`)}</Text>
-            <Pressable
-              onPress={() => removeAt(index)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={t('setupProfile.removeLanguage')}
-            >
-              <Ionicons name="close-circle" size={20} color={colors.textLight} />
-            </Pressable>
+      {value.map((entry, index) => {
+        const isPrimary = index === 0;
+        return (
+          <View key={`${entry.code}-${index}`} style={styles.row}>
+            <View style={styles.rowHeader}>
+              <View style={styles.rowTitleWrap}>
+                <Text style={styles.rowTitle}>{t(`languages.${entry.code}`)}</Text>
+                {showPrimary && isPrimary ? (
+                  <View style={styles.primaryBadge}>
+                    <Ionicons name="star" size={11} color={colors.white} />
+                    <Text style={styles.primaryBadgeText}>
+                      {t('setupProfile.primaryLanguage')}
+                    </Text>
+                  </View>
+                ) : null}
+                {showPrimary && !isPrimary ? (
+                  <Pressable
+                    onPress={() => setPrimary(index)}
+                    style={styles.makePrimaryBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('setupProfile.markPrimaryLanguage')}
+                  >
+                    <Ionicons name="star-outline" size={11} color={colors.primary} />
+                    <Text style={styles.makePrimaryText}>
+                      {t('setupProfile.markPrimaryLanguage')}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <Pressable
+                onPress={() => removeAt(index)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('setupProfile.removeLanguage')}
+              >
+                <Ionicons name="close-circle" size={20} color={colors.textLight} />
+              </Pressable>
+            </View>
+            <View style={styles.levelRow}>
+              {LEVELS.map((level) => {
+                const selected = entry.level === level;
+                return (
+                  <Pressable
+                    key={level}
+                    style={[styles.levelChip, selected && styles.levelChipActive]}
+                    onPress={() => setLevel(index, level)}
+                  >
+                    <Text style={[styles.levelText, selected && styles.levelTextActive]}>
+                      {levelLabel(level)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-          <View style={styles.levelRow}>
-            {LEVELS.map((level) => {
-              const selected = entry.level === level;
-              return (
-                <Pressable
-                  key={level}
-                  style={[styles.levelChip, selected && styles.levelChipActive]}
-                  onPress={() => setLevel(index, level)}
-                >
-                  <Text style={[styles.levelText, selected && styles.levelTextActive]}>
-                    {levelLabel(level)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      ))}
+        );
+      })}
 
       {canAdd ? (
         <>
@@ -156,10 +196,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  rowTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
   rowTitle: {
     fontSize: 15,
     fontFamily: fonts.semibold,
     color: colors.text,
+  },
+  primaryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primary,
+  },
+  primaryBadgeText: {
+    fontSize: 11,
+    color: colors.white,
+    fontFamily: fonts.semibold,
+  },
+  makePrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
+  },
+  makePrimaryText: {
+    fontSize: 11,
+    color: colors.primary,
+    fontFamily: fonts.semibold,
   },
   levelRow: {
     flexDirection: 'row',
@@ -185,7 +261,6 @@ const styles = StyleSheet.create({
   },
   levelTextActive: {
     color: colors.white,
-    fontFamily: fonts.semibold,
   },
   addBtn: {
     flexDirection: 'row',
