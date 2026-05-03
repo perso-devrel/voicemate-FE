@@ -15,7 +15,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import CountryFlag from 'react-native-country-flag';
@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { IntimacyGauge } from '@/components/chat/IntimacyGauge';
+import { MatchActionsSheet } from '@/components/matches/MatchActionsSheet';
 import {
   EmotionPicker,
   EmotionChipRow,
@@ -100,6 +101,7 @@ export default function ChatScreen() {
   const [partnerNationality, setPartnerNationality] = useState<string | null>(null);
   const [partnerLanguage, setPartnerLanguage] = useState<string | null>(null);
   const [partnerModalOpen, setPartnerModalOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   // Photo-access unlock popup state. `unlockEvent` is null when there's no
   // pending announcement; set to 'main' or 'all' the moment the store flips
   // the corresponding flag from false -> true during this session.
@@ -365,7 +367,24 @@ export default function ChatScreen() {
   return (
     <>
       <Stack.Screen
-        options={{ headerShown: true, title: partnerName ?? t('chat.title') }}
+        options={{
+          headerShown: true,
+          title: partnerName ?? t('chat.title'),
+          headerRight: () => (
+            <Pressable
+              onPress={() => setMenuOpen(true)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.options')}
+              style={({ pressed }) => [
+                styles.headerMenuBtn,
+                pressed && { opacity: 0.6 },
+              ]}
+            >
+              <Ionicons name="ellipsis-vertical" size={22} color={colors.text} />
+            </Pressable>
+          ),
+        }}
       />
       <View style={styles.container}>
         <IntimacyGauge roundTrips={roundTrips} />
@@ -632,6 +651,14 @@ export default function ChatScreen() {
           </View>
         </View>
       </Modal>
+
+      <MatchActionsSheet
+        visible={menuOpen}
+        partnerId={partnerId}
+        partnerName={partnerName ?? t('matches.unknown')}
+        onClose={() => setMenuOpen(false)}
+        onResolved={() => router.back()}
+      />
     </>
   );
 }
@@ -640,6 +667,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  headerMenuBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   list: {
     flex: 1,

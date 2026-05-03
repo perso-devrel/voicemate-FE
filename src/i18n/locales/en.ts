@@ -29,6 +29,7 @@ export default {
     logout: 'Logout',
     skip: 'Skip',
     back: 'Back',
+    options: 'Options',
     ageSuffix: '{{age}} y/o',
   },
 

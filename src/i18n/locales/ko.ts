@@ -29,6 +29,7 @@ export default {
         logout: "로그아웃",
         skip: "건너뛰기",
         back: "뒤로",
+        options: "옵션",
         ageSuffix: "{{age}}세",
     },
 

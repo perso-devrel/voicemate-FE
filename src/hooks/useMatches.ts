@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import * as matchService from '@/services/matches';
-import * as blockService from '@/services/block';
 import { photoAccessStore } from '@/stores/photoAccess';
 import { DEFAULT_PHOTO_ACCESS } from '@/types/photoAccess';
 import type { MatchListItem } from '@/types';
@@ -58,12 +57,5 @@ export function useMatches() {
     }
   }, [matches, hasMore]);
 
-  // Block also auto soft-deletes the match server-side, so we drop the row
-  // locally to keep the list in sync without an extra round-trip.
-  const handleBlock = useCallback(async (matchId: string, blockedId: string) => {
-    await blockService.blockUser(blockedId);
-    setMatches((prev) => prev.filter((m) => m.match_id !== matchId));
-  }, []);
-
-  return { matches, loading, hasMore, error, loadMatches, loadMore, handleBlock };
+  return { matches, loading, hasMore, error, loadMatches, loadMore };
 }
