@@ -96,6 +96,32 @@ export default {
         goToDiscover: "지금 탐색하기",
         unknown: "알 수 없음",
         startConversation: "대화를 시작해보세요!",
+        actions: {
+            mute: "알림 끄기",
+            unmatch: "언매치",
+            report: "신고하기",
+            muteComingSoon: "알림 설정은 곧 추가됩니다.",
+            unmatchConfirm: "{{name}}님과의 매치를 해제할까요?\n\n두 사람의 모든 대화 내역이 양쪽 모두에게서 사라지며, 이 작업은 되돌릴 수 없습니다.",
+        },
+        report: {
+            title: "신고하기",
+            subtitle: "{{name}}님을 신고할 사유를 선택해 주세요.",
+            descriptionPlaceholder: "추가로 알려주실 내용 (선택)",
+            submit: "신고 제출",
+            sideEffectNotice: "신고하면 자동으로 매치가 해제되고 더 이상 메시지를 받지 않습니다.",
+            successTitle: "신고가 접수되었습니다",
+            successBody: "검토 후 필요한 조치를 취할게요. 안전을 지켜주셔서 감사합니다.",
+            alreadyReported: "이미 신고한 사용자입니다.",
+            reasons: {
+                spam: "스팸·광고",
+                inappropriate: "부적절한 메시지·사진·음성",
+                fake_profile: "가짜 프로필·사칭",
+                voice_impersonation: "보이스 도용·악용",
+                harassment: "괴롭힘·위협",
+                underage: "미성년자 의심",
+                other: "기타",
+            },
+        },
     },
 
     profile: {
@@ -106,7 +132,6 @@ export default {
         voiceSettings: "음성 설정",
         interestsSettings: "관심사 설정",
         matchingPreferences: "매칭 선호 설정",
-        blockedUsers: "차단한 사용자",
         editBio: "보이스 한마디 수정",
         bioEmpty: "보이스 한마디를 골라보세요",
         editProfileSubtitle: "기본 정보와 목소리를 관리할 수 있어요.",
@@ -320,13 +345,6 @@ export default {
 
     settings: {
         title: "환경설정",
-    },
-
-    blocked: {
-        title: "차단한 사용자",
-        noBlockedUsers: "차단한 사용자가 없습니다",
-        unblock: "차단 해제",
-        unblockConfirm: "{{name}}님의 차단을 해제하시겠습니까?",
     },
 
     audioPlayer: {

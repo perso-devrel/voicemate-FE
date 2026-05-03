@@ -221,7 +221,14 @@ export interface BlockListItem {
 }
 
 // === Report ===
-export type ReportReason = 'spam' | 'inappropriate' | 'fake_profile' | 'harassment' | 'other';
+export type ReportReason =
+  | 'spam'
+  | 'inappropriate'
+  | 'fake_profile'
+  | 'harassment'
+  | 'underage'
+  | 'voice_impersonation'
+  | 'other';
 
 export interface ReportRequest {
   reported_id: string;

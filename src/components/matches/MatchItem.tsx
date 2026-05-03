@@ -10,9 +10,10 @@ import type { MatchListItem } from '@/types';
 interface MatchItemProps {
   item: MatchListItem;
   onPress: () => void;
+  onLongPress?: () => void;
 }
 
-export function MatchItem({ item, onPress }: MatchItemProps) {
+export function MatchItem({ item, onPress, onLongPress }: MatchItemProps) {
   const { t } = useTranslation();
   const partner = item.partner;
   const hasUnread = item.unread_count > 0;
@@ -21,6 +22,8 @@ export function MatchItem({ item, onPress }: MatchItemProps) {
     <Pressable
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
       onPress={onPress}
+      onLongPress={onLongPress}
+      delayLongPress={350}
     >
       <ProfilePhoto
         userId={partner?.id}

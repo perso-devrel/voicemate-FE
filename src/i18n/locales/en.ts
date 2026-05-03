@@ -97,6 +97,32 @@ export default {
     goToDiscover: 'Start discovering',
     unknown: 'Unknown',
     startConversation: 'Start a conversation!',
+    actions: {
+      mute: 'Mute notifications',
+      unmatch: 'Unmatch',
+      report: 'Report',
+      muteComingSoon: 'Notification settings coming soon.',
+      unmatchConfirm: "Unmatch {{name}}?\n\nYour entire conversation history will disappear for both of you, and this cannot be undone.",
+    },
+    report: {
+      title: 'Report',
+      subtitle: 'Pick a reason to report {{name}}.',
+      descriptionPlaceholder: 'Anything else we should know? (optional)',
+      submit: 'Submit report',
+      sideEffectNotice: "Reporting will automatically unmatch and you'll no longer receive messages from this user.",
+      successTitle: 'Report received',
+      successBody: "We'll review and act on it. Thanks for keeping the community safe.",
+      alreadyReported: "You've already reported this user.",
+      reasons: {
+        spam: 'Spam or ads',
+        inappropriate: 'Inappropriate messages, photos, or voice',
+        fake_profile: 'Fake profile or impersonation',
+        voice_impersonation: 'Voice theft or misuse',
+        harassment: 'Harassment or threats',
+        underage: 'Suspected minor',
+        other: 'Other',
+      },
+    },
   },
 
   profile: {
@@ -107,7 +133,6 @@ export default {
     voiceSettings: 'Voice Settings',
     interestsSettings: 'Interests',
     matchingPreferences: 'Matching Preferences',
-    blockedUsers: 'Blocked Users',
     editBio: 'Edit Voice Line',
     bioEmpty: 'Pick a voice line to introduce yourself',
     editProfileSubtitle: 'Manage your basic info and voice.',
@@ -319,13 +344,6 @@ export default {
 
   settings: {
     title: 'Settings',
-  },
-
-  blocked: {
-    title: 'Blocked Users',
-    noBlockedUsers: 'No blocked users',
-    unblock: 'Unblock',
-    unblockConfirm: 'Unblock {{name}}?',
   },
 
   audioPlayer: {
