@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { MenuCardButton } from '@/components/ui/MenuCardButton';
 import { WizardHeader } from '@/components/setup/WizardHeader';
 import { useAuthStore } from '@/stores/authStore';
 import { colors } from '@/constants/colors';
@@ -29,17 +30,26 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       <WizardHeader
-        step={1}
-        total={1}
+        compact
         title={t('settings.title')}
         onBack={() => router.back()}
       />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+        <View style={styles.menuList}>
+          <MenuCardButton
+            label={t('profile.matchingPreferences')}
+            onPress={() => router.push('/(main)/settings/preferences')}
+          />
+          <MenuCardButton
+            label={t('profile.voiceSettings')}
+            onPress={() => router.push('/(main)/settings/voice')}
+          />
+        </View>
         <Button
           title={t('common.logout')}
           variant="danger"
           onPress={handleLogout}
-          style={{ marginTop: 16 }}
+          style={{ marginTop: 24 }}
         />
       </ScrollView>
     </View>
@@ -48,5 +58,6 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20, gap: 10 },
+  content: { padding: 20 },
+  menuList: { gap: 10 },
 });

@@ -24,6 +24,10 @@ interface LanguageProficiencyEditorProps {
   // off entries[0], so this is purely a UX layer over the existing convention.
   // Preference screens leave this off (primary doesn't apply to filters).
   showPrimary?: boolean;
+  // Codes to omit from the picker. Preferences screen passes the user's own
+  // primary language here because BE blocks same-primary matches outright —
+  // surfacing the option would let users pick something that has no effect.
+  excludeCodes?: string[];
 }
 
 // Reusable picker for "list of {code, level}" used in profile setup,
@@ -37,14 +41,16 @@ export function LanguageProficiencyEditor({
   emptyHint,
   max = 10,
   showPrimary = false,
+  excludeCodes,
 }: LanguageProficiencyEditorProps) {
   const { t } = useTranslation();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const usedCodes = useMemo(() => new Set(value.map((v) => v.code)), [value]);
+  const excludedSet = useMemo(() => new Set(excludeCodes ?? []), [excludeCodes]);
   const availableLanguages = useMemo(
-    () => SUPPORTED_LANGUAGES.filter((l) => !usedCodes.has(l.code)),
-    [usedCodes],
+    () => SUPPORTED_LANGUAGES.filter((l) => !usedCodes.has(l.code) && !excludedSet.has(l.code)),
+    [usedCodes, excludedSet],
   );
   const canAdd = value.length < max && availableLanguages.length > 0;
 
@@ -91,7 +97,7 @@ export function LanguageProficiencyEditor({
                 <Text style={styles.rowTitle}>{t(`languages.${entry.code}`)}</Text>
                 {showPrimary && isPrimary ? (
                   <View style={styles.primaryBadge}>
-                    <Ionicons name="star" size={11} color={colors.white} />
+                    <Ionicons name="star" size={12} color={colors.primary} />
                     <Text style={styles.primaryBadgeText}>
                       {t('setupProfile.primaryLanguage')}
                     </Text>
@@ -104,7 +110,7 @@ export function LanguageProficiencyEditor({
                     accessibilityRole="button"
                     accessibilityLabel={t('setupProfile.markPrimaryLanguage')}
                   >
-                    <Ionicons name="star-outline" size={11} color={colors.primary} />
+                    <Ionicons name="star-outline" size={12} color={colors.textSecondary} />
                     <Text style={styles.makePrimaryText}>
                       {t('setupProfile.markPrimaryLanguage')}
                     </Text>
@@ -129,7 +135,10 @@ export function LanguageProficiencyEditor({
                     style={[styles.levelChip, selected && styles.levelChipActive]}
                     onPress={() => setLevel(index, level)}
                   >
-                    <Text style={[styles.levelText, selected && styles.levelTextActive]}>
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.levelText, selected && styles.levelTextActive]}
+                    >
                       {levelLabel(level)}
                     </Text>
                   </Pressable>
@@ -178,7 +187,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   hint: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     fontFamily: fonts.regular,
     marginBottom: 4,
@@ -203,59 +212,60 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   rowTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: fonts.semibold,
     color: colors.text,
   },
   primaryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
   },
   primaryBadgeText: {
     fontSize: 11,
-    color: colors.white,
+    color: colors.primaryDark,
     fontFamily: fonts.semibold,
   },
   makePrimaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
     borderRadius: radii.pill,
     borderWidth: 1,
-    borderColor: colors.primary,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.card,
   },
   makePrimaryText: {
     fontSize: 11,
-    color: colors.primary,
-    fontFamily: fonts.semibold,
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
   },
   levelRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 6,
   },
   levelChip: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
   },
   levelChipActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primary,
   },
   levelText: {
-    fontSize: 13,
+    fontSize: 11,
     color: colors.textSecondary,
     fontFamily: fonts.medium,
   },
@@ -278,7 +288,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   addText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.primary,
     fontFamily: fonts.semibold,
   },
@@ -301,8 +311,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   pickerChipText: {
-    fontSize: 13,
-    color: colors.text,
+    fontSize: 11,
+    color: colors.textSecondary,
     fontFamily: fonts.medium,
   },
 });

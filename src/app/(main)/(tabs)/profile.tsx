@@ -14,10 +14,12 @@ import {
 import { router, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import CountryFlag from 'react-native-country-flag';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
+import { MenuCardButton } from '@/components/ui/MenuCardButton';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { PhotoBackground } from '@/components/ui/PhotoBackground';
 import { useProfile, MAX_PHOTOS } from '@/hooks/useProfile';
@@ -29,26 +31,6 @@ import { calculateAge } from '@/utils/age';
 const BIO_AUDIO_POLL_INTERVAL_MS = 3000;
 const BIO_AUDIO_POLL_TIMEOUT_MS = 60_000;
 
-function MenuCardButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => [styles.menuShell, pressed && styles.menuPressed]}
-    >
-      <LinearGradient
-        colors={[...gradients.blush]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.menuInner}
-      >
-        <Text style={styles.menuText}>{label}</Text>
-        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-      </LinearGradient>
-    </Pressable>
-  );
-}
 
 export default function ProfileScreen() {
   const { t } = useTranslation();
@@ -62,6 +44,13 @@ export default function ProfileScreen() {
     replacePhotoAt,
     loadProfile,
   } = useProfile();
+
+  // Supabase storage uses upsert so the public URL is identical across uploads
+  // to the same slot — React Image caches by URL and won't refetch. Bumping a
+  // suffix forces a fresh request after every mutation so the new photo shows
+  // immediately without a hot reload.
+  const [photoBust, setPhotoBust] = useState(0);
+  const bustUri = (uri: string) => (photoBust > 0 ? `${uri}${uri.includes('?') ? '&' : '?'}cb=${photoBust}` : uri);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -137,6 +126,7 @@ export default function ProfileScreen() {
     if (!uri) return;
     try {
       await uploadPhoto(uri);
+      setPhotoBust((n) => n + 1);
     } catch (e: any) {
       Alert.alert(t('profile.uploadFailed'), e.message);
     }
@@ -145,6 +135,7 @@ export default function ProfileScreen() {
   const handleSetMain = async (index: number) => {
     try {
       await setPrimaryPhoto(index);
+      setPhotoBust((n) => n + 1);
     } catch (e: any) {
       Alert.alert(t('profile.uploadFailed'), e.message);
     }
@@ -155,6 +146,7 @@ export default function ProfileScreen() {
     if (!uri) return;
     try {
       await replacePhotoAt(index, uri);
+      setPhotoBust((n) => n + 1);
     } catch (e: any) {
       Alert.alert(t('profile.uploadFailed'), e.message);
     }
@@ -169,6 +161,7 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             await deletePhoto(index);
+            setPhotoBust((n) => n + 1);
           } catch (e: any) {
             Alert.alert(t('profile.uploadFailed'), e.message);
           }
@@ -201,73 +194,86 @@ export default function ProfileScreen() {
   return (
     <PhotoBackground variant="app">
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Profile Photos: main on left, thumbnails stacked on right */}
-      {profile.photos.length === 0 ? (
-        <Pressable key="add-tile" style={[styles.mainPhoto, styles.addPhoto]} onPress={handleAddPhoto}>
-          <LinearGradient
-            colors={[...gradients.glow]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.addIcon}
-          >
-            <Ionicons name="add" size={32} color={colors.white} />
-          </LinearGradient>
-          <Text style={styles.addPhotoLabel}>{t('profile.addPhoto')}</Text>
-        </Pressable>
-      ) : (
-        <View style={styles.photoGrid}>
+      {/* Profile Photos: main on left, thumbnails stacked on right.
+          Always render 4 slots so empty inputs are visible from the start;
+          uploadPhoto appends to the end so any empty slot tap fills the next position. */}
+      <View style={styles.photoGrid}>
+        {profile.photos[0] ? (
+          // Distinct keys force React to fully unmount the empty add slot and
+          // mount a fresh Image-bearing Pressable. Without this, reconciliation
+          // swaps children in place and Image never picks up its source on
+          // first render — the photo only appears after a hot reload.
           <Pressable
+            key="main-photo"
             style={styles.mainPhotoSlot}
             onPress={() => handlePhotoPress(0)}
             accessibilityRole="button"
             accessibilityLabel={t('profile.photoActionsTitle')}
           >
             <Image
-              key={profile.photos[0]}
-              source={{ uri: profile.photos[0] }}
+              key={`main-${photoBust}`}
+              source={{ uri: bustUri(profile.photos[0]) }}
               style={styles.photo}
               resizeMode="cover"
+              onError={(e) =>
+                console.warn('[profile] main photo load failed', profile.photos[0], e.nativeEvent)
+              }
             />
             <View style={styles.mainBadge}>
               <Ionicons name="star" size={12} color={colors.white} />
             </View>
           </Pressable>
+        ) : (
+          <Pressable
+            key="main-add"
+            style={[styles.mainPhotoSlot, styles.addSlot]}
+            onPress={handleAddPhoto}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.addPhoto')}
+          >
+            <Ionicons name="add" size={36} color={colors.textSecondary} />
+          </Pressable>
+        )}
 
-          <View style={styles.thumbColumn}>
-            {Array.from({ length: THUMB_COUNT }).map((_, i) => {
-              const photoIndex = i + 1;
-              const uri = profile.photos[photoIndex];
-              if (uri) {
-                return (
-                  <Pressable
-                    key={`thumb-${photoIndex}`}
-                    style={styles.thumbSlot}
-                    onPress={() => handlePhotoPress(photoIndex)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('profile.photoActionsTitle')}
-                  >
-                    <Image source={{ uri }} style={styles.photo} resizeMode="cover" />
-                  </Pressable>
-                );
-              }
-              if (profile.photos.length + 1 > photoIndex && profile.photos.length < MAX_PHOTOS) {
-                return (
-                  <Pressable
-                    key={`thumb-add-${photoIndex}`}
-                    style={[styles.thumbSlot, styles.addThumb]}
-                    onPress={handleAddPhoto}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('profile.addPhoto')}
-                  >
-                    <Ionicons name="add" size={24} color={colors.textSecondary} />
-                  </Pressable>
-                );
-              }
-              return <View key={`thumb-empty-${photoIndex}`} style={[styles.thumbSlot, styles.emptyThumb]} />;
-            })}
-          </View>
+        <View style={styles.thumbColumn}>
+          {Array.from({ length: THUMB_COUNT }).map((_, i) => {
+            const photoIndex = i + 1;
+            const uri = profile.photos[photoIndex];
+            if (uri) {
+              return (
+                <Pressable
+                  key={`thumb-${photoIndex}`}
+                  style={styles.thumbSlot}
+                  onPress={() => handlePhotoPress(photoIndex)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('profile.photoActionsTitle')}
+                >
+                  <Image
+                    key={`thumb-${photoIndex}-${photoBust}`}
+                    source={{ uri: bustUri(uri) }}
+                    style={styles.photo}
+                    resizeMode="cover"
+                    onError={(e) =>
+                      console.warn('[profile] thumb photo load failed', photoIndex, uri, e.nativeEvent)
+                    }
+                  />
+                </Pressable>
+              );
+            }
+            return (
+              <Pressable
+                key={`thumb-add-${photoIndex}`}
+                style={[styles.thumbSlot, styles.addSlot]}
+                onPress={handleAddPhoto}
+                accessibilityRole="button"
+                accessibilityLabel={t('profile.addPhoto')}
+              >
+                <Ionicons name="add" size={24} color={colors.textSecondary} />
+              </Pressable>
+            );
+          })}
         </View>
-      )}
+      </View>
 
       {photoBusy && (
         <View style={styles.photoBusyOverlay} pointerEvents="none">
@@ -276,58 +282,136 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      {/* Profile Info */}
+      {/* Profile Info Card */}
       <LinearGradient
         colors={[...gradients.blush]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.section}
       >
-        <Text style={styles.name}>
-          {profile.display_name}, {calculateAge(profile.birth_date)}
-        </Text>
-        <Text style={styles.detail}>
-          {profile.nationality} / {profile.language}
-        </Text>
         <Pressable
-          style={styles.bioRow}
-          onPress={() => router.push('/(main)/settings/edit-bio')}
+          style={styles.profileEditBtn}
+          onPress={() => router.push('/(main)/settings/edit-profile')}
           accessibilityRole="button"
-          accessibilityLabel={t('profile.editBio')}
+          accessibilityLabel={t('profile.editProfile')}
+          hitSlop={8}
         >
+          <Ionicons name="pencil" size={16} color={colors.primaryDark} />
+        </Pressable>
+        <Text style={styles.infoName} numberOfLines={1}>
+          {profile.display_name}
+        </Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>{t('profile.infoLabels.age')}</Text>
+          <Text style={styles.infoValue} numberOfLines={1}>
+            {t('common.ageSuffix', { age: calculateAge(profile.birth_date) })}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>{t('profile.infoLabels.gender')}</Text>
+          <Text style={styles.infoValue} numberOfLines={1}>
+            {t(
+              profile.gender === 'male'
+                ? 'setupProfile.genderMale'
+                : profile.gender === 'female'
+                  ? 'setupProfile.genderFemale'
+                  : 'setupProfile.genderOther',
+            )}
+          </Text>
+        </View>
+        {profile.nationality ? (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('profile.infoLabels.nationality')}</Text>
+            <View style={styles.infoValueInline}>
+              <CountryFlag isoCode={profile.nationality} size={11} style={styles.infoFlag} />
+              <Text style={styles.infoValue} numberOfLines={1}>
+                {profile.nationality}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+        {/* Prefer the multi-language list; fall back to the legacy single-code
+            field so pre-006 profiles still render the language row. */}
+        {(() => {
+          const langList: Array<{ code: string; level?: 1 | 2 | 3 }> =
+            profile.languages?.length
+              ? profile.languages
+              : profile.language
+                ? [{ code: profile.language }]
+                : [];
+          if (langList.length === 0) return null;
+          return (
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>{t('profile.infoLabels.language')}</Text>
+              <View style={styles.infoLanguageStack}>
+                {langList.map((lang, i) => (
+                  <View key={`${lang.code}-${i}`} style={styles.infoLanguageRow}>
+                    <Text style={styles.infoValue} numberOfLines={1}>
+                      {t(`languages.${lang.code}`, { defaultValue: lang.code })}
+                    </Text>
+                    {lang.level ? (
+                      <View style={styles.infoLevelChip}>
+                        <Text style={styles.infoLevelText}>Lv.{lang.level}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })()}
+        {profile.interests.length > 0 ? (
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t('profile.infoLabels.interests')}</Text>
+            <View style={styles.infoTags}>
+              {profile.interests.map((tag, i) => (
+                <View key={i} style={styles.infoTag}>
+                  <Text style={styles.infoTagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+      </LinearGradient>
+
+      {/* Voice Intro Card */}
+      <LinearGradient
+        colors={[...gradients.blush]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.voiceCard}
+      >
+        <View style={styles.voiceCardHeader}>
+          <View style={styles.voiceCardTitleGroup}>
+            <Text style={styles.voiceCardTitle}>{t('profile.voiceCardTitle')}</Text>
+            {profile.voice_intro_audio_url ? (
+              // Re-key on URL so saving a new voice_intro mounts a fresh player
+              // instance — expo-audio's useAudioPlayer captures source at first
+              // render and wouldn't reload a changed prop, so the previous
+              // intro's audio would keep playing despite a new url.
+              <AudioPlayer key={profile.voice_intro_audio_url} url={profile.voice_intro_audio_url} compact />
+            ) : synthesizing ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : null}
+          </View>
+          <Pressable
+            style={styles.bioEditBtn}
+            onPress={() => router.push('/(main)/settings/edit-bio')}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.editBio')}
+            hitSlop={8}
+          >
+            <Ionicons name="pencil" size={16} color={colors.primaryDark} />
+          </Pressable>
+        </View>
+        <View style={styles.bioRow}>
           <Text
             style={[styles.bio, !profile.voice_intro && styles.bioEmpty]}
             numberOfLines={0}
           >
             {profile.voice_intro || t('profile.bioEmpty')}
           </Text>
-          <Ionicons name="pencil" size={16} color={colors.primaryDark} style={styles.bioPencil} />
-        </Pressable>
-
-        {profile.voice_intro_audio_url ? (
-          // Re-key on URL so saving a new voice_intro mounts a fresh player
-          // instance — expo-audio's useAudioPlayer captures source at first
-          // render and wouldn't reload a changed prop, so the previous
-          // intro's audio would keep playing despite a new url.
-          <AudioPlayer key={profile.voice_intro_audio_url} url={profile.voice_intro_audio_url} />
-        ) : synthesizing ? (
-          <View style={styles.synthesizing}>
-            <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.synthesizingText}>
-              {t('profile.synthesizingBio')}
-            </Text>
-          </View>
-        ) : null}
-
-        {profile.interests.length > 0 && (
-          <View style={styles.tags}>
-            {profile.interests.map((tag, i) => (
-              <View key={i} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        </View>
       </LinearGradient>
 
       {/* Voice Clone CTA (only when not yet registered) */}
@@ -343,21 +427,6 @@ export default function ProfileScreen() {
         </LinearGradient>
       )}
 
-      {/* Actions */}
-      <View style={styles.actions}>
-        <MenuCardButton
-          label={t('profile.editProfile')}
-          onPress={() => router.push('/(main)/settings/edit-profile')}
-        />
-        <MenuCardButton
-          label={t('profile.interestsSettings')}
-          onPress={() => router.push('/(main)/settings/edit-interests')}
-        />
-        <MenuCardButton
-          label={t('profile.matchingPreferences')}
-          onPress={() => router.push('/(main)/settings/preferences')}
-        />
-      </View>
       </ScrollView>
 
       <Modal
@@ -443,18 +512,12 @@ const styles = StyleSheet.create({
     gap: GRID_GAP,
     width: GRID_WIDTH,
   },
-  mainPhoto: {
-    width: GRID_WIDTH,
-    height: MAIN_PHOTO_HEIGHT,
-    borderRadius: radii.xl,
-    overflow: 'hidden',
-    ...shadows.card,
-  },
   mainPhotoSlot: {
     width: MAIN_PHOTO_WIDTH,
     height: MAIN_PHOTO_HEIGHT,
     borderRadius: radii.xl,
     overflow: 'hidden',
+    backgroundColor: colors.cardAlt,
     ...shadows.card,
   },
   mainBadge: {
@@ -479,32 +542,20 @@ const styles = StyleSheet.create({
     height: THUMB_HEIGHT,
     borderRadius: radii.lg,
     overflow: 'hidden',
+    backgroundColor: colors.cardAlt,
     ...shadows.soft,
   },
-  addThumb: {
+  addSlot: {
     backgroundColor: colors.cardAlt,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: colors.border,
     borderStyle: 'dashed',
-  },
-  emptyThumb: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
   },
   photo: {
     width: '100%',
     height: '100%',
-  },
-  addPhoto: {
-    backgroundColor: colors.cardAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    gap: 14,
   },
   photoBusyOverlay: {
     flexDirection: 'row',
@@ -525,25 +576,25 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontFamily: fonts.medium,
   },
-  addIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addPhotoLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontFamily: fonts.medium,
-  },
   section: {
     marginTop: 22,
     padding: 18,
     borderRadius: radii.lg,
     borderWidth: 1,
     borderColor: colors.borderSoft,
+    position: 'relative',
     ...shadows.soft,
+  },
+  profileEditBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 6,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   voiceCtaBox: {
     marginTop: 18,
@@ -562,24 +613,119 @@ const styles = StyleSheet.create({
     color: colors.white,
     letterSpacing: 0.3,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: fonts.semibold,
-    color: colors.text,
-    marginBottom: 8,
-  },
-  name: {
-    fontSize: 22,
+  infoName: {
+    fontSize: 18,
     fontFamily: fonts.bold,
     color: colors.text,
     letterSpacing: 0.3,
+    marginBottom: 4,
   },
-  detail: {
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  infoLabel: {
+    width: 64,
+    fontSize: 13,
+    color: colors.textLight,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.4,
+    paddingTop: 2,
+  },
+  infoValue: {
+    flexShrink: 1,
     fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 6,
+    color: colors.text,
+    fontFamily: fonts.semibold,
+    letterSpacing: 0.2,
+    paddingTop: 2,
+  },
+  infoValueInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 1,
+  },
+  infoFlag: {
+    width: 18,
+    height: 12,
+    marginRight: 6,
+    borderRadius: 1.5,
+  },
+  infoLanguageStack: {
+    flex: 1,
+    gap: 6,
+  },
+  infoLanguageRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoLevelChip: {
+    backgroundColor: colors.white,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+  },
+  infoLevelText: {
+    fontSize: 11,
+    color: colors.primaryDark,
     fontFamily: fonts.medium,
     letterSpacing: 0.2,
+  },
+  infoTags: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  infoTag: {
+    backgroundColor: colors.white,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  infoTagText: {
+    fontSize: 12,
+    color: colors.primaryDark,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.2,
+  },
+  voiceCard: {
+    marginTop: 14,
+    padding: 18,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    ...shadows.soft,
+  },
+  voiceCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  voiceCardTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexShrink: 1,
+  },
+  bioEditBtn: {
+    padding: 6,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceCardTitle: {
+    fontSize: 15,
+    fontFamily: fonts.bold,
+    color: colors.text,
+    letterSpacing: 0.3,
   },
   bioRow: {
     flexDirection: 'row',
@@ -595,82 +741,14 @@ const styles = StyleSheet.create({
   },
   bio: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 12,
     color: colors.text,
-    lineHeight: 22,
+    fontFamily: fonts.medium,
+    lineHeight: 18,
   },
   bioEmpty: {
     color: colors.textLight,
     fontStyle: 'italic',
-  },
-  bioPencil: {
-    marginTop: 3,
-  },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 14,
-  },
-  tag: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  tagText: {
-    fontSize: 13,
-    color: colors.primaryDark,
-    fontFamily: fonts.medium,
-    letterSpacing: 0.2,
-  },
-  actions: {
-    marginTop: 28,
-    gap: 10,
-  },
-  menuShell: {
-    borderRadius: radii.lg,
-    ...shadows.soft,
-  },
-  menuInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-  },
-  menuText: {
-    fontSize: 15,
-    fontFamily: fonts.semibold,
-    color: colors.text,
-    letterSpacing: 0.2,
-  },
-  menuPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.99 }],
-  },
-  synthesizing: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: colors.white,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignSelf: 'flex-start',
-  },
-  synthesizingText: {
-    fontSize: 13,
-    color: colors.primaryDark,
-    fontFamily: fonts.medium,
   },
   sheetBackdrop: {
     flex: 1,

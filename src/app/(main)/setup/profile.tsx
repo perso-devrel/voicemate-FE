@@ -285,7 +285,7 @@ export default function ProfileSetupScreen() {
         }}
       >
         <Text style={styles.label}>{t('setupProfile.bio')}</Text>
-        <Text style={styles.hint}>{t('setupProfile.bioPicker.subtitle')}</Text>
+        <Text style={styles.hintBlock}>{t('setupProfile.bioPicker.subtitle')}</Text>
         <BioPhrasePicker
           value={form.voice_intro ?? ''}
           onChange={(v) => updateField('voice_intro', v)}
@@ -298,7 +298,7 @@ export default function ProfileSetupScreen() {
       <Text style={styles.label}>
         {t('setupProfile.interests', { count: form.interests?.length ?? 0 })}
       </Text>
-      <Text style={styles.hint}>{t('setupProfile.interestsHint')}</Text>
+      <Text style={styles.hintBlock}>{t('setupProfile.interestsHint')}</Text>
       <View style={styles.chipRow}>
         {INTEREST_OPTIONS.map(({ id, labelKey }) => {
           const label = t(labelKey);
@@ -362,12 +362,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 8,
   },
-  hint: {
+  hintBlock: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginTop: -4,
-    marginBottom: 8,
     fontFamily: fonts.regular,
+    marginTop: -4,
+    marginBottom: 10,
+    lineHeight: 18,
   },
   genderRow: {
     flexDirection: 'row',

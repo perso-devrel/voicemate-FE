@@ -6,21 +6,21 @@ import {
   StyleSheet,
   Pressable,
   Alert,
-  Keyboard,
-  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { WizardHeader } from '@/components/setup/WizardHeader';
 import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
+import { AgeRangeSlider } from '@/components/ui/AgeRangeSlider';
 import { usePreferences } from '@/hooks/usePreferences';
+import { useProfile } from '@/hooks/useProfile';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { isLanguageCode } from '@/constants/languages';
 import { SUPPORTED_NATIONALITIES } from '@/constants/nationalities';
-import { MIN_AGE, MAX_AGE, validateAgeRange } from '@/utils/preferences';
+import { MIN_AGE, MAX_AGE } from '@/utils/preferences';
 import type { LanguageProficiency } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
@@ -29,23 +29,19 @@ export default function PreferencesScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { preferences, loading, loadPreferences, updatePreferences } = usePreferences();
-  const [minAge, setMinAge] = useState('18');
-  const [maxAge, setMaxAge] = useState('100');
+  const { profile } = useProfile();
+  // BE blocks same-primary-language matches (the app's core differentiator —
+  // voice translation only kicks in across language pairs). Hide the user's
+  // own primary from the picker so they can't add a language that has no
+  // effect on filtering.
+  const ownPrimaryLanguage = profile?.languages?.[0]?.code ?? profile?.language ?? null;
+  const [ageRange, setAgeRange] = useState<{ min: number; max: number }>({
+    min: MIN_AGE,
+    max: MAX_AGE,
+  });
   const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>([...GENDER_OPTIONS]);
   const [languages, setLanguages] = useState<LanguageProficiency[]>([]);
   const [nationalities, setNationalities] = useState<string[]>([]);
-  const [kbHeight, setKbHeight] = useState(0);
-
-  useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
-    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
-    return () => {
-      onShow.remove();
-      onHide.remove();
-    };
-  }, []);
 
   useEffect(() => {
     loadPreferences();
@@ -53,15 +49,23 @@ export default function PreferencesScreen() {
 
   useEffect(() => {
     if (preferences) {
-      setMinAge(String(preferences.min_age));
-      setMaxAge(String(preferences.max_age));
+      // Clamp incoming BE values into the FE-displayed band. The BE still
+      // accepts up to 100 for backward compatibility, but the slider caps
+      // at MAX_AGE (65 = "65+") so existing prefs above that fold into the
+      // ceiling rather than overflowing the track.
+      setAgeRange({
+        min: Math.max(MIN_AGE, Math.min(preferences.min_age, MAX_AGE)),
+        max: Math.max(MIN_AGE, Math.min(preferences.max_age, MAX_AGE)),
+      });
       setGenders(preferences.preferred_genders);
       setLanguages(
-        (preferences.preferred_languages_detail ?? []).filter((d) => isLanguageCode(d.code)),
+        (preferences.preferred_languages_detail ?? []).filter(
+          (d) => isLanguageCode(d.code) && d.code !== ownPrimaryLanguage,
+        ),
       );
       setNationalities(preferences.preferred_nationalities ?? []);
     }
-  }, [preferences]);
+  }, [preferences, ownPrimaryLanguage]);
 
   const toggleGender = (g: 'male' | 'female' | 'other') => {
     setGenders((prev) =>
@@ -76,19 +80,10 @@ export default function PreferencesScreen() {
   };
 
   const handleSave = async () => {
-    const ageCheck = validateAgeRange(minAge, maxAge);
-    if (!ageCheck.ok) {
-      const message =
-        ageCheck.error === 'min-greater-than-max'
-          ? t('preferences.invalidAgeRange')
-          : t('preferences.ageOutOfBounds', { min: MIN_AGE, max: MAX_AGE });
-      Alert.alert(t('common.error'), message);
-      return;
-    }
     try {
       await updatePreferences({
-        min_age: ageCheck.min,
-        max_age: ageCheck.max,
+        min_age: ageRange.min,
+        max_age: ageRange.max,
         preferred_genders: genders,
         preferred_languages_detail: languages,
         preferred_nationalities: nationalities,
@@ -107,26 +102,25 @@ export default function PreferencesScreen() {
 
   return (
     <View style={styles.container}>
+      <WizardHeader
+        compact
+        title={t('profile.matchingPreferences')}
+        onBack={() => router.back()}
+      />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 40 + kbHeight + 88 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom + 88 }]}
         keyboardShouldPersistTaps="handled"
       >
-      <Text style={styles.title}>{t('preferences.title')}</Text>
-
-      <Input
-        label={t('preferences.minAge')}
-        value={minAge}
-        onChangeText={setMinAge}
-        keyboardType="number-pad"
-      />
-      <Input
-        label={t('preferences.maxAge')}
-        value={maxAge}
-        onChangeText={setMaxAge}
-        keyboardType="number-pad"
+      <Text style={styles.label}>{t('preferences.ageRange')}</Text>
+      <AgeRangeSlider
+        min={MIN_AGE}
+        max={MAX_AGE}
+        value={ageRange}
+        onChange={setAgeRange}
+        suffix={t('preferences.ageSuffix', { defaultValue: '' })}
       />
 
-      <Text style={styles.label}>{t('preferences.preferredGenders')}</Text>
+      <Text style={[styles.label, styles.sectionGap]}>{t('preferences.preferredGenders')}</Text>
       <View style={styles.genderRow}>
         {GENDER_OPTIONS.map((g) => (
           <Pressable
@@ -141,17 +135,21 @@ export default function PreferencesScreen() {
         ))}
       </View>
 
-      <Text style={styles.label}>{t('preferences.preferredLanguages')}</Text>
+      <Text style={[styles.label, styles.sectionGap]}>{t('preferences.preferredLanguages')}</Text>
+      <View style={styles.hintList}>
+        <Text style={styles.hintLine}>{`• ${t('preferences.leaveEmptyAllLanguages')}`}</Text>
+        <Text style={styles.hintLine}>{`• ${t('preferences.sameLanguageBlockedHint')}`}</Text>
+      </View>
       <LanguageProficiencyEditor
         value={languages}
         onChange={setLanguages}
-        emptyHint={t('preferences.leaveEmptyAllLanguages')}
+        excludeCodes={ownPrimaryLanguage ? [ownPrimaryLanguage] : undefined}
       />
-      <Text style={styles.hint}>{t('preferences.preferredLevelHint')}</Text>
 
-      <Text style={[styles.label, { marginTop: 20 }]}>
+      <Text style={[styles.label, styles.sectionGap]}>
         {t('preferences.preferredNationalities')}
       </Text>
+      <Text style={styles.hintBlock}>{t('preferences.leaveEmptyAllNationalities')}</Text>
       <View style={styles.chipRow}>
         {SUPPORTED_NATIONALITIES.map(({ code, labelKey }) => {
           const selected = nationalities.includes(code);
@@ -168,15 +166,9 @@ export default function PreferencesScreen() {
           );
         })}
       </View>
-      <Text style={styles.hint}>{t('preferences.leaveEmptyAllNationalities')}</Text>
       </ScrollView>
 
-      <View
-        style={[
-          styles.footer,
-          { paddingBottom: Math.max(kbHeight, insets.bottom) + 12 },
-        ]}
-      >
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <Button title={t('common.save')} onPress={handleSave} loading={loading} />
       </View>
     </View>
@@ -192,18 +184,13 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
-  title: {
-    fontSize: 24,
-    fontFamily: fonts.bold,
-    color: colors.text,
-    marginBottom: 24,
-  },
   label: {
     fontSize: 14,
     fontFamily: fonts.medium,
     color: colors.text,
     marginBottom: 8,
   },
+  sectionGap: { marginTop: 16 },
   genderRow: {
     flexDirection: 'row',
     gap: 10,
@@ -211,7 +198,7 @@ const styles = StyleSheet.create({
   },
   genderBtn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -223,23 +210,38 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   genderText: {
-    fontSize: 14,
+    fontSize: 11,
     color: colors.textSecondary,
+    fontFamily: fonts.medium,
     textTransform: 'capitalize',
   },
   genderActiveText: {
     color: colors.white,
   },
-  hint: {
+  hintBlock: {
     fontSize: 12,
     color: colors.textSecondary,
-    marginTop: 4,
+    fontFamily: fonts.regular,
+    marginTop: -4,
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  hintList: {
+    marginTop: -4,
+    marginBottom: 10,
+    gap: 6,
+  },
+  hintLine: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    lineHeight: 18,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 16,
   },
   chip: {
     paddingVertical: 8,
@@ -250,7 +252,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
-  chipText: { fontSize: 14, color: colors.textSecondary },
+  chipText: { fontSize: 11, color: colors.textSecondary, fontFamily: fonts.medium },
   chipActiveText: { color: colors.white },
   footer: {
     position: 'absolute',

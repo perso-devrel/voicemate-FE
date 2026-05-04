@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View,
+  Text,
   ScrollView,
   StyleSheet,
   Alert,
@@ -15,6 +16,7 @@ import { WizardHeader } from '@/components/setup/WizardHeader';
 import { BioPhrasePicker } from '@/components/setup/BioPhrasePicker';
 import { useProfile } from '@/hooks/useProfile';
 import { colors } from '@/constants/colors';
+import { fonts } from '@/constants/fonts';
 
 export default function EditBioScreen() {
   const { t } = useTranslation();
@@ -62,10 +64,8 @@ export default function EditBioScreen() {
   return (
     <View style={styles.container}>
       <WizardHeader
-        step={1}
-        total={1}
+        compact
         title={t('profile.editBio')}
-        subtitle={t('profile.editBioSubtitle')}
         onBack={() => router.back()}
       />
       <ScrollView
@@ -76,6 +76,7 @@ export default function EditBioScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
+        <Text style={styles.subtitle}>{t('profile.editBioSubtitle')}</Text>
         <BioPhrasePicker
           value={bio}
           onChange={setBio}
@@ -105,6 +106,13 @@ export default function EditBioScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 40 },
+  subtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
   footer: {
     position: 'absolute',
     left: 0,
