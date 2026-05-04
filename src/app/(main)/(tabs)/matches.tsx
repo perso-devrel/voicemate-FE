@@ -42,7 +42,6 @@ export default function MatchesScreen() {
       <EmptyState
         iconName="sparkles-outline"
         title={t('matches.noMatches')}
-        subtitle={t('matches.startSwiping')}
         ctaLabel={t('matches.goToDiscover')}
         onCtaPress={() => router.push('/(main)/(tabs)/discover')}
       />

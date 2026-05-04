@@ -414,19 +414,6 @@ export default function ProfileScreen() {
         </View>
       </LinearGradient>
 
-      {/* Voice Clone CTA (only when not yet registered) */}
-      {profile.voice_clone_status === 'pending' && (
-        <LinearGradient
-          colors={[...gradients.primary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.voiceCtaBox}
-        >
-          <Ionicons name="mic-outline" size={18} color={colors.white} />
-          <Text style={styles.voiceCtaText}>{t('profile.registerVoicePrompt')}</Text>
-        </LinearGradient>
-      )}
-
       </ScrollView>
 
       <Modal
@@ -595,23 +582,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
-  },
-  voiceCtaBox: {
-    marginTop: 18,
-    borderRadius: radii.md,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    ...shadows.glow,
-  },
-  voiceCtaText: {
-    fontSize: 14,
-    fontFamily: fonts.semibold,
-    color: colors.white,
-    letterSpacing: 0.3,
   },
   infoName: {
     fontSize: 18,

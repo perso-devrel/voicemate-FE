@@ -1,54 +1,104 @@
-import { useState, useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  Keyboard,
+  Platform,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
+import { BioPhrasePicker } from '@/components/setup/BioPhrasePicker';
+import { useProfile } from '@/hooks/useProfile';
 import { useSignupDraftStore } from '@/stores/signupDraftStore';
-import { colors, radii } from '@/constants/colors';
+import { colors } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
-import { INTEREST_OPTIONS, INTEREST_SECTIONS, MAX_INTERESTS } from '@/constants/interests';
 
 export default function SetupStep3() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const draft = useSignupDraftStore();
-  const [selectedLabels, setSelectedLabels] = useState<string[]>(draft.interests);
+  const { profile, loading, upsertProfile } = useProfile();
+  const voiceReady = profile?.voice_clone_status === 'ready';
 
-  const labelToId = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const opt of INTEREST_OPTIONS) map.set(t(opt.labelKey), opt.id);
-    return map;
-  }, [t]);
-
-  const selectedIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const label of selectedLabels) {
-      const id = labelToId.get(label);
-      if (id) ids.add(id);
+  // Auto-skip when voice clone isn't ready: bio phrases must be synthesized
+  // with the user's cloned voice (BE pipeline), so without a registered
+  // voice this step has nothing to offer. Bounce straight to step4.
+  // useEffect runs after first paint — that's intentional so SetupStep2's
+  // "Skip" doesn't crash trying to read profile before authStore hydrates.
+  useEffect(() => {
+    if (profile && !voiceReady) {
+      router.replace('/(main)/setup/step4');
     }
-    return ids;
-  }, [selectedLabels, labelToId]);
+  }, [profile, voiceReady]);
 
-  const toggleInterest = (id: string, label: string) => {
-    if (selectedIds.has(id)) {
-      setSelectedLabels((prev) => prev.filter((v) => v !== label));
+  const [bio, setBio] = useState(draft.bio || profile?.voice_intro || '');
+  const [kbHeight, setKbHeight] = useState(0);
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
+    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
+
+  const persistBio = async (nextBio: string | null) => {
+    if (!profile) return;
+    // Mirror settings/edit-bio.tsx exactly so a user re-editing later sees a
+    // consistent payload shape. We only change voice_intro here.
+    await upsertProfile({
+      display_name: profile.display_name,
+      birth_date: profile.birth_date,
+      gender: profile.gender,
+      nationality: profile.nationality,
+      languages: profile.languages,
+      voice_intro: nextBio,
+      interests: profile.interests,
+    });
+  };
+
+  const handleNext = async () => {
+    if (!bio.trim()) {
+      Alert.alert(t('common.error'), t('signupWizard.bioRequired'));
       return;
     }
-    if (selectedLabels.length >= MAX_INTERESTS) return;
-    setSelectedLabels((prev) => [...prev, label]);
+    try {
+      draft.setBio(bio.trim());
+      await persistBio(bio.trim());
+      router.push('/(main)/setup/step4');
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e.message);
+    }
   };
 
-  const handleSkip = () => {
-    draft.setInterests([]);
-    router.push('/(main)/setup/step4');
+  const handleSkip = async () => {
+    try {
+      draft.setBio('');
+      // Persist null so a previously-saved value isn't silently retained when
+      // the user opted out at signup.
+      await persistBio(null);
+      router.push('/(main)/setup/step4');
+    } catch (e: any) {
+      // Skipping is best-effort; don't block navigation if BE hiccups here.
+      router.push('/(main)/setup/step4');
+    }
   };
 
-  const handleNext = () => {
-    draft.setInterests(selectedLabels);
-    router.push('/(main)/setup/step4');
-  };
+  // Pre-redirect render: keep blank to avoid a one-frame flash of the locked
+  // copy when we already know we're about to bounce to step4.
+  if (profile && !voiceReady) {
+    return <View style={styles.container} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -59,53 +109,31 @@ export default function SetupStep3() {
         onBack={() => router.back()}
       />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: 24 + Math.max(kbHeight, insets.bottom) },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-      <Text style={styles.label}>
-        {t('setupProfile.interests', { count: selectedLabels.length })}
-      </Text>
-      <Text style={styles.hintBlock}>{t('setupProfile.interestsHint')}</Text>
+        <Text style={styles.subtitle}>{t('profile.editBioSubtitle')}</Text>
+        <BioPhrasePicker
+          value={bio}
+          onChange={setBio}
+          language={profile?.languages?.[0]?.code ?? profile?.language ?? 'ko'}
+          disabled={!voiceReady}
+          lockedHint={!voiceReady ? t('setupProfile.bioLockedHint') : undefined}
+          onCustomFocus={() => {
+            // Wait for keyboard show animation + paddingBottom re-render before
+            // scrolling so the input lands above the keyboard, not under it.
+            setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 350);
+          }}
+        />
 
-      {INTEREST_SECTIONS.map((section) => (
-        <View key={section.id} style={styles.interestSection}>
-          <Text style={styles.interestSectionTitle}>{t(section.titleKey)}</Text>
-          <View style={styles.chipRow}>
-            {section.items.map(({ id, labelKey }) => {
-              const label = t(labelKey);
-              const selected = selectedIds.has(id);
-              const disabled = !selected && selectedLabels.length >= MAX_INTERESTS;
-              return (
-                <Pressable
-                  key={id}
-                  disabled={disabled}
-                  style={[
-                    styles.chip,
-                    selected && styles.chipActive,
-                    disabled && styles.chipDisabled,
-                  ]}
-                  onPress={() => toggleInterest(id, label)}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      selected && styles.chipActiveText,
-                      disabled && styles.chipDisabledText,
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+        <View style={styles.actions}>
+          <Button title={t('common.next')} onPress={handleNext} loading={loading} />
+          <Button title={t('common.skip')} variant="outline" onPress={handleSkip} disabled={loading} />
         </View>
-      ))}
-
-      <View style={styles.actions}>
-        <Button title={t('common.next')} onPress={handleNext} />
-        <Button title={t('common.skip')} variant="outline" onPress={handleSkip} />
-      </View>
       </ScrollView>
     </View>
   );
@@ -114,38 +142,12 @@ export default function SetupStep3() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 40 },
-  label: { fontSize: 14, fontFamily: fonts.medium, color: colors.text, marginBottom: 4 },
-  hintBlock: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontFamily: fonts.regular,
-    marginTop: -4,
-    marginBottom: 10,
-    lineHeight: 18,
-  },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  chip: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radii.pill,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
-  chipDisabled: { opacity: 0.4 },
-  chipText: { fontSize: 11, color: colors.textSecondary, fontFamily: fonts.medium },
-  chipActiveText: { color: colors.white },
-  chipDisabledText: { color: colors.textLight },
-  interestSection: {
-    marginBottom: 8,
-  },
-  interestSectionTitle: {
-    fontSize: 12,
+  subtitle: {
+    fontSize: 14,
     color: colors.textSecondary,
     fontFamily: fonts.medium,
-    marginBottom: 8,
-    letterSpacing: 0.3,
+    lineHeight: 20,
+    marginBottom: 16,
   },
-  actions: { gap: 10, marginTop: 12 },
+  actions: { gap: 10, marginTop: 24 },
 });

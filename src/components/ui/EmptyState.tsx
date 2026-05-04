@@ -42,6 +42,7 @@ export function EmptyState({
           title={ctaLabel!}
           onPress={onCtaPress!}
           style={styles.cta}
+          textStyle={styles.ctaText}
         />
       ) : null}
     </View>
@@ -88,6 +89,8 @@ const styles = StyleSheet.create({
   },
   cta: {
     marginTop: 28,
-    paddingHorizontal: 36,
+  },
+  ctaText: {
+    paddingHorizontal: 12,
   },
 });

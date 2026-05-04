@@ -27,6 +27,7 @@ interface BioPhrasePickerProps {
   language: string;
   disabled?: boolean;
   lockedHint?: string;
+  onCustomFocus?: () => void;
 }
 
 const CATEGORY_TINTS: Record<BioPhraseCategory, string> = {
@@ -46,6 +47,7 @@ export function BioPhrasePicker({
   language,
   disabled,
   lockedHint,
+  onCustomFocus,
 }: BioPhrasePickerProps) {
   const { t } = useTranslation();
 
@@ -156,6 +158,7 @@ export function BioPhrasePicker({
           onChangeText={handleCustomTextChange}
           editable={!disabled && selectedId === 'custom'}
           placeholder={t('setupProfile.bioPicker.customPlaceholder')}
+          onFocus={onCustomFocus}
         />
       </Pressable>
 
@@ -174,7 +177,8 @@ function CustomInput({
   onChangeText,
   editable,
   placeholder,
-}: Pick<TextInputProps, 'value' | 'onChangeText' | 'editable' | 'placeholder'>) {
+  onFocus,
+}: Pick<TextInputProps, 'value' | 'onChangeText' | 'editable' | 'placeholder' | 'onFocus'>) {
   return (
     <TextInput
       value={value}
@@ -185,6 +189,7 @@ function CustomInput({
       multiline
       maxLength={500}
       style={styles.customInput}
+      onFocus={onFocus}
     />
   );
 }

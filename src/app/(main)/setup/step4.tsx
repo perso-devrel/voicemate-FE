@@ -5,22 +5,21 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
-  Alert,
-  Keyboard,
-  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
 import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
+import { AgeRangeSlider } from '@/components/ui/AgeRangeSlider';
 import { useSignupDraftStore } from '@/stores/signupDraftStore';
+import { useProfile } from '@/hooks/useProfile';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
+import { isLanguageCode } from '@/constants/languages';
 import { SUPPORTED_NATIONALITIES } from '@/constants/nationalities';
-import { MIN_AGE, MAX_AGE, validateAgeRange } from '@/utils/preferences';
+import { MIN_AGE, MAX_AGE } from '@/utils/preferences';
 import type { LanguageProficiency, PreferenceUpdateRequest } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
@@ -29,30 +28,39 @@ export default function SetupStep4() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const draft = useSignupDraftStore();
+  const { profile } = useProfile();
+  // BE blocks same-primary-language matches (the app's core differentiator —
+  // voice translation only kicks in across language pairs). Hide the user's
+  // own primary from the picker so they can't add a language that has no
+  // effect on filtering. Mirrors settings/preferences.tsx exactly.
+  const ownPrimaryLanguage =
+    profile?.languages?.[0]?.code ??
+    profile?.language ??
+    draft.languages?.[0]?.code ??
+    null;
 
-  const [minAge, setMinAge] = useState(String(draft.preferences?.min_age ?? MIN_AGE));
-  const [maxAge, setMaxAge] = useState(String(draft.preferences?.max_age ?? MAX_AGE));
+  const [ageRange, setAgeRange] = useState<{ min: number; max: number }>({
+    min: Math.max(MIN_AGE, Math.min(draft.preferences?.min_age ?? MIN_AGE, MAX_AGE)),
+    max: Math.max(MIN_AGE, Math.min(draft.preferences?.max_age ?? MAX_AGE, MAX_AGE)),
+  });
   const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>(
     draft.preferences?.preferred_genders ?? [...GENDER_OPTIONS],
   );
   const [languages, setLanguages] = useState<LanguageProficiency[]>(
-    draft.preferences?.preferred_languages_detail ?? [],
+    (draft.preferences?.preferred_languages_detail ?? []).filter(
+      (d) => isLanguageCode(d.code) && d.code !== ownPrimaryLanguage,
+    ),
   );
   const [nationalities, setNationalities] = useState<string[]>(
     draft.preferences?.preferred_nationalities ?? [],
   );
-  const [kbHeight, setKbHeight] = useState(0);
 
+  // Re-sync when ownPrimaryLanguage resolves async (profile arriving after mount).
   useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
-    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
-    return () => {
-      onShow.remove();
-      onHide.remove();
-    };
-  }, []);
+    setLanguages((prev) =>
+      prev.filter((d) => isLanguageCode(d.code) && d.code !== ownPrimaryLanguage),
+    );
+  }, [ownPrimaryLanguage]);
 
   const toggleGender = (g: 'male' | 'female' | 'other') => {
     setGenders((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
@@ -71,18 +79,9 @@ export default function SetupStep4() {
   };
 
   const handleNext = () => {
-    const ageCheck = validateAgeRange(minAge, maxAge);
-    if (!ageCheck.ok) {
-      const message =
-        ageCheck.error === 'min-greater-than-max'
-          ? t('preferences.invalidAgeRange')
-          : t('preferences.ageOutOfBounds', { min: MIN_AGE, max: MAX_AGE });
-      Alert.alert(t('common.error'), message);
-      return;
-    }
     const prefs: PreferenceUpdateRequest = {
-      min_age: ageCheck.min,
-      max_age: ageCheck.max,
+      min_age: ageRange.min,
+      max_age: ageRange.max,
       preferred_genders: genders,
       preferred_languages_detail: languages,
       preferred_nationalities: nationalities,
@@ -105,73 +104,69 @@ export default function SetupStep4() {
         onBack={() => router.back()}
       />
       <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: 24 + Math.max(kbHeight, insets.bottom) },
-        ]}
+        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
       >
-      <Input
-        label={t('preferences.minAge')}
-        value={minAge}
-        onChangeText={setMinAge}
-        keyboardType="number-pad"
-      />
-      <Input
-        label={t('preferences.maxAge')}
-        value={maxAge}
-        onChangeText={setMaxAge}
-        keyboardType="number-pad"
-      />
+        <Text style={styles.label}>{t('preferences.ageRange')}</Text>
+        <AgeRangeSlider
+          min={MIN_AGE}
+          max={MAX_AGE}
+          value={ageRange}
+          onChange={setAgeRange}
+          suffix={t('preferences.ageSuffix', { defaultValue: '' })}
+        />
 
-      <Text style={styles.label}>{t('preferences.preferredGenders')}</Text>
-      <View style={styles.genderRow}>
-        {GENDER_OPTIONS.map((g) => (
-          <Pressable
-            key={g}
-            style={[styles.genderBtn, genders.includes(g) && styles.genderActive]}
-            onPress={() => toggleGender(g)}
-          >
-            <Text style={[styles.genderText, genders.includes(g) && styles.genderActiveText]}>
-              {genderLabel(g)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Text style={styles.label}>{t('preferences.preferredLanguages')}</Text>
-      <LanguageProficiencyEditor
-        value={languages}
-        onChange={setLanguages}
-        emptyHint={t('preferences.leaveEmptyAllLanguages')}
-      />
-      <Text style={styles.hint}>{t('preferences.preferredLevelHint')}</Text>
-
-      <Text style={[styles.label, { marginTop: 20 }]}>
-        {t('preferences.preferredNationalities')}
-      </Text>
-      <View style={styles.chipRow}>
-        {SUPPORTED_NATIONALITIES.map(({ code, labelKey }) => {
-          const selected = nationalities.includes(code);
-          return (
+        <Text style={[styles.label, styles.sectionGap]}>{t('preferences.preferredGenders')}</Text>
+        <View style={styles.genderRow}>
+          {GENDER_OPTIONS.map((g) => (
             <Pressable
-              key={code}
-              style={[styles.chip, selected && styles.chipActive]}
-              onPress={() => toggleNationality(code)}
+              key={g}
+              style={[styles.genderBtn, genders.includes(g) && styles.genderActive]}
+              onPress={() => toggleGender(g)}
             >
-              <Text style={[styles.chipText, selected && styles.chipActiveText]}>
-                {t(labelKey)}
+              <Text style={[styles.genderText, genders.includes(g) && styles.genderActiveText]}>
+                {genderLabel(g)}
               </Text>
             </Pressable>
-          );
-        })}
-      </View>
-      <Text style={styles.hint}>{t('preferences.leaveEmptyAllNationalities')}</Text>
+          ))}
+        </View>
 
-      <View style={styles.actions}>
-        <Button title={t('common.next')} onPress={handleNext} style={{ marginTop: 24 }} />
-        <Button title={t('common.skip')} variant="outline" onPress={handleSkip} />
-      </View>
+        <Text style={[styles.label, styles.sectionGap]}>{t('preferences.preferredLanguages')}</Text>
+        <View style={styles.hintList}>
+          <Text style={styles.hintLine}>{`• ${t('preferences.leaveEmptyAllLanguages')}`}</Text>
+          <Text style={styles.hintLine}>{`• ${t('preferences.sameLanguageBlockedHint')}`}</Text>
+        </View>
+        <LanguageProficiencyEditor
+          value={languages}
+          onChange={setLanguages}
+          excludeCodes={ownPrimaryLanguage ? [ownPrimaryLanguage] : undefined}
+        />
+
+        <Text style={[styles.label, styles.sectionGap]}>
+          {t('preferences.preferredNationalities')}
+        </Text>
+        <Text style={styles.hintBlock}>{t('preferences.leaveEmptyAllNationalities')}</Text>
+        <View style={styles.chipRow}>
+          {SUPPORTED_NATIONALITIES.map(({ code, labelKey }) => {
+            const selected = nationalities.includes(code);
+            return (
+              <Pressable
+                key={code}
+                style={[styles.chip, selected && styles.chipActive]}
+                onPress={() => toggleNationality(code)}
+              >
+                <Text style={[styles.chipText, selected && styles.chipActiveText]}>
+                  {t(labelKey)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.actions}>
+          <Button title={t('common.next')} onPress={handleNext} style={{ marginTop: 8 }} />
+          <Button title={t('common.skip')} variant="outline" onPress={handleSkip} />
+        </View>
       </ScrollView>
     </View>
   );
@@ -181,10 +176,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 40 },
   label: { fontSize: 14, fontFamily: fonts.medium, color: colors.text, marginBottom: 8 },
+  sectionGap: { marginTop: 16 },
   genderRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   genderBtn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -192,11 +188,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   genderActive: { borderColor: colors.primary, backgroundColor: colors.primary },
-  genderText: { fontSize: 14, color: colors.textSecondary, textTransform: 'capitalize' },
+  genderText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    textTransform: 'capitalize',
+  },
   genderActiveText: { color: colors.white },
-  hint: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
-  actions: { gap: 10 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  hintBlock: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    marginTop: -4,
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+  hintList: {
+    marginTop: -4,
+    marginBottom: 10,
+    gap: 6,
+  },
+  hintLine: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+    lineHeight: 18,
+  },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   chip: {
     paddingVertical: 8,
     paddingHorizontal: 14,
@@ -206,6 +224,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
-  chipText: { fontSize: 14, color: colors.textSecondary },
+  chipText: { fontSize: 11, color: colors.textSecondary, fontFamily: fonts.medium },
   chipActiveText: { color: colors.white },
+  actions: { gap: 10, marginTop: 16 },
 });

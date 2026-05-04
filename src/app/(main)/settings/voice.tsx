@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  scriptScroll: { maxHeight: 240, borderTopWidth: 1, borderTopColor: colors.border },
+  scriptScroll: { maxHeight: 420, borderTopWidth: 1, borderTopColor: colors.border },
   scriptContent: { padding: 14 },
   scriptTitle: { fontSize: 13, fontFamily: fonts.semibold, color: colors.primary },
   scriptText: { fontSize: 14, color: colors.text, lineHeight: 24 },

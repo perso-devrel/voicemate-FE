@@ -84,6 +84,15 @@ export default function EditBioScreen() {
           disabled={!voiceReady}
           lockedHint={!voiceReady ? t('setupProfile.bioLockedHint') : undefined}
         />
+        {!voiceReady ? (
+          <View style={styles.lockedCta}>
+            <Button
+              title={t('discover.lockedGoVoice')}
+              onPress={() => router.push('/(main)/settings/voice')}
+              textStyle={styles.lockedCtaText}
+            />
+          </View>
+        ) : null}
       </ScrollView>
 
       <View
@@ -123,5 +132,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
+  },
+  lockedCta: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  lockedCtaText: {
+    paddingHorizontal: 8,
   },
 });

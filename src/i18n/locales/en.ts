@@ -36,13 +36,14 @@ export default {
 
   signupWizard: {
     progress: '{{current}} / {{total}}',
-    step1Title: 'Basic Info',
+    step1Title: 'Profile Setup',
     step1Subtitle: 'Enter the basics that will appear on your profile.',
-    step2Title: 'Voice & Voice Line',
-    step2Subtitle: 'Register your voice and write a short bio.',
-    step2SkipWarning: "You can't discover other users until you register your voice and voice line.",
-    step3Title: 'Interests',
-    step3Subtitle: 'Pick a few interests so we can match you better.',
+    step2Title: 'Register My Voice',
+    step2Subtitle: 'Register the voice that will be used in voice chats.',
+    step2SkipWarning: "Without registering your voice, you can't discover potential matches.",
+    step3Title: 'Voice Line',
+    step3Subtitle: 'The line you pick is auto-generated with your registered voice.',
+    step3VoiceLockedAutoSkip: "We'll skip the voice line for now since your voice isn't registered yet.",
     step4Title: 'Matching Preferences',
     step4Subtitle: 'Tell us who you want to meet. You can change this later.',
     step5Title: 'Profile Photos',
@@ -83,11 +84,11 @@ export default {
     playBio: 'Play bio',
     lockedTitle: 'Finish your profile first',
     lockedVoiceHint:
-      "Register your voice before you start discovering — others' bios will play in your own voice.",
+      'To hear other people\'s voices, you need to register your own voice first.',
     lockedBioHint:
-      'Write a short bio. It will be turned into your voice and played for others.',
+      'Pick a voice line. It will be auto-generated in your own voice and played for others.',
     lockedGoVoice: 'Register voice',
-    lockedGoBio: 'Write bio',
+    lockedGoBio: 'Set voice line',
     voiceProcessingTitle: 'Generating your voice',
     voiceProcessingHint:
       "Hang tight — once your voice is ready you'll be able to start discovering.",
@@ -95,7 +96,6 @@ export default {
 
   matches: {
     noMatches: 'No matches yet',
-    startSwiping: 'Start swiping to find your match!',
     goToDiscover: 'Start discovering',
     unknown: 'Unknown',
     startConversation: 'Start a conversation!',
@@ -138,12 +138,11 @@ export default {
       interests: 'Interests',
     },
     voiceCardTitle: 'Voice intro',
-    registerVoicePrompt: 'Register your voice!',
     editProfile: 'Edit Profile',
-    voiceSettings: 'Voice Settings',
+    voiceSettings: 'Register My Voice',
     interestsSettings: 'Interests',
     matchingPreferences: 'Matching Preferences',
-    editBio: 'Edit Voice Line',
+    editBio: 'Set Voice Line',
     bioEmpty: 'Pick a voice line to introduce yourself',
     editProfileSubtitle: 'Manage your basic info and voice.',
     editInterestsSubtitle: 'Pick interests so we can match you better.',
@@ -233,7 +232,7 @@ export default {
     bio: 'Voice Line',
     bioPlaceholder: 'Pick the line you like',
     bioLockedPlaceholder: 'Register your voice clone first to pick a line',
-    bioLockedHint: "Your line is turned into voice using your voice clone, so please register your voice in 'Voice Settings' first.",
+    bioLockedHint: "Your voice line is generated automatically once your voice clone is registered. Please register your voice in 'Register My Voice' first.",
     bioPicker: {
       subtitle: 'Pick the first line your voice will speak.',
       customPlaceholder: 'Or type your own message',
@@ -394,11 +393,11 @@ export default {
     startRecording: 'Start Recording',
     stopRecording: 'Stop Recording',
     recordingGuide:
-      'For a natural voice clone, we recommend at least 30 seconds; minimum is 10 seconds.\nIf you\'re not sure what to say, feel free to read the script below.',
+      '• Minimum recording length is 10 seconds — the longer you record, the closer the result sounds to your real voice.\n• If you\'re not sure what to say, feel free to read the script below.',
     exampleScriptTitle: 'Sample Script',
     exampleScript:
       "Hi there! I'm trying this app today because I'd love to meet someone new. I hope my voice sounds natural even in other languages. In my free time, I enjoy taking long walks while listening to music, and on weekends I love slowing down with a good book and a cup of coffee. Traveling to new places and having long conversations with close friends mean a lot to me. What does your day usually look like? I'm looking forward to getting to know you better.",
-    uploadVoice: 'Upload Voice',
+    uploadVoice: 'Create Voice Clone',
     reRecord: 'Re-record',
     processingHint: 'This may take a moment...',
     deleteVoiceClone: 'Delete Voice Clone',

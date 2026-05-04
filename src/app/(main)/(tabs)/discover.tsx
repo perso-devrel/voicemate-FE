@@ -125,8 +125,8 @@ function GateScreen({
 }) {
   // Guide the user through the missing step in the natural signup order:
   // voice first, bio next.
-  const goVoice = () => router.push('/(main)/setup/voice');
-  const goBio = () => router.push('/(main)/setup/profile');
+  const goVoice = () => router.push('/(main)/settings/voice');
+  const goBio = () => router.push('/(main)/settings/edit-bio');
 
   if (voiceProcessing) {
     return (
@@ -167,6 +167,7 @@ function GateScreen({
         title={voiceReady ? t('discover.lockedGoBio') : t('discover.lockedGoVoice')}
         onPress={voiceReady ? goBio : goVoice}
         style={styles.ctaBtn}
+        textStyle={styles.ctaBtnText}
       />
     </View>
   );
@@ -187,7 +188,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 20,
   },
   emptyHalo: {
     width: 96,
@@ -219,7 +220,9 @@ const styles = StyleSheet.create({
   },
   ctaBtn: {
     marginTop: 28,
-    paddingHorizontal: 36,
     borderRadius: radii.pill,
+  },
+  ctaBtnText: {
+    paddingHorizontal: 4,
   },
 });
