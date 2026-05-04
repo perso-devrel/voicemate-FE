@@ -72,6 +72,25 @@ export default {
     loginFailed: 'Login Failed',
     signupFailed: 'Signup Failed',
     enterEmailAndPassword: 'Please enter email and password',
+    googleNotInExpoGo: 'Google sign-in only works in a dev-client or production build. Please use email login instead.',
+  },
+
+  validation: {
+    emailRequired: 'Please enter your email',
+    emailMalformed: 'Please enter a valid email',
+    emailNotRegistered: 'No account found for this email',
+    emailTaken: 'This email is already registered',
+    passwordRequired: 'Please enter your password',
+    passwordWrong: 'Incorrect password — please try again',
+    passwordFormat: '8+ characters with at least one letter and one number',
+    displayNameRequired: 'Required',
+    displayNameTrimmed: 'No leading or trailing spaces',
+    displayNameTooLong: 'Must be 20 characters or fewer',
+    displayNameInvalidChars: 'Contains characters that are not allowed',
+    voiceIntroTooLong: 'Voice intro must be 500 characters or fewer',
+    messageEmpty: 'Please enter a message',
+    messageTooLong: 'Message must be 500 characters or fewer',
+    textInvalidChars: 'Contains characters that are not allowed',
   },
 
   discover: {

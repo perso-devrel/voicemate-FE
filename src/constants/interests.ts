@@ -137,6 +137,13 @@ export const INTEREST_SECTIONS = [
   },
 ] as const;
 
-export const INTEREST_OPTIONS = INTEREST_SECTIONS.flatMap((s) => s.items);
+// `flatMap` over a `readonly`-tagged tuple of sections trips up TS5's tuple
+// element inference (it tries to widen each section to a single union member
+// rather than to "an array of union members"). Annotating the result as a
+// readonly array of the common shape sidesteps that.
+export type InterestOption = { readonly id: string; readonly labelKey: string };
+export const INTEREST_OPTIONS: readonly InterestOption[] = INTEREST_SECTIONS.flatMap(
+  (s) => [...s.items],
+);
 
 export const MAX_INTERESTS = 10;

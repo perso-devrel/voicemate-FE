@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   Alert,
   Keyboard,
@@ -16,15 +15,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
+import { FormField } from '@/components/ui/FormField';
 import { GoogleLoginButton } from '@/components/ui/GoogleLoginButton';
 import { useAuthStore } from '@/stores/authStore';
+import { ApiRequestError } from '@/services/api';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
+import { validateEmail, validatePassword } from '@/utils/validators';
 
 const LOGIN_BG = require('../../../assets/images/login-day.png');
 const LOGIN_BG_BLUR = 12;
 
 const isExpoGo = Constants.appOwnership === 'expo';
+
+// Inline-error UX: errors target the field that caused them, not a top
+// Alert. We track two independent slots — one for email, one for password —
+// keyed by i18n string so the FormField re-renders the message naturally.
+type FieldErrors = { email: string | null; password: string | null };
+const NO_ERRORS: FieldErrors = { email: null, password: null };
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -34,6 +42,7 @@ export default function LoginScreen() {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errors, setErrors] = useState<FieldErrors>(NO_ERRORS);
   const [kbHeight, setKbHeight] = useState(0);
 
   // Top-anchored cover-fit background. Mimics CSS object-fit: cover with
@@ -77,13 +86,17 @@ export default function LoginScreen() {
     };
   }, []);
 
+  // Toggling between login and signup resets prior errors so the new mode's
+  // form starts clean — otherwise a "wrong password" inline message would
+  // linger when the user switches over to register.
+  useEffect(() => {
+    setErrors(NO_ERRORS);
+  }, [isSignup]);
+
   const handleGooglePress = async () => {
     if (loadingAction) return;
     if (isExpoGo) {
-      Alert.alert(
-        t('auth.loginFailed'),
-        'Google 로그인은 dev-client 또는 정식 빌드에서만 동작합니다. 이메일 로그인을 사용하세요.'
-      );
+      Alert.alert(t('auth.loginFailed'), t('auth.googleNotInExpoGo'));
       return;
     }
     setLoadingAction('google');
@@ -107,12 +120,56 @@ export default function LoginScreen() {
     }
   };
 
+  // Translate a BE auth error code into the field-targeted inline messages.
+  // Codes are added by haru_BE/src/routes/auth.ts. Any code we don't recognise
+  // surfaces as a generic Alert (preserving the previous catch-all UX) so the
+  // user is never silently stuck on an empty form.
+  const applyAuthError = (e: unknown, signup: boolean): boolean => {
+    if (e instanceof ApiRequestError) {
+      switch (e.code) {
+        case 'EMAIL_NOT_REGISTERED':
+          setErrors({ email: t('validation.emailNotRegistered'), password: null });
+          return true;
+        case 'WRONG_PASSWORD':
+          setErrors({ email: null, password: t('validation.passwordWrong') });
+          return true;
+        case 'EMAIL_NOT_CONFIRMED':
+          setErrors({ email: t('validation.emailNotRegistered'), password: null });
+          return true;
+        case 'EMAIL_TAKEN':
+          setErrors({ email: t('validation.emailTaken'), password: null });
+          return true;
+        case 'PASSWORD_FORMAT':
+          setErrors({ email: null, password: t('validation.passwordFormat') });
+          return true;
+      }
+    }
+    // Unrecognised — fall back to top-level Alert.
+    Alert.alert(
+      signup ? t('auth.signupFailed') : t('auth.loginFailed'),
+      e instanceof Error ? e.message : String(e),
+    );
+    return false;
+  };
+
   const handleEmailAuth = async () => {
     if (loadingAction) return;
-    if (!email.trim() || !password.trim()) {
-      Alert.alert(t('common.error'), t('auth.enterEmailAndPassword'));
+    // Client-side validation first so the user gets immediate feedback
+    // without a network round trip on obvious mistakes.
+    const emailErr = validateEmail(email);
+    const passwordErr = isSignup
+      ? validatePassword(password)
+      : password.length === 0
+        ? { key: 'validation.passwordRequired' }
+        : null;
+    if (emailErr || passwordErr) {
+      setErrors({
+        email: emailErr ? t(emailErr.key, emailErr.vars) : null,
+        password: passwordErr ? t(passwordErr.key, passwordErr.vars) : null,
+      });
       return;
     }
+    setErrors(NO_ERRORS);
     setLoadingAction('email');
     try {
       if (isSignup) {
@@ -120,8 +177,8 @@ export default function LoginScreen() {
       } else {
         await emailLogin(email.trim(), password);
       }
-    } catch (e: any) {
-      Alert.alert(isSignup ? t('auth.signupFailed') : t('auth.loginFailed'), e.message);
+    } catch (e) {
+      applyAuthError(e, isSignup);
     } finally {
       setLoadingAction(null);
     }
@@ -143,23 +200,36 @@ export default function LoginScreen() {
         <View style={[styles.sheet, { paddingBottom: 24 + insets.bottom }]}>
           <View style={styles.sheetHandle} />
           <View style={styles.form}>
-            <TextInput
-              style={styles.input}
+            <FormField
               placeholder={t('auth.email')}
-              placeholderTextColor={colors.textLight}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(v) => {
+                setEmail(v);
+                if (errors.email) setErrors((prev) => ({ ...prev, email: null }));
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
+              error={errors.email}
+              inputStyle={styles.input}
+              errorTestID="login-email-error"
             />
-            <TextInput
-              style={styles.input}
+            <FormField
               placeholder={t('auth.password')}
-              placeholderTextColor={colors.textLight}
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(v) => {
+                setPassword(v);
+                if (errors.password) setErrors((prev) => ({ ...prev, password: null }));
+              }}
               secureTextEntry
+              autoCapitalize="none"
+              autoComplete="password"
+              textContentType="password"
+              error={errors.password}
+              inputStyle={styles.input}
+              errorTestID="login-password-error"
             />
             <Button
               title={isSignup ? t('auth.signup') : t('auth.login')}
@@ -241,18 +311,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   form: {
-    gap: 10,
+    gap: 6,
   },
   input: {
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: radii.md,
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: colors.text,
     backgroundColor: colors.surface,
-    fontFamily: fonts.regular,
   },
   toggleText: {
     textAlign: 'center',

@@ -72,6 +72,25 @@ export default {
         loginFailed: "로그인 실패",
         signupFailed: "회원가입 실패",
         enterEmailAndPassword: "이메일과 비밀번호를 입력해주세요",
+        googleNotInExpoGo: "Google 로그인은 dev-client 또는 정식 빌드에서만 동작해요. 이메일 로그인을 사용해주세요.",
+    },
+
+    validation: {
+        emailRequired: "이메일을 입력해주세요",
+        emailMalformed: "올바른 이메일 형식이 아니에요",
+        emailNotRegistered: "가입되지 않은 이메일입니다",
+        emailTaken: "이미 가입된 이메일입니다",
+        passwordRequired: "비밀번호를 입력해주세요",
+        passwordWrong: "비밀번호를 다시 입력하세요",
+        passwordFormat: "8자 이상, 영문과 숫자를 모두 포함해주세요",
+        displayNameRequired: "필수 항목입니다.",
+        displayNameTrimmed: "이름 앞뒤에 공백 없이 입력해주세요",
+        displayNameTooLong: "이름은 20자 이내로 입력해주세요",
+        displayNameInvalidChars: "사용할 수 없는 문자가 포함되어 있어요",
+        voiceIntroTooLong: "보이스 한마디는 500자 이내로 입력해주세요",
+        messageEmpty: "메시지를 입력해주세요",
+        messageTooLong: "메시지는 500자 이내로 입력해주세요",
+        textInvalidChars: "사용할 수 없는 문자가 포함되어 있어요",
     },
 
     discover: {

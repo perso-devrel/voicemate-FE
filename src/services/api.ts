@@ -11,6 +11,10 @@ export class ApiRequestError extends Error {
   constructor(
     public status: number,
     public errorMessage: string,
+    // BE may include a discriminated `code` field for error responses (e.g.
+    // 'EMAIL_NOT_REGISTERED', 'WRONG_PASSWORD'). When present, FE prefers it
+    // for inline-error UX over substring-matching the human message.
+    public code?: string,
   ) {
     super(errorMessage);
     this.name = 'ApiRequestError';
@@ -140,7 +144,11 @@ class ApiClient {
 
     if (!res.ok) {
       const error = await res.json().catch(() => ({ error: 'Unknown error' }));
-      throw new ApiRequestError(res.status, error.error ?? 'Unknown error');
+      throw new ApiRequestError(
+        res.status,
+        error.error ?? 'Unknown error',
+        typeof error.code === 'string' ? error.code : undefined,
+      );
     }
 
     if (res.status === 204) {
