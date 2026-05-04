@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Alert, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/Button';
 import { PhotoBackground } from '@/components/ui/PhotoBackground';
 import { useDiscover } from '@/hooks/useDiscover';
 import { useAuthStore } from '@/stores/authStore';
+import { useDiscoverStore } from '@/stores/discoverStore';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
 export default function DiscoverScreen() {
   const { t } = useTranslation();
   const profile = useAuthStore((s) => s.profile);
+  const reloadVersion = useDiscoverStore((s) => s.reloadVersion);
   const {
     candidates,
     loading,
@@ -35,6 +37,18 @@ export default function DiscoverScreen() {
   useEffect(() => {
     if (!gated && dailyCountReady) loadCandidates();
   }, [gated, dailyCountReady, loadCandidates]);
+
+  // Auto-refresh trigger: the preferences screen bumps `reloadVersion` on
+  // save so the candidate list refetches with the new filters without the
+  // user having to pull-to-refresh. The initial mount already fetches via
+  // the effect above (reloadVersion=0), so we only fire on subsequent
+  // bumps to avoid a double request on first paint.
+  const lastSeenReloadRef = useRef(reloadVersion);
+  useEffect(() => {
+    if (lastSeenReloadRef.current === reloadVersion) return;
+    lastSeenReloadRef.current = reloadVersion;
+    if (!gated && dailyCountReady) loadCandidates();
+  }, [reloadVersion, gated, dailyCountReady, loadCandidates]);
 
   if (gated) {
     return (

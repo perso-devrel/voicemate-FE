@@ -16,6 +16,7 @@ import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEd
 import { AgeRangeSlider } from '@/components/ui/AgeRangeSlider';
 import { usePreferences } from '@/hooks/usePreferences';
 import { useProfile } from '@/hooks/useProfile';
+import { useDiscoverStore } from '@/stores/discoverStore';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { isLanguageCode } from '@/constants/languages';
@@ -30,6 +31,7 @@ export default function PreferencesScreen() {
   const insets = useSafeAreaInsets();
   const { preferences, loading, loadPreferences, updatePreferences } = usePreferences();
   const { profile } = useProfile();
+  const bumpDiscoverReload = useDiscoverStore((s) => s.bumpReload);
   // BE blocks same-primary-language matches (the app's core differentiator —
   // voice translation only kicks in across language pairs). Hide the user's
   // own primary from the picker so they can't add a language that has no
@@ -88,6 +90,10 @@ export default function PreferencesScreen() {
         preferred_languages_detail: languages,
         preferred_nationalities: nationalities,
       });
+      // Tell the discover screen to drop its cached candidates and re-fetch
+      // with the freshly-saved filters next time the user is on the tab.
+      // Manual pull-to-refresh on discover still works as a fallback.
+      bumpDiscoverReload();
       router.back();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);
