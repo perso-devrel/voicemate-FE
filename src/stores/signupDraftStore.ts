@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ProfileUpsertRequest, PreferenceUpdateRequest } from '@/types';
+import type { ProfileUpsertRequest } from '@/types';
 import type { LanguageCode } from '@/constants/languages';
 
 export type Gender = 'male' | 'female' | 'other';
@@ -14,8 +14,8 @@ interface SignupDraftState {
   language: LanguageCode | null;
   bio: string;
   interests: string[];
-  preferences: PreferenceUpdateRequest | null;
-  // Local URIs for photos picked in step5, uploaded after profile is created.
+  // Local URIs for photos picked at the photos step, uploaded after the BE
+  // INSERT happens (handleNext in step5.tsx).
   photoUris: string[];
   hasStep1: boolean;
 
@@ -28,7 +28,6 @@ interface SignupDraftState {
   }) => void;
   setBio: (bio: string) => void;
   setInterests: (interests: string[]) => void;
-  setPreferences: (preferences: PreferenceUpdateRequest | null) => void;
   setPhotoUris: (uris: string[]) => void;
   reset: () => void;
   buildProfilePayload: () => ProfileUpsertRequest;
@@ -42,7 +41,6 @@ const initial = {
   language: null as LanguageCode | null,
   bio: '',
   interests: [] as string[],
-  preferences: null as PreferenceUpdateRequest | null,
   photoUris: [] as string[],
   hasStep1: false,
 };
@@ -52,7 +50,6 @@ export const useSignupDraftStore = create<SignupDraftState>((set, get) => ({
   setStep1: (data) => set({ ...data, hasStep1: true }),
   setBio: (bio) => set({ bio }),
   setInterests: (interests) => set({ interests }),
-  setPreferences: (preferences) => set({ preferences }),
   setPhotoUris: (photoUris) => set({ photoUris }),
   reset: () => set(initial),
   buildProfilePayload: () => {

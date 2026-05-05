@@ -57,6 +57,8 @@ export default {
     register: 'Register Profile',
     skipAndRegister: 'Skip & Register',
     registerFailed: 'Profile registration failed. Please try again.',
+    startHaru: 'Start HARU',
+    skipAndStart: 'Skip & Start',
   },
 
   auth: {

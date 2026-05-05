@@ -202,7 +202,7 @@ export default function SetupStep2() {
   return (
     <View style={styles.container}>
       <WizardHeader
-        step={2}
+        step={4}
         title={t('signupWizard.step2Title')}
         subtitle={t('signupWizard.step2Subtitle')}
         onBack={() => router.back()}
@@ -279,7 +279,7 @@ export default function SetupStep2() {
         <View style={styles.actions}>
           <Button title={t('common.next')} onPress={handleNext} disabled={!voiceReady} />
           {!voiceReady && (
-            <Button title={t('common.skip')} variant="outline" onPress={handleSkip} />
+            <Button title={t('signupWizard.skipAndStart')} variant="outline" onPress={handleSkip} />
           )}
         </View>
       </ScrollView>

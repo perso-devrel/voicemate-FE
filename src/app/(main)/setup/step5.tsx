@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/Button";
 import { ErrorText } from "@/components/ui/ErrorText";
 import { WizardHeader } from "@/components/setup/WizardHeader";
 import { useProfile, MAX_PHOTOS } from "@/hooks/useProfile";
-import { usePreferences } from "@/hooks/usePreferences";
 import * as profileService from "@/services/profile";
 import { useSignupDraftStore } from "@/stores/signupDraftStore";
 import { colors, radii, shadows } from "@/constants/colors";
@@ -52,7 +51,6 @@ export default function SetupStep5() {
         loadProfile,
         loading: profileLoading,
     } = useProfile();
-    const { updatePreferences, loading: prefLoading } = usePreferences();
 
     const [photoUris, setPhotoUris] = useState<string[]>(draft.photoUris);
     const [submitting, setSubmitting] = useState(false);
@@ -142,7 +140,7 @@ export default function SetupStep5() {
         action(index);
     };
 
-    const handleRegister = async () => {
+    const handleNext = async () => {
         if (photoUris.length === 0) {
             // The "at least one" warning is already permanently inlined in the
             // warnBox below the grid — no extra Alert needed; just gate.
@@ -151,21 +149,17 @@ export default function SetupStep5() {
         if (submitting) return;
         setSubmitting(true);
         try {
+            // Wizard position 2: this is where the BE INSERT happens. Basics
+            // (step1) and ≥1 photo are the only mandatory blocks — preferences
+            // and voice steps that follow are skippable, and the in-app nudges
+            // recover them later. After this point a reload routes straight
+            // to discover (see app/index.tsx).
             await upsertProfile(draft.buildProfilePayload());
             for (const uri of photoUris) {
                 await profileService.uploadPhoto(uri);
             }
-            if (draft.preferences) {
-                try {
-                    await updatePreferences(draft.preferences);
-                } catch {
-                    // Prefs are secondary — don't fail signup if this fails.
-                }
-            }
             await loadProfile();
-            draft.reset();
-            if (router.canDismiss()) router.dismissAll();
-            router.replace("/(main)/(tabs)/discover");
+            router.push("/(main)/setup/step4");
         } catch (e: any) {
             Alert.alert(
                 t("common.error"),
@@ -176,14 +170,14 @@ export default function SetupStep5() {
         }
     };
 
-    const loading = submitting || profileLoading || prefLoading;
+    const loading = submitting || profileLoading;
     const canProceed = photoUris.length >= 1;
     const mainUri = photoUris[0];
 
     return (
         <View style={styles.container}>
             <WizardHeader
-                step={5}
+                step={2}
                 title={t("signupWizard.step5Title")}
                 subtitle={t("signupWizard.step5Subtitle")}
                 onBack={() => router.back()}
@@ -331,8 +325,8 @@ export default function SetupStep5() {
                 )}
 
                 <Button
-                    title={t("signupWizard.register")}
-                    onPress={handleRegister}
+                    title={t("common.next")}
+                    onPress={handleNext}
                     loading={loading}
                     disabled={!canProceed || loading}
                     style={{ marginTop: 24 }}

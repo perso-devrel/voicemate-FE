@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
   Pressable,
   BackHandler,
   type LayoutChangeEvent,
@@ -20,7 +19,6 @@ import { WizardHeader } from '@/components/setup/WizardHeader';
 import { LanguagePicker } from '@/components/ui/LanguagePicker';
 import { useAuthStore } from '@/stores/authStore';
 import { useSignupDraftStore, type Gender } from '@/stores/signupDraftStore';
-import { useProfile } from '@/hooks/useProfile';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { SUPPORTED_NATIONALITIES, type NationalityCode } from '@/constants/nationalities';
@@ -42,7 +40,6 @@ export default function SetupStep1() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const draft = useSignupDraftStore();
-  const { upsertProfile, loading: upserting } = useProfile();
 
   // Wizard entry: swipe-back / hardware-back = logout. Focus-gated so the
   // listeners only fire while step1 is the visible screen — otherwise step1
@@ -134,9 +131,7 @@ export default function SetupStep1() {
     setInterests((prev) => [...prev, label]);
   };
 
-  const handleNext = async () => {
-    if (upserting) return;
-
+  const handleNext = () => {
     // Validate everything together so the user sees every mistake at once
     // instead of one-per-tap. Scroll to the first invalid field for the
     // user's convenience (long interests grid below pushes the top fields
@@ -180,19 +175,11 @@ export default function SetupStep1() {
     };
     draft.setStep1(step1Payload);
     draft.setInterests(interests);
-    // BE에 profiles row 를 미리 INSERT 한다. 이게 없으면 step2의 voice/clone update가
-    // 0-row no-op이 되어 elevenlabs_voice_id / voice_clone_status='ready' 가 영구 유실된다.
-    try {
-      await upsertProfile({
-        ...step1Payload,
-        voice_intro: null,
-        interests,
-      });
-    } catch (e: any) {
-      Alert.alert(t('common.error'), e?.message ?? '');
-      return;
-    }
-    router.push('/(main)/setup/step2');
+    // No BE write here — wizard order is now basics → photos → prefs → voice
+    // clone → voice intro, and the photos step performs the INSERT once both
+    // mandatory blocks (basics + ≥1 photo) are filled. Reloading anywhere
+    // before that returns the user to step1 because no profile row exists.
+    router.push('/(main)/setup/step5');
   };
 
   const genderLabel = (g: typeof GENDER_OPTIONS[number]) => {
@@ -372,8 +359,6 @@ export default function SetupStep1() {
       <Button
         title={t('common.next')}
         onPress={handleNext}
-        loading={upserting}
-        disabled={upserting}
         style={{ marginTop: 24 }}
       />
       </ScrollView>

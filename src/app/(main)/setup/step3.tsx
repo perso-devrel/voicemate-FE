@@ -27,15 +27,16 @@ export default function SetupStep3() {
   const { profile, loading, upsertProfile } = useProfile();
   const voiceReady = profile?.voice_clone_status === 'ready';
 
-  // Auto-skip when voice clone isn't ready: bio phrases must be synthesized
-  // with the user's cloned voice (BE pipeline), so without a registered
-  // voice this step has nothing to offer. Bounce straight to step4.
-  // useEffect runs after first paint — that's intentional so SetupStep2's
-  // "Skip" doesn't crash trying to read profile before authStore hydrates.
+  // Wizard position 5 (final step). With voice not registered, the bio phrase
+  // picker has nothing to synthesize, so auto-finish straight into the app.
+  // The user can re-register the voice and pick a phrase later from settings.
   useEffect(() => {
     if (profile && !voiceReady) {
-      router.replace('/(main)/setup/step4');
+      draft.reset();
+      if (router.canDismiss()) router.dismissAll();
+      router.replace('/(main)/(tabs)/discover');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, voiceReady]);
 
   const [bio, setBio] = useState(draft.bio || profile?.voice_intro || '');
@@ -77,12 +78,24 @@ export default function SetupStep3() {
     });
   };
 
-  const handleNext = async () => {
-    // Block when empty (required) or when the live validator already flagged
-    // a length / forbidden-char issue. Inline message under the custom input
-    // (via BioPhrasePicker.error) replaces the previous Alert popup.
+  const enterApp = () => {
+    draft.reset();
+    if (router.canDismiss()) router.dismissAll();
+    router.replace('/(main)/(tabs)/discover');
+  };
+
+  // Final step: "HARU 시작하기" saves the picked phrase (if any) and enters
+  // the app. Validation errors keep the user on this screen so they can fix
+  // the input. Empty bio is treated as skip (allowed — the voice intro is
+  // optional and surfaces in-app nudges later).
+  const handleStart = async () => {
     if (!bio.trim()) {
-      setBioError(t('signupWizard.bioRequired'));
+      try {
+        await persistBio(null);
+      } catch {
+        // Best-effort skip — don't block app entry if the BE clear hiccups.
+      }
+      enterApp();
       return;
     }
     const err = validateVoiceIntro(bio);
@@ -94,24 +107,15 @@ export default function SetupStep3() {
     try {
       draft.setBio(bio.trim());
       await persistBio(bio.trim());
-      router.push('/(main)/setup/step4');
+      enterApp();
     } catch (e: any) {
       Alert.alert(t('common.error'), e.message);
     }
   };
 
-  const handleSkip = async () => {
-    try {
-      draft.setBio('');
-      // Persist null so a previously-saved value isn't silently retained when
-      // the user opted out at signup.
-      await persistBio(null);
-      router.push('/(main)/setup/step4');
-    } catch (e: any) {
-      // Skipping is best-effort; don't block navigation if BE hiccups here.
-      router.push('/(main)/setup/step4');
-    }
-  };
+  // Single CTA below carries both "save & start" and "skip & start" intents.
+  // Label is contextual on whether the user picked / typed a phrase.
+  const hasBioInput = bio.trim().length > 0;
 
   // Pre-redirect render: keep blank to avoid a one-frame flash of the locked
   // copy when we already know we're about to bounce to step4.
@@ -122,7 +126,7 @@ export default function SetupStep3() {
   return (
     <View style={styles.container}>
       <WizardHeader
-        step={3}
+        step={5}
         title={t('signupWizard.step3Title')}
         subtitle={t('signupWizard.step3Subtitle')}
         onBack={() => router.back()}
@@ -151,8 +155,11 @@ export default function SetupStep3() {
         />
 
         <View style={styles.actions}>
-          <Button title={t('common.next')} onPress={handleNext} loading={loading} />
-          <Button title={t('common.skip')} variant="outline" onPress={handleSkip} disabled={loading} />
+          <Button
+            title={t(hasBioInput ? 'signupWizard.startHaru' : 'signupWizard.skipAndStart')}
+            onPress={handleStart}
+            loading={loading}
+          />
         </View>
       </ScrollView>
     </View>

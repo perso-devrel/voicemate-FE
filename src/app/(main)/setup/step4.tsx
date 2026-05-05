@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import { WizardHeader } from '@/components/setup/WizardHeader';
 import { AgeRangeSlider } from '@/components/ui/AgeRangeSlider';
 import { useSignupDraftStore } from '@/stores/signupDraftStore';
 import { useProfile } from '@/hooks/useProfile';
+import { usePreferences } from '@/hooks/usePreferences';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { isLanguageCode, SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
@@ -28,6 +30,7 @@ export default function SetupStep4() {
   const insets = useSafeAreaInsets();
   const draft = useSignupDraftStore();
   const { profile } = useProfile();
+  const { updatePreferences, loading: prefSaving } = usePreferences();
   // BE blocks same-primary-language matches (the app's core differentiator —
   // voice translation only kicks in across language pairs). Hide the user's
   // own primary from the picker so they can't add a language that has no
@@ -36,20 +39,14 @@ export default function SetupStep4() {
     profile?.language ?? draft.language ?? null;
 
   const [ageRange, setAgeRange] = useState<{ min: number; max: number }>({
-    min: Math.max(MIN_AGE, Math.min(draft.preferences?.min_age ?? MIN_AGE, MAX_AGE)),
-    max: Math.max(MIN_AGE, Math.min(draft.preferences?.max_age ?? MAX_AGE, MAX_AGE)),
+    min: MIN_AGE,
+    max: MAX_AGE,
   });
-  const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>(
-    draft.preferences?.preferred_genders ?? [...GENDER_OPTIONS],
-  );
-  const [languages, setLanguages] = useState<LanguageCode[]>(
-    (draft.preferences?.preferred_languages ?? []).filter(
-      (c): c is LanguageCode => isLanguageCode(c) && c !== ownPrimaryLanguage,
-    ),
-  );
-  const [nationalities, setNationalities] = useState<string[]>(
-    draft.preferences?.preferred_nationalities ?? [],
-  );
+  const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>([
+    ...GENDER_OPTIONS,
+  ]);
+  const [languages, setLanguages] = useState<LanguageCode[]>([]);
+  const [nationalities, setNationalities] = useState<string[]>([]);
 
   // Re-sync when ownPrimaryLanguage resolves async (profile arriving after mount).
   useEffect(() => {
@@ -80,7 +77,8 @@ export default function SetupStep4() {
     return t('setupProfile.genderOther');
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (prefSaving) return;
     const prefs: PreferenceUpdateRequest = {
       min_age: ageRange.min,
       max_age: ageRange.max,
@@ -88,19 +86,23 @@ export default function SetupStep4() {
       preferred_languages: languages,
       preferred_nationalities: nationalities,
     };
-    draft.setPreferences(prefs);
-    router.push('/(main)/setup/step5');
-  };
-
-  const handleSkip = () => {
-    draft.setPreferences(null);
-    router.push('/(main)/setup/step5');
+    // Wizard position 3: profile row already exists (INSERTed at position 2),
+    // so write preferences straight to BE. Reloading at any point past this
+    // returns the user to discover (per the simplified routing gate) without
+    // losing what they configured.
+    try {
+      await updatePreferences(prefs);
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message ?? '');
+      return;
+    }
+    router.push('/(main)/setup/step2');
   };
 
   return (
     <View style={styles.container}>
       <WizardHeader
-        step={4}
+        step={3}
         title={t('signupWizard.step4Title')}
         subtitle={t('signupWizard.step4Subtitle')}
         onBack={() => router.back()}
@@ -179,8 +181,13 @@ export default function SetupStep4() {
         </View>
 
         <View style={styles.actions}>
-          <Button title={t('common.next')} onPress={handleNext} style={{ marginTop: 8 }} />
-          <Button title={t('common.skip')} variant="outline" onPress={handleSkip} />
+          <Button
+            title={t('common.next')}
+            onPress={handleNext}
+            loading={prefSaving}
+            disabled={prefSaving}
+            style={{ marginTop: 8 }}
+          />
         </View>
       </ScrollView>
     </View>

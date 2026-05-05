@@ -57,6 +57,8 @@ export default {
         register: "프로필 등록",
         skipAndRegister: "건너뛰고 등록",
         registerFailed: "프로필 등록에 실패했어요. 다시 시도해주세요.",
+        startHaru: "HARU 시작하기",
+        skipAndStart: "건너뛰고 시작하기",
     },
 
     auth: {
