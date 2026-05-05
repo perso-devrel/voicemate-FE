@@ -30,7 +30,12 @@ export default function DiscoverScreen() {
   const voiceReady = profile?.voice_clone_status === 'ready';
   const voiceProcessing = profile?.voice_clone_status === 'processing';
   const bioReady = Boolean(profile?.voice_intro && profile.voice_intro.trim().length > 0);
-  const gated = !voiceReady || !bioReady;
+  // Discover is two-way: the user must be visible to others to participate
+  // meaningfully. With zero photos the BE-rendered match cards have no
+  // image to show, so we gate browsing too — otherwise a user with no
+  // photos can swipe but is invisible in everyone else's feed.
+  const hasPhoto = (profile?.photos.length ?? 0) > 0;
+  const gated = !voiceReady || !bioReady || !hasPhoto;
 
   // Wait for the daily count to hydrate before the first fetch so we don't
   // overshoot the quota by fetching against a stale count of 0.
@@ -53,7 +58,13 @@ export default function DiscoverScreen() {
   if (gated) {
     return (
       <PhotoBackground variant="app">
-        <GateScreen voiceReady={voiceReady} voiceProcessing={voiceProcessing} t={t} />
+        <GateScreen
+          voiceReady={voiceReady}
+          voiceProcessing={voiceProcessing}
+          bioReady={bioReady}
+          hasPhoto={hasPhoto}
+          t={t}
+        />
       </PhotoBackground>
     );
   }
@@ -131,16 +142,21 @@ export default function DiscoverScreen() {
 function GateScreen({
   voiceReady,
   voiceProcessing,
+  bioReady,
+  hasPhoto,
   t,
 }: {
   voiceReady: boolean;
   voiceProcessing: boolean;
+  bioReady: boolean;
+  hasPhoto: boolean;
   t: (key: string) => string;
 }) {
   // Guide the user through the missing step in the natural signup order:
-  // voice first, bio next.
+  // voice first, bio next, photo last.
   const goVoice = () => router.push('/(main)/settings/voice');
   const goBio = () => router.push('/(main)/settings/edit-bio');
+  const goPhoto = () => router.push('/(main)/(tabs)/profile');
 
   if (voiceProcessing) {
     return (
@@ -159,6 +175,32 @@ function GateScreen({
     );
   }
 
+  // Pick the first unmet prerequisite — voice -> bio -> photo. Each step
+  // shows its own icon, hint, and CTA so the user always sees the single
+  // next action instead of a vague "complete your profile" instruction.
+  let icon: 'mic-outline' | 'create-outline' | 'image-outline';
+  let hint: string;
+  let ctaLabel: string;
+  let onCtaPress: () => void;
+
+  if (!voiceReady) {
+    icon = 'mic-outline';
+    hint = t('discover.lockedVoiceHint');
+    ctaLabel = t('discover.lockedGoVoice');
+    onCtaPress = goVoice;
+  } else if (!bioReady) {
+    icon = 'create-outline';
+    hint = t('discover.lockedBioHint');
+    ctaLabel = t('discover.lockedGoBio');
+    onCtaPress = goBio;
+  } else {
+    // hasPhoto must be the false one here — only remaining gate.
+    icon = 'image-outline';
+    hint = t('discover.lockedPhotoHint');
+    ctaLabel = t('discover.lockedGoPhoto');
+    onCtaPress = goPhoto;
+  }
+
   return (
     <View style={styles.empty}>
       <LinearGradient
@@ -167,19 +209,13 @@ function GateScreen({
         end={{ x: 1, y: 1 }}
         style={[styles.emptyHalo, shadows.glow]}
       >
-        <Ionicons
-          name={voiceReady ? 'create-outline' : 'mic-outline'}
-          size={38}
-          color={colors.white}
-        />
+        <Ionicons name={icon} size={38} color={colors.white} />
       </LinearGradient>
       <Text style={styles.emptyTitle}>{t('discover.lockedTitle')}</Text>
-      <Text style={styles.emptyText}>
-        {voiceReady ? t('discover.lockedBioHint') : t('discover.lockedVoiceHint')}
-      </Text>
+      <Text style={styles.emptyText}>{hint}</Text>
       <Button
-        title={voiceReady ? t('discover.lockedGoBio') : t('discover.lockedGoVoice')}
-        onPress={voiceReady ? goBio : goVoice}
+        title={ctaLabel}
+        onPress={onCtaPress}
         style={styles.ctaBtn}
         textStyle={styles.ctaBtnText}
       />

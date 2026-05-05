@@ -160,6 +160,15 @@ export default function ProfileScreen() {
   };
 
   const handleDeletePhotoAt = (index: number) => {
+    // Block the last-photo delete: a profile with zero photos becomes
+    // invisible on every other user's discover/match screen, and we already
+    // gate the discover tab on `hasPhoto` — letting the user delete down to
+    // zero would trap them in the photo-required gate. Surface this as an
+    // inline message rather than an Alert so it lives next to the grid.
+    if ((profile?.photos.length ?? 0) <= 1) {
+      setPhotoError(t('profile.lastPhotoLocked'));
+      return;
+    }
     Alert.alert(t('profile.deletePhoto'), t('profile.removePhotoConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {

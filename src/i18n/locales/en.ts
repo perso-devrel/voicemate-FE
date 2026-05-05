@@ -110,6 +110,8 @@ export default {
       'Pick a voice line. It will be auto-generated in your own voice and played for others.',
     lockedGoVoice: 'Register voice',
     lockedGoBio: 'Set voice line',
+    lockedPhotoHint: 'Please add at least one profile photo.',
+    lockedGoPhoto: 'Add a photo',
     voiceProcessingTitle: 'Generating your voice',
     voiceProcessingHint:
       "Hang tight — once your voice is ready you'll be able to start discovering.",
@@ -179,6 +181,7 @@ export default {
     editPhoto: 'Edit',
     reorderingPhotos: 'Updating photos...',
     maxPhotosReached: 'You can upload up to 5 photos.',
+    lastPhotoLocked: "You can't remove your last photo. Add another one first.",
     logoutTitle: 'Logout',
     logoutConfirm: 'Are you sure you want to log out?',
     invalidFormat: 'Invalid Format',
