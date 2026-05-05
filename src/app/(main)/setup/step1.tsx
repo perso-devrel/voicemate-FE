@@ -17,7 +17,7 @@ import { FormField } from '@/components/ui/FormField';
 import { ErrorText } from '@/components/ui/ErrorText';
 import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
-import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
+import { LanguagePicker } from '@/components/ui/LanguagePicker';
 import { useAuthStore } from '@/stores/authStore';
 import { useSignupDraftStore, type Gender } from '@/stores/signupDraftStore';
 import { useProfile } from '@/hooks/useProfile';
@@ -26,7 +26,7 @@ import { fonts } from '@/constants/fonts';
 import { SUPPORTED_NATIONALITIES, type NationalityCode } from '@/constants/nationalities';
 import { INTEREST_OPTIONS, INTEREST_SECTIONS, MAX_INTERESTS } from '@/constants/interests';
 import { validateDisplayName, DISPLAY_NAME_MAX } from '@/utils/validators';
-import type { LanguageProficiency } from '@/types';
+import type { LanguageCode } from '@/constants/languages';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
@@ -71,25 +71,25 @@ export default function SetupStep1() {
     birth_date: draft.birth_date,
     gender: draft.gender as Gender,
     nationality: draft.nationality,
-    languages: draft.languages,
+    language: draft.language,
   });
   const [nationalityOpen, setNationalityOpen] = useState(false);
   const [interests, setInterests] = useState<string[]>(draft.interests);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [birthDateError, setBirthDateError] = useState<string | null>(null);
   const [nationalityError, setNationalityError] = useState<string | null>(null);
-  const [languagesError, setLanguagesError] = useState<string | null>(null);
+  const [languageError, setLanguageError] = useState<string | null>(null);
 
   // Auto-scroll target tracking. Mirrors edit-profile.tsx — handleNext scrolls
   // the first invalid field back into view if it's been pushed offscreen by
   // the long interests grid below.
-  type FieldKey = 'display_name' | 'birth_date' | 'nationality' | 'languages';
+  type FieldKey = 'display_name' | 'birth_date' | 'nationality' | 'language';
   const scrollRef = useRef<ScrollView>(null);
   const fieldYRef = useRef<Record<FieldKey, number>>({
     display_name: 0,
     birth_date: 0,
     nationality: 0,
-    languages: 0,
+    language: 0,
   });
   const onFieldLayout = (key: FieldKey) => (e: LayoutChangeEvent) => {
     fieldYRef.current[key] = e.nativeEvent.layout.y;
@@ -100,9 +100,9 @@ export default function SetupStep1() {
     scrollRef.current?.scrollTo({ y: Math.max(0, y - SCROLL_PAD), animated: true });
   };
 
-  const setLanguages = (next: LanguageProficiency[]) => {
-    setForm((f) => ({ ...f, languages: next }));
-    if (languagesError && next.length > 0) setLanguagesError(null);
+  const setLanguage = (next: LanguageCode | null) => {
+    setForm((f) => ({ ...f, language: next }));
+    if (languageError && next) setLanguageError(null);
   };
 
   // Map localized interest labels to ids so the selection survives language
@@ -144,15 +144,15 @@ export default function SetupStep1() {
     const nameErr = validateDisplayName(form.display_name);
     const dateValid = /^\d{4}-\d{2}-\d{2}$/.test(form.birth_date);
     const nationalityMissing = !form.nationality;
-    const languagesMissing = form.languages.length === 0;
+    const languageMissing = !form.language;
 
     setDisplayNameError(nameErr ? t(nameErr.key, nameErr.vars) : null);
     setBirthDateError(dateValid ? null : t('validation.birthDateInvalid'));
     setNationalityError(
       nationalityMissing ? t('setupProfile.selectNationalityRequired') : null,
     );
-    setLanguagesError(
-      languagesMissing ? t('setupProfile.addAtLeastOneLanguage') : null,
+    setLanguageError(
+      languageMissing ? t('setupProfile.selectLanguageRequired') : null,
     );
 
     if (nameErr) {
@@ -167,8 +167,8 @@ export default function SetupStep1() {
       scrollToField('nationality');
       return;
     }
-    if (languagesMissing) {
-      scrollToField('languages');
+    if (languageMissing || !form.language) {
+      scrollToField('language');
       return;
     }
     const step1Payload = {
@@ -176,7 +176,7 @@ export default function SetupStep1() {
       birth_date: form.birth_date,
       gender: form.gender,
       nationality: form.nationality,
-      languages: form.languages,
+      language: form.language,
     };
     draft.setStep1(step1Payload);
     draft.setInterests(interests);
@@ -317,15 +317,15 @@ export default function SetupStep1() {
         <ErrorText testID="setup-step1-nationality-error">{nationalityError}</ErrorText>
       </View>
 
-      <View onLayout={onFieldLayout('languages')}>
-        <Text style={[styles.label, styles.sectionGap]}>{t('setupProfile.languages')}</Text>
-        <LanguageProficiencyEditor
-          value={form.languages}
-          onChange={setLanguages}
-          emptyHint={t('setupProfile.languagesHint')}
-          showPrimary
+      <View onLayout={onFieldLayout('language')}>
+        <Text style={[styles.label, styles.sectionGap]}>{t('setupProfile.language')}</Text>
+        <LanguagePicker
+          mode="single"
+          value={form.language}
+          onChange={setLanguage}
+          hasError={!!languageError}
         />
-        <ErrorText testID="setup-step1-languages-error">{languagesError}</ErrorText>
+        <ErrorText testID="setup-step1-language-error">{languageError}</ErrorText>
       </View>
 
       {/* Interests — optional. Markup mirrors settings/edit-profile.tsx so
@@ -422,7 +422,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSoft,
     backgroundColor: colors.card,
-    marginBottom: 12,
   },
   selectBtnOpen: { borderColor: colors.primary, backgroundColor: colors.white },
   selectBtnError: { borderColor: colors.error },
@@ -431,7 +430,7 @@ const styles = StyleSheet.create({
   selectPlaceholder: { color: colors.textLight },
   dropdownPanel: {
     padding: 12,
-    marginTop: -4,
+    marginTop: 4,
     marginBottom: 16,
     borderRadius: radii.md,
     borderWidth: 1,

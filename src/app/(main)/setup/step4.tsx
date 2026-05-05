@@ -11,16 +11,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
-import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
 import { AgeRangeSlider } from '@/components/ui/AgeRangeSlider';
 import { useSignupDraftStore } from '@/stores/signupDraftStore';
 import { useProfile } from '@/hooks/useProfile';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
-import { isLanguageCode } from '@/constants/languages';
+import { isLanguageCode, SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
 import { SUPPORTED_NATIONALITIES } from '@/constants/nationalities';
 import { MIN_AGE, MAX_AGE } from '@/utils/preferences';
-import type { LanguageProficiency, PreferenceUpdateRequest } from '@/types';
+import type { PreferenceUpdateRequest } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
@@ -34,10 +33,7 @@ export default function SetupStep4() {
   // own primary from the picker so they can't add a language that has no
   // effect on filtering. Mirrors settings/preferences.tsx exactly.
   const ownPrimaryLanguage =
-    profile?.languages?.[0]?.code ??
-    profile?.language ??
-    draft.languages?.[0]?.code ??
-    null;
+    profile?.language ?? draft.language ?? null;
 
   const [ageRange, setAgeRange] = useState<{ min: number; max: number }>({
     min: Math.max(MIN_AGE, Math.min(draft.preferences?.min_age ?? MIN_AGE, MAX_AGE)),
@@ -46,9 +42,9 @@ export default function SetupStep4() {
   const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>(
     draft.preferences?.preferred_genders ?? [...GENDER_OPTIONS],
   );
-  const [languages, setLanguages] = useState<LanguageProficiency[]>(
-    (draft.preferences?.preferred_languages_detail ?? []).filter(
-      (d) => isLanguageCode(d.code) && d.code !== ownPrimaryLanguage,
+  const [languages, setLanguages] = useState<LanguageCode[]>(
+    (draft.preferences?.preferred_languages ?? []).filter(
+      (c): c is LanguageCode => isLanguageCode(c) && c !== ownPrimaryLanguage,
     ),
   );
   const [nationalities, setNationalities] = useState<string[]>(
@@ -58,7 +54,7 @@ export default function SetupStep4() {
   // Re-sync when ownPrimaryLanguage resolves async (profile arriving after mount).
   useEffect(() => {
     setLanguages((prev) =>
-      prev.filter((d) => isLanguageCode(d.code) && d.code !== ownPrimaryLanguage),
+      prev.filter((c) => isLanguageCode(c) && c !== ownPrimaryLanguage),
     );
   }, [ownPrimaryLanguage]);
 
@@ -68,6 +64,12 @@ export default function SetupStep4() {
 
   const toggleNationality = (code: string) => {
     setNationalities((prev) =>
+      prev.includes(code) ? prev.filter((x) => x !== code) : [...prev, code],
+    );
+  };
+
+  const toggleLanguage = (code: LanguageCode) => {
+    setLanguages((prev) =>
       prev.includes(code) ? prev.filter((x) => x !== code) : [...prev, code],
     );
   };
@@ -83,7 +85,7 @@ export default function SetupStep4() {
       min_age: ageRange.min,
       max_age: ageRange.max,
       preferred_genders: genders,
-      preferred_languages_detail: languages,
+      preferred_languages: languages,
       preferred_nationalities: nationalities,
     };
     draft.setPreferences(prefs);
@@ -131,17 +133,6 @@ export default function SetupStep4() {
           ))}
         </View>
 
-        <Text style={[styles.label, styles.sectionGap]}>{t('preferences.preferredLanguages')}</Text>
-        <View style={styles.hintList}>
-          <Text style={styles.hintLine}>{`• ${t('preferences.leaveEmptyAllLanguages')}`}</Text>
-          <Text style={styles.hintLine}>{`• ${t('preferences.sameLanguageBlockedHint')}`}</Text>
-        </View>
-        <LanguageProficiencyEditor
-          value={languages}
-          onChange={setLanguages}
-          excludeCodes={ownPrimaryLanguage ? [ownPrimaryLanguage] : undefined}
-        />
-
         <Text style={[styles.label, styles.sectionGap]}>
           {t('preferences.preferredNationalities')}
         </Text>
@@ -161,6 +152,30 @@ export default function SetupStep4() {
               </Pressable>
             );
           })}
+        </View>
+
+        <Text style={[styles.label, styles.sectionGap]}>{t('preferences.preferredLanguages')}</Text>
+        <View style={styles.hintList}>
+          <Text style={styles.hintLine}>{`• ${t('preferences.leaveEmptyAllLanguages')}`}</Text>
+          <Text style={styles.hintLine}>{`• ${t('preferences.sameLanguageBlockedHint')}`}</Text>
+        </View>
+        <View style={styles.chipRow}>
+          {SUPPORTED_LANGUAGES.filter((l) => l.code !== ownPrimaryLanguage).map(
+            ({ code, labelKey }) => {
+              const selected = languages.includes(code as LanguageCode);
+              return (
+                <Pressable
+                  key={code}
+                  style={[styles.chip, selected && styles.chipActive]}
+                  onPress={() => toggleLanguage(code as LanguageCode)}
+                >
+                  <Text style={[styles.chipText, selected && styles.chipActiveText]}>
+                    {t(labelKey)}
+                  </Text>
+                </Pressable>
+              );
+            },
+          )}
         </View>
 
         <View style={styles.actions}>

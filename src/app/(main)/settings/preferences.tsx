@@ -12,17 +12,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
-import { LanguageProficiencyEditor } from '@/components/ui/LanguageProficiencyEditor';
 import { AgeRangeSlider } from '@/components/ui/AgeRangeSlider';
 import { usePreferences } from '@/hooks/usePreferences';
 import { useProfile } from '@/hooks/useProfile';
 import { useDiscoverStore } from '@/stores/discoverStore';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
-import { isLanguageCode } from '@/constants/languages';
+import { isLanguageCode, SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
 import { SUPPORTED_NATIONALITIES } from '@/constants/nationalities';
 import { MIN_AGE, MAX_AGE } from '@/utils/preferences';
-import type { LanguageProficiency } from '@/types';
 
 const GENDER_OPTIONS = ['male', 'female', 'other'] as const;
 
@@ -36,13 +34,13 @@ export default function PreferencesScreen() {
   // voice translation only kicks in across language pairs). Hide the user's
   // own primary from the picker so they can't add a language that has no
   // effect on filtering.
-  const ownPrimaryLanguage = profile?.languages?.[0]?.code ?? profile?.language ?? null;
+  const ownPrimaryLanguage = profile?.language ?? null;
   const [ageRange, setAgeRange] = useState<{ min: number; max: number }>({
     min: MIN_AGE,
     max: MAX_AGE,
   });
   const [genders, setGenders] = useState<('male' | 'female' | 'other')[]>([...GENDER_OPTIONS]);
-  const [languages, setLanguages] = useState<LanguageProficiency[]>([]);
+  const [languages, setLanguages] = useState<LanguageCode[]>([]);
   const [nationalities, setNationalities] = useState<string[]>([]);
 
   useEffect(() => {
@@ -61,8 +59,8 @@ export default function PreferencesScreen() {
       });
       setGenders(preferences.preferred_genders);
       setLanguages(
-        (preferences.preferred_languages_detail ?? []).filter(
-          (d) => isLanguageCode(d.code) && d.code !== ownPrimaryLanguage,
+        (preferences.preferred_languages ?? []).filter(
+          (c): c is LanguageCode => isLanguageCode(c) && c !== ownPrimaryLanguage,
         ),
       );
       setNationalities(preferences.preferred_nationalities ?? []);
@@ -81,13 +79,19 @@ export default function PreferencesScreen() {
     );
   };
 
+  const toggleLanguage = (code: LanguageCode) => {
+    setLanguages((prev) =>
+      prev.includes(code) ? prev.filter((x) => x !== code) : [...prev, code],
+    );
+  };
+
   const handleSave = async () => {
     try {
       await updatePreferences({
         min_age: ageRange.min,
         max_age: ageRange.max,
         preferred_genders: genders,
-        preferred_languages_detail: languages,
+        preferred_languages: languages,
         preferred_nationalities: nationalities,
       });
       // Tell the discover screen to drop its cached candidates and re-fetch
@@ -141,17 +145,6 @@ export default function PreferencesScreen() {
         ))}
       </View>
 
-      <Text style={[styles.label, styles.sectionGap]}>{t('preferences.preferredLanguages')}</Text>
-      <View style={styles.hintList}>
-        <Text style={styles.hintLine}>{`• ${t('preferences.leaveEmptyAllLanguages')}`}</Text>
-        <Text style={styles.hintLine}>{`• ${t('preferences.sameLanguageBlockedHint')}`}</Text>
-      </View>
-      <LanguageProficiencyEditor
-        value={languages}
-        onChange={setLanguages}
-        excludeCodes={ownPrimaryLanguage ? [ownPrimaryLanguage] : undefined}
-      />
-
       <Text style={[styles.label, styles.sectionGap]}>
         {t('preferences.preferredNationalities')}
       </Text>
@@ -171,6 +164,30 @@ export default function PreferencesScreen() {
             </Pressable>
           );
         })}
+      </View>
+
+      <Text style={[styles.label, styles.sectionGap]}>{t('preferences.preferredLanguages')}</Text>
+      <View style={styles.hintList}>
+        <Text style={styles.hintLine}>{`• ${t('preferences.leaveEmptyAllLanguages')}`}</Text>
+        <Text style={styles.hintLine}>{`• ${t('preferences.sameLanguageBlockedHint')}`}</Text>
+      </View>
+      <View style={styles.chipRow}>
+        {SUPPORTED_LANGUAGES.filter((l) => l.code !== ownPrimaryLanguage).map(
+          ({ code, labelKey }) => {
+            const selected = languages.includes(code as LanguageCode);
+            return (
+              <Pressable
+                key={code}
+                style={[styles.chip, selected && styles.chipActive]}
+                onPress={() => toggleLanguage(code as LanguageCode)}
+              >
+                <Text style={[styles.chipText, selected && styles.chipActiveText]}>
+                  {t(labelKey)}
+                </Text>
+              </Pressable>
+            );
+          },
+        )}
       </View>
       </ScrollView>
 
