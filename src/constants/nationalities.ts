@@ -9,8 +9,8 @@ export const SUPPORTED_NATIONALITIES = [
   { code: 'GB', labelKey: 'nationalities.GB' },
   { code: 'CA', labelKey: 'nationalities.CA' },
   { code: 'AU', labelKey: 'nationalities.AU' },
-  { code: 'NZ', labelKey: 'nationalities.NZ' },
-  { code: 'IE', labelKey: 'nationalities.IE' },
+  { code: 'PH', labelKey: 'nationalities.PH' },
+  { code: 'SG', labelKey: 'nationalities.SG' },
   { code: 'TH', labelKey: 'nationalities.TH' },
   { code: 'IN', labelKey: 'nationalities.IN' },
 ] as const;

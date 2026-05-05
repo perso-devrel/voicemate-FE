@@ -302,6 +302,16 @@ export default function SetupStep1() {
                 </Pressable>
               );
             })}
+            <View style={styles.nationalityNoticeRow}>
+              <Ionicons
+                name="information-circle-outline"
+                size={16}
+                color={colors.primaryDark}
+              />
+              <Text style={styles.nationalityNotice}>
+                {t('setupProfile.nationalityLimitedNotice')}
+              </Text>
+            </View>
           </View>
         )}
         <ErrorText testID="setup-step1-nationality-error">{nationalityError}</ErrorText>
@@ -460,5 +470,20 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     marginBottom: 8,
     letterSpacing: 0.3,
+  },
+  nationalityNoticeRow: {
+    width: '100%',
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    marginTop: 4,
+  },
+  nationalityNotice: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    letterSpacing: -0.6,
+    color: colors.primaryDark,
+    fontFamily: fonts.medium,
   },
 });
