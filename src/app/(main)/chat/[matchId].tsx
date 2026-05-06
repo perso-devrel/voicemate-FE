@@ -764,10 +764,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     backgroundColor: colors.surface,
-    fontSize: 15,
+    fontSize: 13,
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.borderSoft,
+    fontFamily: fonts.pixel,
   },
   sendShell: {
     width: 44,

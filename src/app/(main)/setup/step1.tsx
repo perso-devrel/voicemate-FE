@@ -198,7 +198,7 @@ export default function SetupStep1() {
       />
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom + 88 }]}
         keyboardShouldPersistTaps="handled"
       >
       <View onLayout={onFieldLayout('display_name')}>
@@ -335,7 +335,7 @@ export default function SetupStep1() {
                   key={id}
                   disabled={disabled}
                   style={[
-                    styles.chipSm,
+                    styles.chip,
                     selected && styles.chipActive,
                     disabled && styles.chipDisabled,
                   ]}
@@ -343,7 +343,7 @@ export default function SetupStep1() {
                 >
                   <Text
                     style={[
-                      styles.chipSmText,
+                      styles.chipText,
                       selected && styles.chipActiveText,
                       disabled && styles.chipDisabledText,
                     ]}
@@ -357,12 +357,11 @@ export default function SetupStep1() {
         </View>
       ))}
 
-      <Button
-        title={t('common.next')}
-        onPress={handleNext}
-        style={{ marginTop: 24 }}
-      />
       </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        <Button title={t('common.next')} onPress={handleNext} />
+      </View>
     </View>
   );
 }
@@ -388,7 +387,7 @@ const styles = StyleSheet.create({
   genderRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   genderBtn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: radii.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -396,7 +395,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   genderActive: { borderColor: colors.primary, backgroundColor: colors.primary },
-  genderText: { fontSize: 14, color: colors.textSecondary, textTransform: 'capitalize' },
+  genderText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontFamily: fonts.medium,
+    textTransform: 'capitalize',
+  },
   genderActiveText: { color: colors.white },
   selectBtn: {
     flexDirection: 'row',
@@ -432,18 +436,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
   },
-  chipSm: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radii.pill,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-  },
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipDisabled: { opacity: 0.4 },
-  chipText: { fontSize: 14, color: colors.textSecondary },
-  chipSmText: { fontSize: 11, color: colors.textSecondary, fontFamily: fonts.medium },
+  chipText: { fontSize: 11, color: colors.textSecondary, fontFamily: fonts.medium },
   chipActiveText: { color: colors.white },
   chipDisabledText: { color: colors.textLight },
   interestSection: {
@@ -470,5 +465,16 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     color: colors.primaryDark,
     fontFamily: fonts.medium,
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
 });

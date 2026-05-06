@@ -207,18 +207,26 @@ function CustomInput({
   placeholder,
   onFocus,
 }: Pick<TextInputProps, 'value' | 'onChangeText' | 'editable' | 'placeholder' | 'onFocus'>) {
+  // RN's native placeholder loses fontFamily on `multiline` + `editable={false}`
+  // TextInputs (the state this field starts in until the user taps the card),
+  // so render a Text overlay instead of relying on the `placeholder` prop.
   return (
-    <TextInput
-      value={value}
-      onChangeText={onChangeText}
-      editable={editable}
-      placeholder={placeholder}
-      placeholderTextColor={colors.textLight}
-      multiline
-      maxLength={500}
-      style={styles.customInput}
-      onFocus={onFocus}
-    />
+    <View style={styles.customInputWrap}>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        editable={editable}
+        multiline
+        maxLength={500}
+        style={[{ fontFamily: fonts.pixel }, styles.customInput]}
+        onFocus={onFocus}
+      />
+      {value.length === 0 && placeholder ? (
+        <Text style={styles.customPlaceholder} pointerEvents="none">
+          {placeholder}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
@@ -282,6 +290,9 @@ const styles = StyleSheet.create({
   phraseTextSelected: {
     color: colors.primaryDark,
   },
+  customInputWrap: {
+    position: 'relative',
+  },
   customInput: {
     minHeight: 60,
     fontSize: 13,
@@ -290,6 +301,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     textAlignVertical: 'top',
     padding: 0,
+  },
+  customPlaceholder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textLight,
+    fontFamily: fonts.pixel,
   },
   lockHintBox: {
     flexDirection: 'row',

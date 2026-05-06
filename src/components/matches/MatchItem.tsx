@@ -104,6 +104,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginLeft: 8,
+    fontFamily: fonts.regular,
   },
   messageRow: {
     flexDirection: 'row',

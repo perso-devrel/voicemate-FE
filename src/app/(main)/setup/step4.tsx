@@ -108,7 +108,7 @@ export default function SetupStep4() {
         onBack={() => router.back()}
       />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+        contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom + 88 }]}
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.label}>{t('preferences.ageRange')}</Text>
@@ -180,16 +180,16 @@ export default function SetupStep4() {
           )}
         </View>
 
-        <View style={styles.actions}>
-          <Button
-            title={t('common.next')}
-            onPress={handleNext}
-            loading={prefSaving}
-            disabled={prefSaving}
-            style={{ marginTop: 8 }}
-          />
-        </View>
       </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        <Button
+          title={t('common.next')}
+          onPress={handleNext}
+          loading={prefSaving}
+          disabled={prefSaving}
+        />
+      </View>
     </View>
   );
 }
@@ -248,5 +248,15 @@ const styles = StyleSheet.create({
   chipActive: { borderColor: colors.primary, backgroundColor: colors.primary },
   chipText: { fontSize: 11, color: colors.textSecondary, fontFamily: fonts.medium },
   chipActiveText: { color: colors.white },
-  actions: { gap: 10, marginTop: 16 },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
 });

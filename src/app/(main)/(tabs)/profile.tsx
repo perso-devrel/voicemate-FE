@@ -726,7 +726,6 @@ const styles = StyleSheet.create({
   },
   bioEmpty: {
     color: colors.textLight,
-    fontStyle: 'italic',
   },
   sheetBackdrop: {
     flex: 1,

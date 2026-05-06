@@ -276,8 +276,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   dropdownChipText: {
-    fontSize: 14,
+    fontSize: 11,
     color: colors.textSecondary,
+    fontFamily: fonts.medium,
   },
   dropdownChipActiveText: {
     color: colors.white,

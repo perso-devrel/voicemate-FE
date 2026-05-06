@@ -383,7 +383,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderSoft,
     backgroundColor: colors.card,
-    marginBottom: 12,
   },
   selectBtnOpen: { borderColor: colors.primary, backgroundColor: colors.white },
   selectBtnError: { borderColor: colors.error },
@@ -392,7 +391,7 @@ const styles = StyleSheet.create({
   selectPlaceholder: { color: colors.textLight },
   dropdownPanel: {
     padding: 12,
-    marginTop: -4,
+    marginTop: 4,
     marginBottom: 16,
     borderRadius: radii.md,
     borderWidth: 1,

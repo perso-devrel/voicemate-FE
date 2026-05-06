@@ -178,11 +178,11 @@ const styles = StyleSheet.create({
     color: colors.white,
   },
   translation: {
-    fontSize: 13,
+    fontSize: 11,
     color: colors.textSecondary,
     marginTop: 5,
-    fontStyle: 'italic',
-    lineHeight: 18,
+    lineHeight: 16,
+    fontFamily: fonts.regular,
   },
   footer: {
     flexDirection: 'row',
@@ -194,8 +194,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   time: {
-    fontSize: 11,
+    fontSize: 9,
     color: colors.textSecondary,
+    fontFamily: fonts.regular,
   },
   mineTime: {
     color: 'rgba(255,255,255,0.8)',

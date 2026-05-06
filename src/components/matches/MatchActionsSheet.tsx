@@ -207,6 +207,7 @@ export function MatchActionsSheet({
             </ScrollView>
             <TextInput
               style={[
+                { fontFamily: fonts.pixel },
                 styles.reportTextarea,
                 descriptionError ? styles.reportTextareaError : null,
               ]}

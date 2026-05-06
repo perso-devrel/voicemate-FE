@@ -293,7 +293,13 @@ const styles = StyleSheet.create({
   },
   voiceActions: { gap: 10, marginBottom: 8 },
   recordSection: { gap: 12, marginBottom: 8 },
-  guideText: { fontSize: 13, color: colors.textSecondary, lineHeight: 19, marginTop: 4 },
+  guideText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 4,
+    fontFamily: fonts.regular,
+  },
   scriptBox: {
     backgroundColor: colors.surface,
     borderRadius: radii.md,
@@ -311,5 +317,10 @@ const styles = StyleSheet.create({
   scriptScroll: { maxHeight: 420, borderTopWidth: 1, borderTopColor: colors.border },
   scriptContent: { padding: 14 },
   scriptTitle: { fontSize: 13, fontFamily: fonts.semibold, color: colors.primary },
-  scriptText: { fontSize: 14, color: colors.text, lineHeight: 24 },
+  scriptText: {
+    fontSize: 13,
+    color: colors.text,
+    lineHeight: 22,
+    fontFamily: fonts.regular,
+  },
 });

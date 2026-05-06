@@ -34,34 +34,61 @@ export const FormField = forwardRef<TextInput, FormFieldProps>(function FormFiel
     errorTestID,
     onFocus,
     onBlur,
+    placeholder,
     ...rest
   },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
+  // RN's native placeholder loses fontFamily in several configurations
+  // (multiline, certain keyboardTypes, platform quirks), so we render the
+  // placeholder as a Text overlay instead. This guarantees the pixel font.
+  const hasValue = typeof rest.value === 'string' && rest.value.length > 0;
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput
-        ref={ref}
-        style={[
-          styles.input,
-          focused && styles.inputFocused,
-          error ? styles.inputError : null,
-          inputStyle,
-          style,
-        ]}
-        placeholderTextColor={colors.textLight}
-        onFocus={(e) => {
-          setFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          onBlur?.(e);
-        }}
-        {...rest}
-      />
+      <View style={styles.inputWrap}>
+        <TextInput
+          ref={ref}
+          style={[
+            { fontFamily: fonts.pixel },
+            styles.input,
+            focused && styles.inputFocused,
+            error ? styles.inputError : null,
+            inputStyle,
+            style,
+          ]}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          {...rest}
+        />
+        {!hasValue && placeholder ? (
+          <Text
+            // Pick up callers' padding/fontSize overrides via inputStyle,
+            // then re-apply the placeholder's own color/font/bg so any leak
+            // from inputStyle (text color, surface bg) doesn't bleed through.
+            style={[
+              styles.placeholder,
+              inputStyle,
+              {
+                color: colors.textLight,
+                fontFamily: fonts.pixel,
+                backgroundColor: 'transparent',
+              },
+            ]}
+            pointerEvents="none"
+            numberOfLines={1}
+          >
+            {placeholder}
+          </Text>
+        ) : null}
+      </View>
       <ErrorText testID={errorTestID}>{error ?? null}</ErrorText>
     </View>
   );
@@ -77,6 +104,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 8,
     letterSpacing: 0.3,
+  },
+  inputWrap: {
+    position: 'relative',
   },
   input: {
     borderWidth: 1,
@@ -95,5 +125,20 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: colors.error,
+  },
+  placeholder: {
+    // Fill the entire input area; baseline alignment comes from padding,
+    // not from `top`, so callers can override paddingVertical via inputStyle
+    // (e.g. login uses 14) and the placeholder follows.
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    fontSize: 16,
+    color: colors.textLight,
+    fontFamily: fonts.pixel,
   },
 });
