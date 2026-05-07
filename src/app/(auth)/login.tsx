@@ -9,6 +9,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Redirect } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -68,16 +69,16 @@ export default function LoginScreen() {
     };
   }, [screenW, screenH]);
 
-  // Manual keyboard tracking: KeyboardAvoidingView's behavior leaves a residual
-  // gap under the sheet on Android new-arch edge-to-edge builds after the
-  // keyboard dismisses. Owning the padding ourselves makes show/hide symmetric.
+  // Manual keyboard tracking is iOS-only: Android's adjustResize already
+  // shrinks the viewport, so adding kbHeight on top double-shifts the sheet
+  // above the keyboard. iOS keeps the viewport full-screen, so the manual
+  // padding is still required to keep the sheet visible above the keyboard.
   useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvt, (e) => {
+    if (Platform.OS !== 'ios') return;
+    const onShow = Keyboard.addListener('keyboardWillShow', (e) => {
       setKbHeight(e.endCoordinates.height);
     });
-    const onHide = Keyboard.addListener(hideEvt, () => {
+    const onHide = Keyboard.addListener('keyboardWillHide', () => {
       setKbHeight(0);
     });
     return () => {
@@ -238,8 +239,14 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.bgRoot}>
+      <StatusBar style="light" />
       <Image source={LOGIN_BG} style={bgStyle} blurRadius={LOGIN_BG_BLUR} />
-      <View style={[styles.container, { paddingBottom: kbHeight }]}>
+      <View
+        style={[
+          styles.container,
+          { paddingTop: insets.top + 96, paddingBottom: kbHeight },
+        ]}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>{t('auth.appName')}</Text>
           <Text style={styles.subtitle}>{t('auth.tagline')}</Text>
@@ -315,7 +322,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'space-between',
-    paddingTop: 140,
   },
   header: {
     alignItems: 'center',

@@ -139,7 +139,13 @@ export function MatchActionsSheet({
 
   return (
     <>
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Modal
+        visible={visible}
+        transparent
+        statusBarTranslucent
+        animationType="fade"
+        onRequestClose={onClose}
+      >
         <View style={styles.sheetBackdrop}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
           <View style={styles.sheet}>
@@ -174,7 +180,13 @@ export function MatchActionsSheet({
         </View>
       </Modal>
 
-      <Modal visible={reportOpen} transparent animationType="fade" onRequestClose={closeReport}>
+      <Modal
+        visible={reportOpen}
+        transparent
+        statusBarTranslucent
+        animationType="fade"
+        onRequestClose={closeReport}
+      >
         <View style={styles.sheetBackdrop}>
           <Pressable style={StyleSheet.absoluteFill} onPress={closeReport} />
           <View style={styles.reportCard}>

@@ -6,7 +6,7 @@ import {
     StyleSheet,
     Pressable,
     Image,
-    Dimensions,
+    useWindowDimensions,
     Modal,
 } from "react-native";
 import { router } from "expo-router";
@@ -28,23 +28,23 @@ import { fonts } from "@/constants/fonts";
 // Layout constants mirror (tabs)/profile.tsx so the registered photo grid
 // looks identical to what the user will see on their public profile.
 // main + 2 thumbnail columns × 2 each = 5 total slots, matches MAX_PHOTOS=5.
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const GRID_WIDTH = SCREEN_WIDTH - 40; // matches setup contentContainer padding (20 * 2)
 const GRID_GAP = 10;
 const COL_COUNT = 2;
 const THUMBS_PER_COL = 2;
-// Main fills half the grid width; the remaining half is split evenly across
-// the two thumbnail columns. (GRID_WIDTH = MAIN + GAP + COL + GAP + COL)
-const MAIN_PHOTO_WIDTH = Math.round((GRID_WIDTH - GRID_GAP * COL_COUNT) / 2);
-const MAIN_PHOTO_HEIGHT = Math.round((MAIN_PHOTO_WIDTH * 4) / 3); // 3:4 portrait
-const THUMB_WIDTH = Math.round(MAIN_PHOTO_WIDTH / 2);
-const THUMB_HEIGHT = Math.round(
-    (MAIN_PHOTO_HEIGHT - GRID_GAP) / THUMBS_PER_COL,
-);
 
 export default function SetupStep5() {
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
+    const { width: SCREEN_WIDTH } = useWindowDimensions();
+    const GRID_WIDTH = SCREEN_WIDTH - 40; // matches setup contentContainer padding (20 * 2)
+    // Main fills half the grid width; the remaining half is split evenly across
+    // the two thumbnail columns. (GRID_WIDTH = MAIN + GAP + COL + GAP + COL)
+    const MAIN_PHOTO_WIDTH = Math.round((GRID_WIDTH - GRID_GAP * COL_COUNT) / 2);
+    const MAIN_PHOTO_HEIGHT = Math.round((MAIN_PHOTO_WIDTH * 4) / 3); // 3:4 portrait
+    const THUMB_WIDTH = Math.round(MAIN_PHOTO_WIDTH / 2);
+    const THUMB_HEIGHT = Math.round(
+        (MAIN_PHOTO_HEIGHT - GRID_GAP) / THUMBS_PER_COL,
+    );
     const draft = useSignupDraftStore();
     const {
         upsertProfile,
@@ -193,11 +193,14 @@ export default function SetupStep5() {
                 {/* Photo grid layout matches (tabs)/profile.tsx so what the user
             registers here is what they'll see on their profile tab. Always
             render every slot so empty inputs are visible from the start. */}
-                <View style={styles.photoGrid}>
+                <View style={[styles.photoGrid, { width: GRID_WIDTH }]}>
                     {mainUri ? (
                         <Pressable
                             key="main-photo"
-                            style={styles.mainPhotoSlot}
+                            style={[
+                                styles.mainPhotoSlot,
+                                { width: MAIN_PHOTO_WIDTH, height: MAIN_PHOTO_HEIGHT },
+                            ]}
                             onPress={() => setActivePhotoIndex(0)}
                             accessibilityRole="button"
                             accessibilityLabel={t("profile.photoActionsTitle")}
@@ -218,7 +221,11 @@ export default function SetupStep5() {
                     ) : (
                         <Pressable
                             key="main-add"
-                            style={[styles.mainPhotoSlot, styles.addSlot]}
+                            style={[
+                                styles.mainPhotoSlot,
+                                styles.addSlot,
+                                { width: MAIN_PHOTO_WIDTH, height: MAIN_PHOTO_HEIGHT },
+                            ]}
                             onPress={handleAdd}
                             accessibilityRole="button"
                             accessibilityLabel={t("profile.addPhoto")}
@@ -232,7 +239,13 @@ export default function SetupStep5() {
                     )}
 
                     {Array.from({ length: COL_COUNT }).map((_, colIdx) => (
-                        <View key={`col-${colIdx}`} style={styles.thumbColumn}>
+                        <View
+                            key={`col-${colIdx}`}
+                            style={[
+                                styles.thumbColumn,
+                                { width: THUMB_WIDTH, height: MAIN_PHOTO_HEIGHT },
+                            ]}
+                        >
                             {Array.from({ length: THUMBS_PER_COL }).map(
                                 (__, rowIdx) => {
                                     // Slot index layout: main=0, col0={1,2}, col1={3,4}.
@@ -243,7 +256,10 @@ export default function SetupStep5() {
                                         return (
                                             <Pressable
                                                 key={`thumb-${photoIndex}`}
-                                                style={styles.thumbSlot}
+                                                style={[
+                                                    styles.thumbSlot,
+                                                    { width: THUMB_WIDTH, height: THUMB_HEIGHT },
+                                                ]}
                                                 onPress={() =>
                                                     setActivePhotoIndex(
                                                         photoIndex,
@@ -268,6 +284,7 @@ export default function SetupStep5() {
                                             style={[
                                                 styles.thumbSlot,
                                                 styles.addSlot,
+                                                { width: THUMB_WIDTH, height: THUMB_HEIGHT },
                                             ]}
                                             onPress={handleAdd}
                                             accessibilityRole="button"
@@ -340,10 +357,17 @@ export default function SetupStep5() {
             <Modal
                 visible={activePhotoIndex !== null}
                 transparent
+                statusBarTranslucent
                 animationType="fade"
                 onRequestClose={closeSheet}
             >
-                <Pressable style={styles.sheetBackdrop} onPress={closeSheet}>
+                <Pressable
+                    style={[
+                        styles.sheetBackdrop,
+                        { paddingBottom: 12 + insets.bottom },
+                    ]}
+                    onPress={closeSheet}
+                >
                     <Pressable
                         style={styles.sheetGroup}
                         onPress={(e) => e.stopPropagation()}
@@ -425,11 +449,8 @@ const styles = StyleSheet.create({
     photoGrid: {
         flexDirection: "row",
         gap: GRID_GAP,
-        width: GRID_WIDTH,
     },
     mainPhotoSlot: {
-        width: MAIN_PHOTO_WIDTH,
-        height: MAIN_PHOTO_HEIGHT,
         borderRadius: radii.xl,
         overflow: "hidden",
         backgroundColor: colors.cardAlt,
@@ -448,14 +469,10 @@ const styles = StyleSheet.create({
         ...shadows.soft,
     },
     thumbColumn: {
-        width: THUMB_WIDTH,
-        height: MAIN_PHOTO_HEIGHT,
         gap: GRID_GAP,
         justifyContent: "flex-start",
     },
     thumbSlot: {
-        width: THUMB_WIDTH,
-        height: THUMB_HEIGHT,
         borderRadius: radii.lg,
         overflow: "hidden",
         backgroundColor: colors.cardAlt,
@@ -499,7 +516,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "rgba(0, 0, 0, 0.4)",
         justifyContent: "flex-end",
-        padding: 12,
+        paddingTop: 12,
+        paddingHorizontal: 12,
     },
     sheetGroup: {
         gap: 10,

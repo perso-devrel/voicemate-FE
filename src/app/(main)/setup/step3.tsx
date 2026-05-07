@@ -63,10 +63,14 @@ export default function SetupStep3() {
   };
 
   useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
-    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    // iOS-only: Android's adjustResize already shrinks the ScrollView so an
+    // extra kbHeight padding would double up. iOS keeps the viewport full-
+    // screen, so manual padding is still required to keep input above kb.
+    if (Platform.OS !== 'ios') return;
+    const onShow = Keyboard.addListener('keyboardWillShow', (e) =>
+      setKbHeight(e.endCoordinates.height),
+    );
+    const onHide = Keyboard.addListener('keyboardWillHide', () => setKbHeight(0));
     return () => {
       onShow.remove();
       onHide.remove();

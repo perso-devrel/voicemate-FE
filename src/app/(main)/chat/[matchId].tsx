@@ -6,8 +6,6 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  Keyboard,
-  Platform,
   Modal,
   ScrollView,
   ActivityIndicator,
@@ -20,6 +18,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import CountryFlag from 'react-native-country-flag';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  useKeyboardState,
+  useResizeMode,
+} from 'react-native-keyboard-controller';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { IntimacyGauge } from '@/components/chat/IntimacyGauge';
@@ -160,7 +162,15 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [composerError, setComposerError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
-  const [kbHeight, setKbHeight] = useState(0);
+  // react-native-keyboard-controller reports the *visual* keyboard height
+  // (including OEM suggestion / IME menu bars on Android — Samsung One UI
+  // etc.) on both platforms. The previous manual RN Keyboard listener
+  // missed that on Samsung devices, leaving the input dock partially
+  // hidden. useResizeMode keeps Android in adjustResize at runtime so the
+  // visible keyboard height is consistent with viewport behavior.
+  useResizeMode();
+  const keyboardOpen = useKeyboardState((s) => s.isVisible);
+  const kbHeight = useKeyboardState((s) => s.height);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [selectedEmotion, setSelectedEmotion] = useState<Emotion>(DEFAULT_EMOTION);
   const [emotionPickerOpen, setEmotionPickerOpen] = useState(false);
@@ -174,17 +184,6 @@ export default function ChatScreen() {
   // Tracks whether the user is parked near the newest end of the list (visual
   // bottom in the inverted list). Updated by FlatList.onScroll.
   const isNearBottomRef = useRef(true);
-
-  useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
-    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
-    return () => {
-      onShow.remove();
-      onHide.remove();
-    };
-  }, []);
 
   useEffect(() => {
     loadMessages();
@@ -402,15 +401,16 @@ export default function ChatScreen() {
     );
   };
 
-  const keyboardOpen = kbHeight > 0;
   const bottomSafePad = keyboardOpen ? 8 : 8 + Math.max(insets.bottom, MIN_BOTTOM_SAFE_PAD);
-  // The input dock (emotion row + input bar) is absolutely positioned over the
-  // list. Reserve exactly its measured height as bottom padding so the last
-  // message is never occluded, plus EXTRA_BUBBLE_GAP for breathing room. When
-  // the keyboard is open the dock floats above it via the bottom offset, so
-  // that distance must be added too. inputDockHeight is measured by onLayout
-  // and falls back to a conservative estimate before the first measurement.
-  const dockBottomOffset = keyboardOpen ? kbHeight + insets.bottom : 0;
+  // The input dock (emotion row + input bar) is absolutely positioned over
+  // the list. Reserve exactly its measured height as bottom padding so the
+  // last message is never occluded, plus EXTRA_BUBBLE_GAP for breathing
+  // room. inputDockHeight is measured by onLayout and falls back to a
+  // conservative estimate before the first measurement.
+  // useKeyboardState reports the keyboard's visual top edge accurately on
+  // both platforms (including OEM IME menu bars on Android). A bottom: 0
+  // dock with this offset sits flush above the keyboard everywhere.
+  const dockBottomOffset = keyboardOpen ? kbHeight : 0;
   const dockHeightFallback = 54 + bottomSafePad + (emotionPickerOpen ? EMOTION_PICKER_ROW_HEIGHT : 0);
   const listBottomPad =
     (inputDockHeight || dockHeightFallback) + dockBottomOffset + EXTRA_BUBBLE_GAP;
@@ -470,8 +470,7 @@ export default function ChatScreen() {
             style={({ pressed }) => [
               styles.newMessagesBadge,
               {
-                bottom:
-                  (keyboardOpen ? kbHeight + insets.bottom : 0) + 54 + bottomSafePad + 8,
+                bottom: dockBottomOffset + 54 + bottomSafePad + 8,
               },
               pressed && { transform: [{ scale: 0.97 }] },
             ]}
@@ -495,7 +494,7 @@ export default function ChatScreen() {
           style={[
             styles.inputDock,
             {
-              bottom: keyboardOpen ? kbHeight + insets.bottom : 0,
+              bottom: dockBottomOffset,
             },
           ]}
         >
@@ -568,10 +567,11 @@ export default function ChatScreen() {
       <Modal
         visible={partnerModalOpen}
         transparent
+        statusBarTranslucent
         animationType="fade"
         onRequestClose={() => setPartnerModalOpen(false)}
       >
-        <View style={styles.modalBackdrop}>
+        <View style={[styles.modalBackdrop, { paddingTop: 24 + insets.top }]}>
           <Pressable
             style={StyleSheet.absoluteFill}
             onPress={() => setPartnerModalOpen(false)}
@@ -791,7 +791,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
   modalCard: {
     width: '100%',

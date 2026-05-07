@@ -3,7 +3,7 @@ import {
     View,
     Text,
     StyleSheet,
-    Dimensions,
+    useWindowDimensions,
     Pressable,
     Animated,
 } from "react-native";
@@ -23,12 +23,6 @@ import { fonts } from "@/constants/fonts";
 import { calculateAge } from "@/utils/age";
 import type { DiscoverCandidate } from "@/types";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH - 64;
-const COVER_SIZE = Math.round((CARD_WIDTH - 40) * 0.9);
-
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.28;
-const FLY_OUT_DISTANCE = SCREEN_WIDTH * 1.4;
 const ROTATION_RANGE = 14;
 
 const WAVE_BAR_COUNT = 32;
@@ -141,6 +135,11 @@ interface SwipeCardProps {
 
 export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
     const { t } = useTranslation();
+    const { width: SCREEN_WIDTH } = useWindowDimensions();
+    const CARD_WIDTH = SCREEN_WIDTH - 64;
+    const COVER_SIZE = Math.round((CARD_WIDTH - 40) * 0.9);
+    const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.28;
+    const FLY_OUT_DISTANCE = SCREEN_WIDTH * 1.4;
     const age = calculateAge(candidate.birth_date);
     const photo = candidate.photos[0];
     const audioUrl = candidate.voice_intro_audio_url;
@@ -259,6 +258,7 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
                 style={[
                     styles.card,
                     {
+                        width: CARD_WIDTH,
                         transform: [{ translateX }, { translateY }, { rotate }],
                     },
                 ]}
@@ -285,7 +285,7 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
                         SKIP
                     </Text>
                 </Animated.View>
-                <View style={styles.cover}>
+                <View style={[styles.cover, { width: COVER_SIZE, height: COVER_SIZE }]}>
                     {/* Discover는 첫인상 음성 중심 UX — photo_access와 무관하게 항상 블러 */}
                     <ProfilePhoto
                         userId={candidate.id}
@@ -410,7 +410,6 @@ export function SwipeCard({ candidate, onLike, onPass }: SwipeCardProps) {
 
 const styles = StyleSheet.create({
     card: {
-        width: CARD_WIDTH,
         borderRadius: radii.xl,
         paddingHorizontal: 20,
         paddingTop: 20,
@@ -421,8 +420,6 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(20,10,25,0.62)",
     },
     cover: {
-        width: COVER_SIZE,
-        height: COVER_SIZE,
         borderRadius: radii.lg,
         overflow: "hidden",
         backgroundColor: colors.secondary,

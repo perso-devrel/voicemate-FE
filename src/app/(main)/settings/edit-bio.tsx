@@ -52,10 +52,14 @@ export default function EditBioScreen() {
   };
 
   useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
-    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    // iOS-only: Android's adjustResize already shrinks the viewport so the
+    // absolute footer floats above the keyboard at bottom: 0. Adding kbHeight
+    // on Android would double-shift the footer above the keyboard.
+    if (Platform.OS !== 'ios') return;
+    const onShow = Keyboard.addListener('keyboardWillShow', (e) =>
+      setKbHeight(e.endCoordinates.height),
+    );
+    const onHide = Keyboard.addListener('keyboardWillHide', () => setKbHeight(0));
     return () => {
       onShow.remove();
       onHide.remove();

@@ -7,7 +7,7 @@ import {
   Pressable,
   StyleSheet,
   Modal,
-  Dimensions,
+  useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
 import { router, useNavigation } from 'expo-router';
@@ -17,6 +17,7 @@ import CountryFlag from 'react-native-country-flag';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { ErrorText } from '@/components/ui/ErrorText';
 import { MenuCardButton } from '@/components/ui/MenuCardButton';
@@ -39,6 +40,15 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const { labelFor: interestLabelFor } = useInterestResolver();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const GRID_WIDTH = SCREEN_WIDTH - 32; // matches contentContainerStyle padding (16 * 2)
+  // Main fills half the grid width; the remaining half is split evenly across
+  // the two thumbnail columns. main + 4 thumbs = MAX_PHOTOS=5.
+  const MAIN_PHOTO_WIDTH = Math.round((GRID_WIDTH - GRID_GAP * COL_COUNT) / 2);
+  const MAIN_PHOTO_HEIGHT = Math.round((MAIN_PHOTO_WIDTH * 4) / 3); // 3:4 portrait
+  const THUMB_WIDTH = Math.round(MAIN_PHOTO_WIDTH / 2);
+  const THUMB_HEIGHT = Math.round((MAIN_PHOTO_HEIGHT - GRID_GAP) / THUMBS_PER_COL);
   const {
     profile,
     loading: photoBusy,
@@ -229,7 +239,7 @@ export default function ProfileScreen() {
       {/* Profile Photos: main on left, thumbnails stacked on right.
           Always render 4 slots so empty inputs are visible from the start;
           uploadPhoto appends to the end so any empty slot tap fills the next position. */}
-      <View style={styles.photoGrid}>
+      <View style={[styles.photoGrid, { width: GRID_WIDTH }]}>
         {profile.photos[0] ? (
           // Distinct keys force React to fully unmount the empty add slot and
           // mount a fresh Image-bearing Pressable. Without this, reconciliation
@@ -237,7 +247,7 @@ export default function ProfileScreen() {
           // first render — the photo only appears after a hot reload.
           <Pressable
             key="main-photo"
-            style={styles.mainPhotoSlot}
+            style={[styles.mainPhotoSlot, { width: MAIN_PHOTO_WIDTH, height: MAIN_PHOTO_HEIGHT }]}
             onPress={() => handlePhotoPress(0)}
             accessibilityRole="button"
             accessibilityLabel={t('profile.photoActionsTitle')}
@@ -258,7 +268,7 @@ export default function ProfileScreen() {
         ) : (
           <Pressable
             key="main-add"
-            style={[styles.mainPhotoSlot, styles.addSlot]}
+            style={[styles.mainPhotoSlot, styles.addSlot, { width: MAIN_PHOTO_WIDTH, height: MAIN_PHOTO_HEIGHT }]}
             onPress={handleAddPhoto}
             accessibilityRole="button"
             accessibilityLabel={t('profile.addPhoto')}
@@ -268,7 +278,10 @@ export default function ProfileScreen() {
         )}
 
         {Array.from({ length: COL_COUNT }).map((_, colIdx) => (
-          <View key={`col-${colIdx}`} style={styles.thumbColumn}>
+          <View
+            key={`col-${colIdx}`}
+            style={[styles.thumbColumn, { width: THUMB_WIDTH, height: MAIN_PHOTO_HEIGHT }]}
+          >
             {Array.from({ length: THUMBS_PER_COL }).map((__, rowIdx) => {
               // Slot index layout: main=0, col0={1,2}, col1={3,4}.
               const photoIndex = 1 + colIdx * THUMBS_PER_COL + rowIdx;
@@ -277,7 +290,7 @@ export default function ProfileScreen() {
                 return (
                   <Pressable
                     key={`thumb-${photoIndex}`}
-                    style={styles.thumbSlot}
+                    style={[styles.thumbSlot, { width: THUMB_WIDTH, height: THUMB_HEIGHT }]}
                     onPress={() => handlePhotoPress(photoIndex)}
                     accessibilityRole="button"
                     accessibilityLabel={t('profile.photoActionsTitle')}
@@ -297,7 +310,7 @@ export default function ProfileScreen() {
               return (
                 <Pressable
                   key={`thumb-add-${photoIndex}`}
-                  style={[styles.thumbSlot, styles.addSlot]}
+                  style={[styles.thumbSlot, styles.addSlot, { width: THUMB_WIDTH, height: THUMB_HEIGHT }]}
                   onPress={handleAddPhoto}
                   accessibilityRole="button"
                   accessibilityLabel={t('profile.addPhoto')}
@@ -444,10 +457,14 @@ export default function ProfileScreen() {
       <Modal
         visible={activePhotoIndex !== null}
         transparent
+        statusBarTranslucent
         animationType="fade"
         onRequestClose={closeSheet}
       >
-        <Pressable style={styles.sheetBackdrop} onPress={closeSheet}>
+        <Pressable
+          style={[styles.sheetBackdrop, { paddingBottom: 12 + insets.bottom }]}
+          onPress={closeSheet}
+        >
           <Pressable style={styles.sheetGroup} onPress={(e) => e.stopPropagation()}>
             <View style={styles.sheet}>
               {activePhotoIndex !== null && activePhotoIndex !== 0 && (
@@ -488,17 +505,9 @@ export default function ProfileScreen() {
   );
 }
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const GRID_WIDTH = SCREEN_WIDTH - 32; // matches contentContainerStyle padding (16 * 2)
 const GRID_GAP = 10;
 const COL_COUNT = 2;
 const THUMBS_PER_COL = 2;
-// Main fills half the grid width; the remaining half is split evenly across
-// the two thumbnail columns. main + 4 thumbs = MAX_PHOTOS=5.
-const MAIN_PHOTO_WIDTH = Math.round((GRID_WIDTH - GRID_GAP * COL_COUNT) / 2);
-const MAIN_PHOTO_HEIGHT = Math.round((MAIN_PHOTO_WIDTH * 4) / 3); // 3:4 portrait
-const THUMB_WIDTH = Math.round(MAIN_PHOTO_WIDTH / 2);
-const THUMB_HEIGHT = Math.round((MAIN_PHOTO_HEIGHT - GRID_GAP) / THUMBS_PER_COL);
 
 const styles = StyleSheet.create({
   container: {
@@ -525,11 +534,8 @@ const styles = StyleSheet.create({
   photoGrid: {
     flexDirection: 'row',
     gap: GRID_GAP,
-    width: GRID_WIDTH,
   },
   mainPhotoSlot: {
-    width: MAIN_PHOTO_WIDTH,
-    height: MAIN_PHOTO_HEIGHT,
     borderRadius: radii.xl,
     overflow: 'hidden',
     backgroundColor: colors.cardAlt,
@@ -548,13 +554,9 @@ const styles = StyleSheet.create({
     ...shadows.soft,
   },
   thumbColumn: {
-    width: THUMB_WIDTH,
-    height: MAIN_PHOTO_HEIGHT,
     gap: GRID_GAP,
   },
   thumbSlot: {
-    width: THUMB_WIDTH,
-    height: THUMB_HEIGHT,
     borderRadius: radii.lg,
     overflow: 'hidden',
     backgroundColor: colors.cardAlt,
@@ -733,7 +735,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-end',
-    padding: 12,
+    paddingTop: 12,
+    paddingHorizontal: 12,
   },
   sheetGroup: {
     gap: 10,
