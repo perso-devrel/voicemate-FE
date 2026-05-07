@@ -20,6 +20,7 @@ export default {
 
   common: {
     cancel: 'Cancel',
+    confirm: 'OK',
     delete: 'Delete',
     edit: 'Edit',
     save: 'Save',
@@ -100,6 +101,10 @@ export default {
   discover: {
     match: 'Match!',
     matchedWith: 'You matched with {{name}}!',
+    itsAMatch: "It's a Match!",
+    matchSubtitle: 'Start the conversation right now.',
+    sendMessage: 'Send Message',
+    keepDiscovering: 'Keep Discovering',
     noMoreProfiles: 'No more profiles',
     checkBackLater: 'Check back later for new people',
     dailyLimitTitle: "You've seen enough for today",

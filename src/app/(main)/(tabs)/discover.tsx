@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { PhotoBackground } from '@/components/ui/PhotoBackground';
 import { useDiscover } from '@/hooks/useDiscover';
 import { useAuthStore } from '@/stores/authStore';
 import { useDiscoverStore } from '@/stores/discoverStore';
+import { showAlert } from '@/stores/alertStore';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
@@ -76,7 +77,16 @@ export default function DiscoverScreen() {
     const res = await handleSwipe(candidate.id, direction);
 
     if (res?.match) {
-      Alert.alert(t('discover.match'), t('discover.matchedWith', { name: candidate.display_name }));
+      const matchId = res.match.id;
+      showAlert({
+        variant: 'confirm',
+        title: t('discover.itsAMatch'),
+        message: t('discover.matchSubtitle'),
+        cancelText: t('discover.keepDiscovering'),
+        confirmText: t('discover.sendMessage'),
+        stackedActions: true,
+        onConfirm: () => router.push(`/(main)/chat/${matchId}`),
+      });
     }
   };
 

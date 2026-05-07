@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
-  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
 import { AgeRangeSlider } from '@/components/ui/AgeRangeSlider';
 import { useSignupDraftStore } from '@/stores/signupDraftStore';
+import { showAlert } from '@/stores/alertStore';
 import { useProfile } from '@/hooks/useProfile';
 import { usePreferences } from '@/hooks/usePreferences';
 import { colors, radii } from '@/constants/colors';
@@ -93,7 +93,7 @@ export default function SetupStep4() {
     try {
       await updatePreferences(prefs);
     } catch (e: any) {
-      Alert.alert(t('common.error'), e?.message ?? '');
+      showAlert({ variant: 'error', title: t('common.error'), message: e?.message ?? '' });
       return;
     }
     router.push('/(main)/setup/step2');

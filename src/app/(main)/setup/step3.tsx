@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
   Keyboard,
   Platform,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { WizardHeader } from '@/components/setup/WizardHeader';
 import { BioPhrasePicker } from '@/components/setup/BioPhrasePicker';
 import { useProfile } from '@/hooks/useProfile';
 import { useSignupDraftStore } from '@/stores/signupDraftStore';
+import { showAlert } from '@/stores/alertStore';
 import { colors } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { validateVoiceIntro } from '@/utils/validators';
@@ -118,7 +118,7 @@ export default function SetupStep3() {
       await persistBio(bio, phraseId);
       enterApp();
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.message);
+      showAlert({ variant: 'error', title: t('common.error'), message: e.message });
     }
   };
 

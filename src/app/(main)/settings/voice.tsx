@@ -1,21 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
   Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
-import {
-  useAudioRecorder,
-  useAudioRecorderState,
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-} from 'expo-audio';
-import * as FileSystem from 'expo-file-system/legacy';
 import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,15 +15,16 @@ import { Button } from '@/components/ui/Button';
 import { AudioPlayer } from '@/components/chat/AudioPlayer';
 import { WizardHeader } from '@/components/setup/WizardHeader';
 import { useVoice } from '@/hooks/useVoice';
+import {
+  useVoiceCloneRecorder,
+  MAX_DURATION_MS,
+} from '@/hooks/useVoiceCloneRecorder';
 import { useAuthStore } from '@/stores/authStore';
+import { showAlert } from '@/stores/alertStore';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 
 const RECORD_ORANGE = '#E8945F';
-const MAX_DURATION_MS = 60_000;
-const MIN_DURATION_MS = 10_000;
-const MIN_AVG_METERING_DB = -45;
-const MIN_BYTES_PER_SEC = 7000;
 const RING_SIZE = 56;
 const RING_STROKE = 3;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
@@ -85,101 +77,89 @@ export default function VoiceSettingsScreen() {
   const { status, loading: voiceLoading, uploadClone, deleteClone, checkStatus } = useVoice();
   const authProfile = useAuthStore((s) => s.profile);
 
-  const recorder = useAudioRecorder({ ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true });
-  const recorderState = useAudioRecorderState(recorder, 200);
-  const [recordingUri, setRecordingUri] = useState<string | null>(null);
-  const [recordingDurationMs, setRecordingDurationMs] = useState(0);
+  const {
+    isRecording,
+    durationMs,
+    recordingUri,
+    start,
+    stop,
+    clear,
+    validate,
+  } = useVoiceCloneRecorder();
   const [scriptExpanded, setScriptExpanded] = useState(false);
-  const meteringSamplesRef = useRef<number[]>([]);
 
   useEffect(() => {
     checkStatus().catch(() => {});
   }, [checkStatus]);
 
-  useEffect(() => {
-    if (recorderState.isRecording && (recorderState.durationMillis ?? 0) >= MAX_DURATION_MS) {
-      stopRecording();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recorderState.isRecording, recorderState.durationMillis]);
-
-  useEffect(() => {
-    if (!recorderState.isRecording) return;
-    const m = recorderState.metering;
-    if (typeof m === 'number' && Number.isFinite(m)) {
-      meteringSamplesRef.current.push(m);
-    }
-  }, [recorderState.isRecording, recorderState.metering]);
-
   const cloneStatus = status?.status ?? authProfile?.voice_clone_status ?? 'pending';
-  const isRecording = recorderState.isRecording;
 
   const startRecording = async () => {
-    try {
-      const permission = await requestRecordingPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t('setupVoice.permissionRequired'), t('setupVoice.microphonePermissionRequired'));
-        return;
-      }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      await recorder.prepareToRecordAsync();
-      meteringSamplesRef.current = [];
-      recorder.record();
-    } catch (e: any) {
-      Alert.alert(t('common.error'), e.message);
+    const result = await start();
+    if (result.ok) return;
+    if (result.reason === 'permission') {
+      showAlert({
+        variant: 'error',
+        title: t('setupVoice.permissionRequired'),
+        message: t('setupVoice.microphonePermissionRequired'),
+      });
+    } else {
+      showAlert({ variant: 'error', title: t('common.error'), message: result.message ?? '' });
     }
   };
 
   const stopRecording = async () => {
     try {
-      const lastDuration = recorderState.durationMillis ?? 0;
-      await recorder.stop();
-      setRecordingDurationMs(lastDuration);
-      const uri = recorder.uri;
-      if (uri) setRecordingUri(uri);
+      await stop();
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.message);
+      showAlert({ variant: 'error', title: t('common.error'), message: e.message });
     }
   };
 
   const handleUpload = async () => {
     if (!recordingUri) return;
-    if (recordingDurationMs > 0 && recordingDurationMs < MIN_DURATION_MS) {
-      Alert.alert(t('setupVoice.tooShortTitle'), t('setupVoice.tooShortMessage'));
-      return;
-    }
-    const info = await FileSystem.getInfoAsync(recordingUri);
-    if (info.exists && info.size && info.size > 10 * 1024 * 1024) {
-      Alert.alert(t('setupVoice.fileTooLarge'), t('setupVoice.voiceSizeLimit'));
-      return;
-    }
-    const samples = meteringSamplesRef.current;
-    const avgDb = samples.length > 0 ? samples.reduce((a, b) => a + b, 0) / samples.length : null;
-    const sizeBytes = info.exists && info.size ? info.size : 0;
-    const bytesPerSec = recordingDurationMs > 0 ? (sizeBytes * 1000) / recordingDurationMs : 0;
-    if (__DEV__) {
-      console.log('[voice-guard]', { avgDb, samples: samples.length, sizeBytes, durationMs: recordingDurationMs, bytesPerSec });
-    }
-    const meteringTooQuiet = avgDb !== null && avgDb < MIN_AVG_METERING_DB;
-    const sizeTooSmall = bytesPerSec > 0 && bytesPerSec < MIN_BYTES_PER_SEC;
-    if (meteringTooQuiet || sizeTooSmall) {
-      Alert.alert(t('setupVoice.tooQuietTitle'), t('setupVoice.tooQuietMessage'));
-      setRecordingUri(null);
+    const v = await validate();
+    if (!v.ok) {
+      if (v.reason === 'tooShort') {
+        showAlert({
+          variant: 'error',
+          title: t('setupVoice.tooShortTitle'),
+          message: t('setupVoice.tooShortMessage'),
+        });
+      } else if (v.reason === 'tooLarge') {
+        showAlert({
+          variant: 'error',
+          title: t('setupVoice.fileTooLarge'),
+          message: t('setupVoice.voiceSizeLimit'),
+        });
+      } else if (v.reason === 'tooQuiet') {
+        showAlert({
+          variant: 'error',
+          title: t('setupVoice.tooQuietTitle'),
+          message: t('setupVoice.tooQuietMessage'),
+        });
+        clear();
+      }
       return;
     }
     try {
       await uploadClone(recordingUri);
-      setRecordingUri(null);
+      clear();
     } catch (e: any) {
-      Alert.alert(t('setupVoice.uploadFailed'), e.message);
+      showAlert({ variant: 'error', title: t('setupVoice.uploadFailed'), message: e.message });
     }
   };
 
   const handleDeleteVoice = () => {
-    Alert.alert(t('setupVoice.deleteVoiceClone'), t('setupVoice.deleteConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: deleteClone },
-    ]);
+    showAlert({
+      variant: 'confirm',
+      title: t('setupVoice.deleteVoiceClone'),
+      message: t('setupVoice.deleteConfirm'),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.delete'),
+      destructive: true,
+      onConfirm: deleteClone,
+    });
   };
 
   const formatDuration = (ms: number) => {
@@ -214,11 +194,11 @@ export default function VoiceSettingsScreen() {
             <View style={styles.recordRow}>
               <RecordRing
                 isRecording={isRecording}
-                durationMs={recorderState.durationMillis ?? 0}
+                durationMs={durationMs}
                 onPress={isRecording ? stopRecording : startRecording}
               />
               {isRecording && (
-                <Text style={styles.timerText}>{formatDuration(recorderState.durationMillis ?? 0)}</Text>
+                <Text style={styles.timerText}>{formatDuration(durationMs)}</Text>
               )}
             </View>
           )}
@@ -228,7 +208,7 @@ export default function VoiceSettingsScreen() {
           recordingUri ? (
             <View style={styles.voiceActions}>
               <Button title={t('setupVoice.uploadVoice')} onPress={handleUpload} loading={voiceLoading} />
-              <Button title={t('setupVoice.reRecord')} variant="outline" onPress={() => setRecordingUri(null)} />
+              <Button title={t('setupVoice.reRecord')} variant="outline" onPress={clear} />
             </View>
           ) : (
             <View style={styles.recordSection}>

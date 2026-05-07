@@ -20,6 +20,7 @@ export default {
 
     common: {
         cancel: "キャンセル",
+        confirm: "確認",
         delete: "削除",
         edit: "編集",
         save: "保存",
@@ -100,6 +101,10 @@ export default {
     discover: {
         match: "マッチ！",
         matchedWith: "{{name}}さんとマッチしました！",
+        itsAMatch: "マッチ成立！",
+        matchSubtitle: "今すぐ会話を始めてみましょう。",
+        sendMessage: "メッセージを送る",
+        keepDiscovering: "もっと探す",
         noMoreProfiles: "これ以上のプロフィールはありません",
         checkBackLater: "また後で新しい人を確認してみてください",
         dailyLimitTitle: "今日はもう十分見ました",

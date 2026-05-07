@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
   Pressable,
   type LayoutChangeEvent,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
 import { LanguagePicker } from '@/components/ui/LanguagePicker';
 import { useProfile } from '@/hooks/useProfile';
+import { showAlert } from '@/stores/alertStore';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { SUPPORTED_NATIONALITIES, type NationalityCode } from '@/constants/nationalities';
@@ -172,7 +172,7 @@ export default function EditProfileScreen() {
       });
       router.back();
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.message);
+      showAlert({ variant: 'error', title: t('common.error'), message: e.message });
     }
   };
 

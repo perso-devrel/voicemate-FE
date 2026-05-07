@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
-  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +15,7 @@ import { AgeRangeSlider } from '@/components/ui/AgeRangeSlider';
 import { usePreferences } from '@/hooks/usePreferences';
 import { useProfile } from '@/hooks/useProfile';
 import { useDiscoverStore } from '@/stores/discoverStore';
+import { showAlert } from '@/stores/alertStore';
 import { colors, radii } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { isLanguageCode, SUPPORTED_LANGUAGES, type LanguageCode } from '@/constants/languages';
@@ -100,7 +100,7 @@ export default function PreferencesScreen() {
       bumpDiscoverReload();
       router.back();
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.message);
+      showAlert({ variant: 'error', title: t('common.error'), message: e.message });
     }
   };
 

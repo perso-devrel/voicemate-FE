@@ -5,7 +5,6 @@ import {
     ScrollView,
     StyleSheet,
     Pressable,
-    Alert,
     Image,
     Dimensions,
     Modal,
@@ -22,6 +21,7 @@ import { WizardHeader } from "@/components/setup/WizardHeader";
 import { useProfile, MAX_PHOTOS } from "@/hooks/useProfile";
 import * as profileService from "@/services/profile";
 import { useSignupDraftStore } from "@/stores/signupDraftStore";
+import { showAlert } from "@/stores/alertStore";
 import { colors, radii, shadows } from "@/constants/colors";
 import { fonts } from "@/constants/fonts";
 
@@ -117,18 +117,19 @@ export default function SetupStep5() {
     };
 
     const handleRemove = (index: number) => {
-        Alert.alert(t("profile.deletePhoto"), t("profile.removePhotoConfirm"), [
-            { text: t("common.cancel"), style: "cancel" },
-            {
-                text: t("common.delete"),
-                style: "destructive",
-                onPress: () => {
-                    const next = photoUris.filter((_, i) => i !== index);
-                    setPhotoUris(next);
-                    draft.setPhotoUris(next);
-                },
+        showAlert({
+            variant: "confirm",
+            title: t("profile.deletePhoto"),
+            message: t("profile.removePhotoConfirm"),
+            cancelText: t("common.cancel"),
+            confirmText: t("common.delete"),
+            destructive: true,
+            onConfirm: () => {
+                const next = photoUris.filter((_, i) => i !== index);
+                setPhotoUris(next);
+                draft.setPhotoUris(next);
             },
-        ]);
+        });
     };
 
     const runSheetAction = (
@@ -161,10 +162,11 @@ export default function SetupStep5() {
             await loadProfile();
             router.push("/(main)/setup/step4");
         } catch (e: any) {
-            Alert.alert(
-                t("common.error"),
-                e.message ?? t("signupWizard.registerFailed"),
-            );
+            showAlert({
+                variant: "error",
+                title: t("common.error"),
+                message: e.message ?? t("signupWizard.registerFailed"),
+            });
         } finally {
             setSubmitting(false);
         }

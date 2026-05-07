@@ -2,7 +2,6 @@ import {
   View,
   Text,
   StyleSheet,
-  Alert,
   Keyboard,
   Platform,
   Pressable,
@@ -18,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { GoogleLoginButton } from '@/components/ui/GoogleLoginButton';
 import { useAuthStore } from '@/stores/authStore';
+import { showAlert } from '@/stores/alertStore';
 import { ApiRequestError } from '@/services/api';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
@@ -96,7 +96,11 @@ export default function LoginScreen() {
   const handleGooglePress = async () => {
     if (loadingAction) return;
     if (isExpoGo) {
-      Alert.alert(t('auth.loginFailed'), t('auth.googleNotInExpoGo'));
+      showAlert({
+        variant: 'error',
+        title: t('auth.loginFailed'),
+        message: t('auth.googleNotInExpoGo'),
+      });
       return;
     }
     setLoadingAction('google');
@@ -114,7 +118,11 @@ export default function LoginScreen() {
     } catch (e: any) {
       const { statusCodes } = await import('@react-native-google-signin/google-signin');
       if (e?.code === statusCodes.SIGN_IN_CANCELLED) return;
-      Alert.alert(t('auth.loginFailed'), e?.message ?? String(e));
+      showAlert({
+        variant: 'error',
+        title: t('auth.loginFailed'),
+        message: e?.message ?? String(e),
+      });
     } finally {
       setLoadingAction(null);
     }
@@ -144,11 +152,12 @@ export default function LoginScreen() {
           return true;
       }
     }
-    // Unrecognised — fall back to top-level Alert.
-    Alert.alert(
-      signup ? t('auth.signupFailed') : t('auth.loginFailed'),
-      e instanceof Error ? e.message : String(e),
-    );
+    // Unrecognised — surface a top-level alert through the unified host.
+    showAlert({
+      variant: 'error',
+      title: signup ? t('auth.signupFailed') : t('auth.loginFailed'),
+      message: e instanceof Error ? e.message : String(e),
+    });
     return false;
   };
 

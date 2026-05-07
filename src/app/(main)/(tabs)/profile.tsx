@@ -6,7 +6,6 @@ import {
   Image,
   Pressable,
   StyleSheet,
-  Alert,
   Modal,
   Dimensions,
   ActivityIndicator,
@@ -27,6 +26,7 @@ import { useProfile, MAX_PHOTOS } from '@/hooks/useProfile';
 import { VOICE_INTRO_SLOT_LANGUAGES } from '@/types';
 import { useInterestResolver } from '@/hooks/useInterestLabel';
 import { useAuthStore } from '@/stores/authStore';
+import { showAlert } from '@/stores/alertStore';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { calculateAge } from '@/utils/age';
@@ -147,9 +147,10 @@ export default function ProfileScreen() {
       await uploadPhoto(uri);
       setPhotoBust((n) => n + 1);
     } catch (e: any) {
-      // Network/BE upload failures stay as Alert — different failure mode
-      // (server-side, retryable) from the local pick rejections above.
-      Alert.alert(t('profile.uploadFailed'), e.message);
+      // Network/BE upload failures route through the unified alert host —
+      // different failure mode (server-side, retryable) from the local pick
+      // rejections above.
+      showAlert({ variant: 'error', title: t('profile.uploadFailed'), message: e.message });
     }
   };
 
@@ -158,7 +159,7 @@ export default function ProfileScreen() {
       await setPrimaryPhoto(index);
       setPhotoBust((n) => n + 1);
     } catch (e: any) {
-      Alert.alert(t('profile.uploadFailed'), e.message);
+      showAlert({ variant: 'error', title: t('profile.uploadFailed'), message: e.message });
     }
   };
 
@@ -169,7 +170,7 @@ export default function ProfileScreen() {
       await replacePhotoAt(index, uri);
       setPhotoBust((n) => n + 1);
     } catch (e: any) {
-      Alert.alert(t('profile.uploadFailed'), e.message);
+      showAlert({ variant: 'error', title: t('profile.uploadFailed'), message: e.message });
     }
   };
 
@@ -183,21 +184,22 @@ export default function ProfileScreen() {
       setPhotoError(t('profile.lastPhotoLocked'));
       return;
     }
-    Alert.alert(t('profile.deletePhoto'), t('profile.removePhotoConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deletePhoto(index);
-            setPhotoBust((n) => n + 1);
-          } catch (e: any) {
-            Alert.alert(t('profile.uploadFailed'), e.message);
-          }
-        },
+    showAlert({
+      variant: 'confirm',
+      title: t('profile.deletePhoto'),
+      message: t('profile.removePhotoConfirm'),
+      cancelText: t('common.cancel'),
+      confirmText: t('common.delete'),
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await deletePhoto(index);
+          setPhotoBust((n) => n + 1);
+        } catch (e: any) {
+          showAlert({ variant: 'error', title: t('profile.uploadFailed'), message: e.message });
+        }
       },
-    ]);
+    });
   };
 
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);

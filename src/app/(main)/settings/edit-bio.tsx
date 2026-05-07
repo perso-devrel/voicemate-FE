@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
   Keyboard,
   Platform,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { WizardHeader } from '@/components/setup/WizardHeader';
 import { BioPhrasePicker } from '@/components/setup/BioPhrasePicker';
 import { useProfile } from '@/hooks/useProfile';
+import { showAlert } from '@/stores/alertStore';
 import { colors } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { validateVoiceIntro } from '@/utils/validators';
@@ -84,7 +84,7 @@ export default function EditBioScreen() {
       });
       router.back();
     } catch (e: any) {
-      Alert.alert(t('common.error'), e.message);
+      showAlert({ variant: 'error', title: t('common.error'), message: e.message });
     }
   };
 

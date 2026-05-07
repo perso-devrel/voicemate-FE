@@ -4,7 +4,6 @@ import {
   Text,
   Pressable,
   Modal,
-  Alert,
   TextInput,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import * as blockService from '@/services/block';
 import * as reportService from '@/services/report';
 import { ApiRequestError } from '@/services/api';
+import { showAlert } from '@/stores/alertStore';
 import { ErrorText } from '@/components/ui/ErrorText';
 import { colors, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
@@ -52,21 +52,32 @@ export function MatchActionsSheet({
   const [reportReason, setReportReason] = useState<ReportReason | null>(null);
   const [reportDescription, setReportDescription] = useState('');
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  // Snapshot partner identity at the moment the report flow starts. The
+  // parent typically clears its action-target state when this sheet closes,
+  // which would null out the `partnerId`/`partnerName` props mid-flow and
+  // make the report subtitle render "Unknown" + silently break submit.
+  const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
 
   const closeReport = () => {
     setReportOpen(false);
     setReportReason(null);
     setReportDescription('');
     setReportSubmitting(false);
+    setReportTarget(null);
   };
 
   const handleMutePress = () => {
     onClose();
-    Alert.alert(t('matches.actions.mute'), t('matches.actions.muteComingSoon'));
+    showAlert({
+      variant: 'info',
+      title: t('matches.actions.mute'),
+      message: t('matches.actions.muteComingSoon'),
+    });
   };
 
   const handleReportPress = () => {
     if (!partnerId) return;
+    setReportTarget({ id: partnerId, name: partnerName });
     onClose();
     setReportOpen(true);
   };
@@ -74,25 +85,22 @@ export function MatchActionsSheet({
   const handleUnmatchPress = () => {
     if (!partnerId) return;
     onClose();
-    Alert.alert(
-      t('matches.actions.unmatch'),
-      t('matches.actions.unmatchConfirm', { name: partnerName }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('matches.actions.unmatch'),
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await blockService.blockUser(partnerId);
-              onResolved?.();
-            } catch (e: any) {
-              Alert.alert(t('common.error'), e?.message ?? '');
-            }
-          },
-        },
-      ],
-    );
+    showAlert({
+      variant: 'confirm',
+      title: t('matches.actions.unmatch'),
+      message: t('matches.actions.unmatchConfirm', { name: partnerName }),
+      cancelText: t('common.cancel'),
+      confirmText: t('matches.actions.unmatch'),
+      destructive: true,
+      onConfirm: async () => {
+        try {
+          await blockService.blockUser(partnerId);
+          onResolved?.();
+        } catch (e: any) {
+          showAlert({ variant: 'error', title: t('common.error'), message: e?.message ?? '' });
+        }
+      },
+    });
   };
 
   // Live-validate the optional description field so a paste of forbidden
@@ -102,25 +110,29 @@ export function MatchActionsSheet({
   const descriptionError = descriptionErr ? t(descriptionErr.key) : null;
 
   const handleReportSubmit = async () => {
-    if (!partnerId || !reportReason || reportSubmitting) return;
+    if (!reportTarget || !reportReason || reportSubmitting) return;
     if (descriptionErr) return; // gate submit on inline error
     setReportSubmitting(true);
     const description = reportDescription.trim();
     try {
       await reportService.reportUser({
-        reported_id: partnerId,
+        reported_id: reportTarget.id,
         reason: reportReason,
         description: description.length > 0 ? description : undefined,
       });
       closeReport();
-      Alert.alert(t('matches.report.successTitle'), t('matches.report.successBody'));
+      showAlert({
+        variant: 'info',
+        title: t('matches.report.successTitle'),
+        message: t('matches.report.successBody'),
+      });
       onResolved?.();
     } catch (e: any) {
       const msg =
         e instanceof ApiRequestError && e.status === 409
           ? t('matches.report.alreadyReported')
           : e?.message ?? t('common.error');
-      Alert.alert(t('common.error'), msg);
+      showAlert({ variant: 'error', title: t('common.error'), message: msg });
       setReportSubmitting(false);
     }
   };
@@ -178,7 +190,7 @@ export function MatchActionsSheet({
               </Pressable>
             </View>
             <Text style={styles.reportSubtitle}>
-              {t('matches.report.subtitle', { name: partnerName })}
+              {t('matches.report.subtitle', { name: reportTarget?.name ?? partnerName })}
             </Text>
             <ScrollView style={styles.reportReasonsScroll} keyboardShouldPersistTaps="handled">
               {REPORT_REASONS.map((reason) => {
@@ -207,7 +219,6 @@ export function MatchActionsSheet({
             </ScrollView>
             <TextInput
               style={[
-                { fontFamily: fonts.pixel },
                 styles.reportTextarea,
                 descriptionError ? styles.reportTextareaError : null,
               ]}
@@ -353,7 +364,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 13,
-    fontFamily: fonts.regular,
+    fontFamily: fonts.pixel,
     color: colors.text,
     textAlignVertical: 'top',
   },

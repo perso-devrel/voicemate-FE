@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '@/stores/authStore';
 import { registerOnSessionExpired } from '@/services/api';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { AlertHost } from '@/components/ui/AlertHost';
 import { SWRConfigProvider } from '@/lib/swr';
 import { PRETENDARD_ASSETS, fonts } from '@/constants/fonts';
 import '@/i18n';
@@ -61,6 +62,7 @@ export default function RootLayout() {
             <Stack.Screen name="(main)" />
             <Stack.Screen name="index" />
           </Stack>
+          <AlertHost />
         </SWRConfigProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

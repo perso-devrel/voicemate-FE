@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Keyboard,
   Platform,
-  Alert,
   Modal,
   ScrollView,
   ActivityIndicator,
@@ -36,6 +35,7 @@ import {
 import { ProfilePhoto } from '@/components/ui/ProfilePhoto';
 import { ProfilePhotoGallery } from '@/components/ui/ProfilePhotoGallery';
 import { useChat } from '@/hooks/useChat';
+import { showAlert } from '@/stores/alertStore';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { DEFAULT_EMOTION } from '@/constants/emotions';
@@ -275,10 +275,9 @@ export default function ChatScreen() {
     try {
       await send(trimmed, emotionForSend);
     } catch (e: any) {
-      // Network / send-side failures still surface as Alert (out of scope
-      // for the validation refactor — only client-side rule violations move
-      // inline).
-      Alert.alert(t('common.error'), e.message);
+      // Network / send-side failures surface through the unified alert host
+      // (client-side rule violations are handled inline upstream).
+      showAlert({ variant: 'error', title: t('common.error'), message: e.message });
     } finally {
       setSending(false);
     }
@@ -323,11 +322,47 @@ export default function ChatScreen() {
     // 'all' is the strictly stronger announcement and already implies main.
     if (!prev.all_photos_unlocked && access.all_photos_unlocked) {
       setUnlockEvent('all');
+      // partnerPhotos was seeded at mount with the BE-sliced single-photo
+      // array. Refetch from /api/matches now that BE will return the full
+      // list, so the partner profile modal can render the gallery without
+      // requiring the user to leave/re-enter the chat.
+      (async () => {
+        try {
+          const list = await matchService.getMatches(50);
+          const partner = list.find((m) => m.match_id === matchId)?.partner;
+          if (partner?.photos && partner.photos.length > 0) {
+            setPartnerPhotos(partner.photos);
+          }
+        } catch {
+          // best-effort — next chat re-entry will pick up the full list
+        }
+      })();
     } else if (!prev.main_photo_unlocked && access.main_photo_unlocked) {
       setUnlockEvent('main');
     }
     prevAccessRef.current = access;
-  }, [partnerId, access]);
+  }, [partnerId, access, matchId]);
+
+  // Surface the unlock announcement through the unified alert host so it shares
+  // the pixel-tone treatment with the rest of the app's notifications.
+  useEffect(() => {
+    if (!unlockEvent) return;
+    const fallbackName = t('photoAccess.unlocked.fallbackName');
+    const name = partnerName || fallbackName;
+    showAlert({
+      variant: 'info',
+      title:
+        unlockEvent === 'all'
+          ? t('photoAccess.unlocked.all.title')
+          : t('photoAccess.unlocked.main.title'),
+      message:
+        unlockEvent === 'all'
+          ? t('photoAccess.unlocked.all.description', { name })
+          : t('photoAccess.unlocked.main.description', { name }),
+      confirmText: t('photoAccess.unlocked.confirm'),
+    });
+    setUnlockEvent(null);
+  }, [unlockEvent, partnerName, t]);
 
   // Inverted-list source: data[0] is the newest message (rendered at the
   // visual bottom), data[N-1] is the oldest (visual top). The "previous"
@@ -627,61 +662,6 @@ export default function ChatScreen() {
         </View>
       </Modal>
 
-      <Modal
-        visible={unlockEvent !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setUnlockEvent(null)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.unlockCard}>
-            <LinearGradient
-              colors={[...gradients.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.unlockIcon}
-            >
-              <Ionicons name="lock-open" size={32} color={colors.white} />
-            </LinearGradient>
-            <Text style={styles.unlockTitle}>
-              {unlockEvent === 'all'
-                ? t('photoAccess.unlocked.all.title')
-                : t('photoAccess.unlocked.main.title')}
-            </Text>
-            <Text style={styles.unlockDescription}>
-              {unlockEvent === 'all'
-                ? t('photoAccess.unlocked.all.description', {
-                    name: partnerName || t('photoAccess.unlocked.fallbackName'),
-                  })
-                : t('photoAccess.unlocked.main.description', {
-                    name: partnerName || t('photoAccess.unlocked.fallbackName'),
-                  })}
-            </Text>
-            <Pressable
-              onPress={() => setUnlockEvent(null)}
-              style={({ pressed }) => [
-                styles.unlockButton,
-                pressed && { transform: [{ scale: 0.97 }] },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={t('photoAccess.unlocked.confirm')}
-              hitSlop={8}
-            >
-              <LinearGradient
-                colors={[...gradients.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.unlockButtonInner}
-              >
-                <Text style={styles.unlockButtonText}>
-                  {t('photoAccess.unlocked.confirm')}
-                </Text>
-              </LinearGradient>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
-
       <MatchActionsSheet
         visible={menuOpen}
         partnerId={partnerId}
@@ -912,58 +892,5 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontFamily: fonts.medium,
     letterSpacing: 0.2,
-  },
-  unlockCard: {
-    width: '100%',
-    maxWidth: 340,
-    backgroundColor: colors.card,
-    borderRadius: radii.xl,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 20,
-    alignItems: 'center',
-    ...shadows.card,
-  },
-  unlockIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    ...shadows.glow,
-  },
-  unlockTitle: {
-    fontSize: 20,
-    fontFamily: fonts.bold,
-    color: colors.text,
-    letterSpacing: 0.3,
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  unlockDescription: {
-    fontSize: 14,
-    fontFamily: fonts.regular,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  unlockButton: {
-    width: '100%',
-    borderRadius: radii.pill,
-    overflow: 'hidden',
-  },
-  unlockButtonInner: {
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radii.pill,
-  },
-  unlockButtonText: {
-    color: colors.white,
-    fontFamily: fonts.bold,
-    fontSize: 15,
-    letterSpacing: 0.3,
   },
 });
