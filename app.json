@@ -34,14 +34,14 @@
       "package": "com.voicemate.app",
       "softwareKeyboardLayoutMode": "resize",
       "permissions": [
-        "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "react-native-keyboard-controller",
       [
         "expo-image-picker",
         {
@@ -61,6 +61,12 @@
           "iosUrlScheme": "com.googleusercontent.apps.YOUR_IOS_CLIENT_ID_PREFIX"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0058361e-081e-4790-b8f9-bf1b4d1e745d"
+      }
+    }
   }
 }
