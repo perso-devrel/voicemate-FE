@@ -53,7 +53,7 @@ import type { Emotion, Message } from '@/types';
 const MIN_BOTTOM_SAFE_PAD = 12;
 
 // Visual breathing room between the last chat bubble and the input bar.
-const EXTRA_BUBBLE_GAP = 16;
+const EXTRA_BUBBLE_GAP = 8;
 
 // Distance (px) from the bottom of the list within which a newly appended
 // message will trigger an auto-scroll. Beyond this threshold we surface a
@@ -578,24 +578,34 @@ export default function ChatScreen() {
                   expanded={emotionPickerOpen}
                   onToggleExpanded={() => setEmotionPickerOpen((v) => !v)}
                 />
-                <TextInput
-                  style={styles.input}
-                  value={text}
-                  onChangeText={(v) => {
-                    setText(v);
-                    // Clear the inline error as soon as the user starts editing
-                    // so the message doesn't linger past the correction.
-                    if (composerError) setComposerError(null);
-                  }}
-                  placeholder={t('chat.typeMessage')}
-                  placeholderTextColor={colors.textLight}
-                  // Match the validator's 500-char rule at the input layer so
-                  // typing/pasting beyond the cap is dropped natively (RN
-                  // truncates pasted strings to maxLength). The validator's
-                  // messageTooLong path stays as a safety net for legacy data.
-                  maxLength={500}
-                  multiline
-                />
+                {/* Text overlay placeholder — RN drops fontFamily on the
+                    native placeholder for multiline TextInputs (Android
+                    quirk), so an absolutely-positioned Text inside a
+                    relative wrapper guarantees the pixel font. Same
+                    pattern as FormField / BioPhrasePicker. */}
+                <View style={styles.inputWrap}>
+                  <TextInput
+                    style={styles.input}
+                    value={text}
+                    onChangeText={(v) => {
+                      setText(v);
+                      // Clear the inline error as soon as the user starts editing
+                      // so the message doesn't linger past the correction.
+                      if (composerError) setComposerError(null);
+                    }}
+                    // Match the validator's 500-char rule at the input layer so
+                    // typing/pasting beyond the cap is dropped natively (RN
+                    // truncates pasted strings to maxLength). The validator's
+                    // messageTooLong path stays as a safety net for legacy data.
+                    maxLength={500}
+                    multiline
+                  />
+                  {text.length === 0 ? (
+                    <Text style={styles.inputPlaceholder} pointerEvents="none">
+                      {t('chat.typeMessage')}
+                    </Text>
+                  ) : null}
+                </View>
                 <Pressable
                   onPress={handleSend}
                   disabled={!text.trim() || sending}
@@ -816,18 +826,55 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     letterSpacing: 0.2,
   },
-  input: {
+  // The wrap carries the bordered "input box" look so its outer height is
+  // exactly 44h at min content — matching EmotionPicker (44h) and sendShell
+  // (44x44) for clean baseline alignment under inputBar's flex-end.
+  // Single-line height is locked: minHeight 44 alone leaves room for RN's
+  // 1–2px content-height jitter when the first character lands, which
+  // reads as a visible bounce next to the fixed 44h side controls. We
+  // pin alignSelf: 'flex-end' so even if content does swell internally
+  // (e.g. multiline overflow → maxHeight 110), the bottom edge stays
+  // glued to the side buttons rather than the row growing upward.
+  inputWrap: {
     flex: 1,
-    minHeight: 44,
+    height: 44,
     maxHeight: 110,
     borderRadius: 22,
     paddingHorizontal: 18,
     paddingVertical: 12,
     backgroundColor: colors.surface,
-    fontSize: 13,
-    color: colors.text,
     borderWidth: 1,
     borderColor: colors.borderSoft,
+    justifyContent: 'center',
+    alignSelf: 'flex-end',
+    position: 'relative',
+  },
+  input: {
+    // Border + padding + bg moved up to the wrap. TextInput is now just a
+    // transparent text element inside the bordered wrap.
+    //   * padding:0       — cancels iOS default internal padding
+    //   * includeFontPadding:false — Android's font-ascent/descent padding
+    //     is what was inflating the wrap past 44h. Without it, multiline
+    //     TextInput intrinsic height matches the rendered glyph height.
+    //   * textAlignVertical:'center' + lineHeight — keeps single-line text
+    //     visually centered in the 20-px content slot inside the wrap.
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.text,
+    fontFamily: fonts.pixel,
+    padding: 0,
+    margin: 0,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  inputPlaceholder: {
+    // Sits on top of the (empty) TextInput, anchored inside the wrap's
+    // padding so the placeholder baseline matches the cursor position.
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    fontSize: 13,
+    color: colors.textLight,
     fontFamily: fonts.pixel,
   },
   sendShell: {
