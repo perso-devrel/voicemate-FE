@@ -1,4 +1,4 @@
-# VoiceMate FE
+# haru FE
 
 음성 클론 기반 크로스 언어 소개팅 앱의 Expo (React Native + TypeScript) 프론트엔드.
 
@@ -63,7 +63,7 @@ cp .env.example .env
 
 1. BE 먼저 기동:
    ```bash
-   cd ../voicemate-BE-v2
+   cd ../haru_BE
    npm run dev   # 기본 포트 3000
    ```
 2. FE 기동 (이 레포):

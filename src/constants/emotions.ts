@@ -12,7 +12,7 @@ export interface EmotionMeta {
  * so users can re-select "no tone" without hunting.
  *
  * The 8 values mirror the BE Zod enum (`emotionSchema` in
- * `voicemate-BE-v2/src/schemas/message.ts`). v3 ElevenLabs audio tags only
+ * `haru_BE/src/schemas/message.ts`). v3 ElevenLabs audio tags only
  * accept these exact strings — do not add/rename without a BE change.
  */
 export const EMOTION_OPTIONS: readonly EmotionMeta[] = [

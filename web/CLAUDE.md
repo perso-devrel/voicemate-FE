@@ -1,6 +1,6 @@
 # CLAUDE.md — haru_FE/web (랜딩페이지)
 
-이 디렉토리는 voicemate 마케팅 랜딩페이지다. **Expo 앱과 격리된 Next.js 15 워크스페이스**이며, `haru_FE/` 루트의 Expo 프로젝트와는 의존성·번들러·TS 설정을 공유하지 않는다.
+이 디렉토리는 haru 마케팅 랜딩페이지다. **Expo 앱과 격리된 Next.js 15 워크스페이스**이며, `haru_FE/` 루트의 Expo 프로젝트와는 의존성·번들러·TS 설정을 공유하지 않는다.
 
 ## 목적과 1차 범위
 
@@ -111,7 +111,7 @@ haru_FE/web/
 
 ## 배포 / 환경
 
-- 호스팅: Vercel. 프로덕션 도메인은 별도 결정 (예: voicemate.app, haru.chat).
+- 호스팅: Vercel. 프로덕션 도메인은 별도 결정 (예: haru.chat, haru.app).
 - 환경변수 노출 룰:
   - 클라이언트 노출은 `NEXT_PUBLIC_*` 만. 그 외는 서버 컴포넌트/route handler 안에서만.
   - **API 키·서비스 롤·Supabase URL 등 BE 시크릿 절대 web에 두지 말 것.** 웨이팅리스트 등 BE 호출 필요 시 `haru_BE/`에 신규 라우트 추가 → 공개 anon 또는 서명 토큰 경로만 사용.

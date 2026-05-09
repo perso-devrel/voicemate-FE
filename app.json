@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "VoiceMate",
+    "name": "haru",
     "slug": "voicemate",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -45,13 +45,13 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow VoiceMate to access your photos for profile pictures."
+          "photosPermission": "Allow haru to access your photos for profile pictures."
         }
       ],
       [
         "expo-audio",
         {
-          "microphonePermission": "Allow VoiceMate to access your microphone to record voice samples."
+          "microphonePermission": "Allow haru to access your microphone to record voice samples."
         }
       ],
       "expo-asset",

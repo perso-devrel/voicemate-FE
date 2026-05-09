@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "voicemate — Voice-first cross-language dating",
+    "title": "haru — Voice-first cross-language dating",
     "description": "First impressions through voice intros. Messages auto-translated in the sender's cloned voice."
   },
   "hero": {
@@ -23,7 +23,7 @@
     "translatedSample": "오늘 날씨 좋네요. 산책하실래요?"
   },
   "cta": {
-    "title": "Start with voicemate",
+    "title": "Start with haru",
     "body": "Available on iOS and Android.",
     "appStore": "Download on the App Store",
     "playStore": "Get it on Google Play",

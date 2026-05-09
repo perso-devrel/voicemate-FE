@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "voicemate — 声でつながるクロスランゲージ・デーティング",
+    "title": "haru — 声でつながるクロスランゲージ・デーティング",
     "description": "ボイスイントロで第一印象を。送信者のクローン音声で自動翻訳されるメッセージ。"
   },
   "hero": {
@@ -23,7 +23,7 @@
     "translatedSample": "오늘 날씨 좋네요. 산책하실래요?"
   },
   "cta": {
-    "title": "今すぐ voicemate を始める",
+    "title": "今すぐ haru を始める",
     "body": "iOS と Android で利用可能。",
     "appStore": "App Store からダウンロード",
     "playStore": "Google Play で入手",

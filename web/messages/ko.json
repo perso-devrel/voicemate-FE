@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "voicemate — 보이스로 연결되는 데이팅",
+    "title": "haru — 보이스로 연결되는 데이팅",
     "description": "보이스 인트로로 첫인상을. 송신자의 클론 보이스로 자동 번역되는 메시지."
   },
   "hero": {
@@ -23,7 +23,7 @@
     "translatedSample": "今日は天気がとても良いですね、散歩しませんか?"
   },
   "cta": {
-    "title": "지금 voicemate를 시작하세요",
+    "title": "지금 haru를 시작하세요",
     "body": "iOS와 Android에서 사용 가능합니다.",
     "appStore": "App Store에서 다운로드",
     "playStore": "Google Play에서 다운로드",
