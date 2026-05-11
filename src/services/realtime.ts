@@ -16,6 +16,24 @@ let messageChannel: RealtimeChannel | null = null;
 // so opening a chat (per-match channel) and the matches tab (all-matches
 // channel) don't fight over the same singleton.
 let matchesListChannel: RealtimeChannel | null = null;
+// mig 014 match-roundtrip-realtime: matches UPDATE 를 전체 리스트에서 수신하는
+// 채널 (per-match 채널은 subscribeToMessages 안에서 같이 처리). useMatches 가
+// last_message/round_trip_count 미리보기를 갱신하기 위해 사용.
+let matchesUpdateChannel: RealtimeChannel | null = null;
+
+// mig 014 매치 행 UPDATE payload. supabase-js 가 payload.new 로 던지는 raw row
+// 모양 그대로 — round_trip_count 와 *_unlocked_at timestamp 그리고 unmatched_at
+// 정도가 FE 가 관심 갖는 컬럼. RLS 로 본인 매치만 수신된다.
+export interface MatchUpdatePayload {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  round_trip_count: number | null;
+  main_photo_unlocked_at: string | null;
+  all_photos_unlocked_at: string | null;
+  unmatched_at: string | null;
+  [key: string]: unknown;
+}
 
 /**
  * Status value reported by supabase-js on the `.subscribe()` callback.
@@ -33,11 +51,16 @@ export async function subscribeToMessages(
   onNewMessage: (message: Message) => void,
   onMessageUpdate: (message: Message) => void,
   onStatusChange?: (status: RealtimeChannelStatus, err?: Error) => void,
+  // mig 014 match-roundtrip-realtime: per-match matches UPDATE 핸들러.
+  // 014c AFTER INSERT 트리거가 갱신하는 round_trip_count / *_unlocked_at 변화를
+  // 같은 채널에서 수신한다. 새 채널을 만들지 않고 동일 채널에 다중 .on() —
+  // RLS 가 id=eq 필터와 무관하게 본인 매치만 통과시키지만, 명시 필터로 이중 방어.
+  onMatchUpdate?: (match: MatchUpdatePayload) => void,
 ) {
   await unsubscribeFromMessages();
   await setRealtimeAuth();
 
-  messageChannel = supabase
+  let chan = supabase
     .channel(`messages_${matchId}`)
     .on(
       'postgres_changes',
@@ -62,13 +85,29 @@ export async function subscribeToMessages(
       (payload) => {
         onMessageUpdate(payload.new as Message);
       },
-    )
-    .subscribe((status, err) => {
-      if (__DEV__) {
-        console.log(`[Realtime ${matchId}]`, status, err ?? '');
-      }
-      onStatusChange?.(status as RealtimeChannelStatus, err);
-    });
+    );
+
+  if (onMatchUpdate) {
+    chan = chan.on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'matches',
+        filter: `id=eq.${matchId}`,
+      },
+      (payload) => {
+        onMatchUpdate(payload.new as MatchUpdatePayload);
+      },
+    );
+  }
+
+  messageChannel = chan.subscribe((status, err) => {
+    if (__DEV__) {
+      console.log(`[Realtime ${matchId}]`, status, err ?? '');
+    }
+    onStatusChange?.(status as RealtimeChannelStatus, err);
+  });
 
   return messageChannel;
 }
@@ -134,6 +173,54 @@ export async function unsubscribeFromAllMessages() {
   if (matchesListChannel) {
     await supabase.removeChannel(matchesListChannel);
     matchesListChannel = null;
+  }
+}
+
+// mig 014 match-roundtrip-realtime: 매치 리스트 화면용 matches UPDATE 구독.
+// per-match 채널과 분리되어 있어 채팅 화면이 열린 상태에서도 리스트 갱신이
+// 독립적으로 동작한다. 필터 없음 — Supabase RLS (user1_id/user2_id = auth.uid)
+// 가 publication 통과 시 적용되므로 본인 매치만 수신된다.
+//
+// subscribeToAllMessages 와 동일한 random suffix 채널명 패턴으로 strict-mode
+// 더블 마운트 race 회피.
+export async function subscribeToAllMatchUpdates(
+  onMatchUpdate: (match: MatchUpdatePayload) => void,
+  onStatusChange?: (status: RealtimeChannelStatus, err?: Error) => void,
+) {
+  await unsubscribeFromAllMatchUpdates();
+  await setRealtimeAuth();
+
+  const channelName = `matches_all:${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+
+  matchesUpdateChannel = supabase
+    .channel(channelName)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'matches',
+      },
+      (payload) => {
+        onMatchUpdate(payload.new as MatchUpdatePayload);
+      },
+    )
+    .subscribe((status, err) => {
+      if (__DEV__) {
+        console.log(`[Realtime ${channelName}]`, status, err ?? '');
+      }
+      onStatusChange?.(status as RealtimeChannelStatus, err);
+    });
+
+  return matchesUpdateChannel;
+}
+
+export async function unsubscribeFromAllMatchUpdates() {
+  if (matchesUpdateChannel) {
+    await supabase.removeChannel(matchesUpdateChannel);
+    matchesUpdateChannel = null;
   }
 }
 

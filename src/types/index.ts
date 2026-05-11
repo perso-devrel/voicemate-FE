@@ -187,6 +187,11 @@ export interface MatchListItem {
   // `/api/matches` ships the field unconditionally. Undefined → treat as
   // DEFAULT_PHOTO_ACCESS (fully locked).
   photo_access?: PhotoAccess;
+  // mig 014 match-roundtrip-realtime: BE-sourced authoritative round-trip count.
+  // BE always normalises NULL (백필 실패 매치) to 0, so this is required not
+  // optional. Chat 화면이 클라이언트 윈도우 재계산(countRoundTrips) 대신
+  // 이 값을 직접 소비한다.
+  round_trip_count: number;
 }
 
 // === Message ===
@@ -221,6 +226,22 @@ export interface Message {
 export interface SendMessageRequest {
   text: string;
   emotion?: Emotion;
+}
+
+// mig 014 match-roundtrip-realtime: POST /api/matches/:matchId/messages 응답에
+// 동봉되는 match-level snapshot. BE 트리거가 INSERT 직후 동기 갱신한 matches 행을
+// 즉시 SELECT 해서 만든 nested DTO — FE useChat 이 send 응답 한 번으로
+// roundTrips/photoUnlocked 를 시드한다.
+export interface MatchAfter {
+  round_trip_count: number;
+  main_photo_unlocked: boolean;
+  all_photos_unlocked: boolean;
+}
+
+// POST /api/matches/:matchId/messages 응답 타입. 기존 Message 필드를 모두 포함하고
+// match_after 를 추가. 구버전 BE 호환을 위해 match_after 는 optional.
+export interface SendMessageResponse extends Message {
+  match_after?: MatchAfter;
 }
 
 export interface ReadResponse {

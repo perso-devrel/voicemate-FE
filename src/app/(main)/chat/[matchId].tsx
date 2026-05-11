@@ -40,7 +40,6 @@ import { fonts } from '@/constants/fonts';
 import { DEFAULT_EMOTION } from '@/constants/emotions';
 import * as matchService from '@/services/matches';
 import { calculateAge } from '@/utils/age';
-import { countRoundTrips } from '@/utils/chat';
 import { fromRoundTrips } from '@/constants/photoAccess';
 import { photoAccessStore } from '@/stores/photoAccess';
 import { usePhotoAccess } from '@/hooks/usePhotoAccess';
@@ -170,14 +169,24 @@ export default function ChatScreen() {
   const {
     messages,
     loading,
+    // chat-flatlist-pagination sprint: surfaced so the inverted-list footer
+    // (visual TOP) can show a spinner while older pages are in flight.
+    loadingOlder,
     hasMore,
     userId,
+    roundTrips: bRoundTrips,
     loadMessages,
     loadOlder,
     send,
     markRead,
     retryAudio,
   } = useChat(matchId!);
+
+  // mig 014 match-roundtrip-realtime: 클라이언트 윈도우 재계산 제거.
+  // BE 트리거가 single source of truth — useChat 이 노출하는 BE-sourced
+  // 카운트를 그대로 사용. 마운트 직후 매치 캐시 미스 + 송신 전 cold start
+  // 에서만 null 이며 0 으로 폴백.
+  const roundTrips = bRoundTrips ?? 0;
 
   const [text, setText] = useState('');
   const [composerError, setComposerError] = useState<string | null>(null);
@@ -306,14 +315,11 @@ export default function ChatScreen() {
     setEmotionPickerOpen(false);
   };
 
-  const roundTrips = useMemo(() => countRoundTrips(messages), [messages]);
-
-  // Client-side bridge for the migration window where BE does not yet ship
-  // `photo_access` on /api/matches. We derive the flags from message history
-  // and push them into the registry so other tabs (Matches list) render the
-  // same unlock state without their own round-trip calculation.
-  // TODO: Remove this effect once BE is deployed and /api/matches returns
-  // photo_access unconditionally. See _workspace/00_planner_design.md §7.4.
+  // mig 014 match-roundtrip-realtime: photoAccessStore 입력 경로.
+  // 형식은 유지하되, roundTrips 가 BE-sourced(useChat) 이므로 BE 진실과 store
+  // 가 같은 방향. store 의 downgrade guard 가 잠금 역행을 한 번 더 차단.
+  // fromRoundTrips 는 photoAccess.ts 의 임계치(5/10) 와 BE 014c SQL 리터럴이
+  // drift 가드 vitest 로 동기 보장된다.
   useEffect(() => {
     if (!partnerId) return;
     photoAccessStore.update(partnerId, fromRoundTrips(roundTrips));
@@ -475,7 +481,11 @@ export default function ChatScreen() {
           keyExtractor={(item) => item.id}
           inverted
           onEndReached={hasMore ? loadOlder : undefined}
-          onEndReachedThreshold={0.1}
+          // chat-flatlist-pagination sprint: 0.1 was too tight — with the
+          // inverted list + ListHeaderComponent padding the threshold
+          // calculation routinely missed fire. 0.5 gives the user a half-
+          // viewport of slack and matches the RN default for prefetching.
+          onEndReachedThreshold={0.5}
           onScroll={handleScroll}
           scrollEventThrottle={16}
           contentContainerStyle={styles.messageList}
@@ -484,7 +494,11 @@ export default function ChatScreen() {
           // the input dock), ListFooterComponent renders at the visual TOP.
           ListHeaderComponent={<View style={{ height: listBottomPad }} />}
           ListFooterComponent={
-            loading ? (
+            // chat-flatlist-pagination sprint: also surface the spinner while
+            // older pages are being fetched. In an inverted list the footer
+            // renders at the visual TOP — exactly where the user is scrolling
+            // when loadOlder fires, so the indicator lands in-context.
+            loading || loadingOlder ? (
               <ActivityIndicator color={colors.primary} style={{ padding: 12 }} />
             ) : null
           }

@@ -4,7 +4,10 @@ import useSWR from 'swr';
 import * as matchService from '@/services/matches';
 import {
   subscribeToAllMessages,
+  subscribeToAllMatchUpdates,
   unsubscribeFromAllMessages,
+  unsubscribeFromAllMatchUpdates,
+  type MatchUpdatePayload,
 } from '@/services/realtime';
 import { photoAccessStore } from '@/stores/photoAccess';
 import { useAuthStore } from '@/stores/authStore';
@@ -27,6 +30,41 @@ function ingestMatches(matches: MatchListItem[]) {
     })
     .filter((e): e is { userId: string; access: typeof DEFAULT_PHOTO_ACCESS } => e !== null);
   photoAccessStore.ingest(entries);
+}
+
+// mig 014 match-roundtrip-realtime: matches UPDATE payload 를 리스트 row 에 머지.
+// 014c 트리거가 갱신한 round_trip_count / *_unlocked_at 변화 + photoAccessStore
+// 동기화. payload 의 match 가 캐시에 없으면 prev 를 그대로 반환 (no-op).
+function applyMatchUpdate(
+  prev: MatchListItem[],
+  update: MatchUpdatePayload,
+): MatchListItem[] {
+  const idx = prev.findIndex((m) => m.match_id === update.id);
+  if (idx === -1) return prev;
+  const row = prev[idx];
+  const nextAccess = {
+    main_photo_unlocked: update.main_photo_unlocked_at !== null,
+    all_photos_unlocked: update.all_photos_unlocked_at !== null,
+  };
+  // 백필 실패 매치(NULL)는 0 으로 정규화 — BE GET /api/matches 와 동일 규칙.
+  const nextRT = update.round_trip_count ?? 0;
+  // photo_access 가 달라지지 않고 카운트도 그대로면 새 row 객체 생성 회피
+  // (FlatList re-render 절약).
+  if (
+    row.round_trip_count === nextRT &&
+    (row.photo_access?.main_photo_unlocked ?? false) === nextAccess.main_photo_unlocked &&
+    (row.photo_access?.all_photos_unlocked ?? false) === nextAccess.all_photos_unlocked &&
+    row.unmatched_at === update.unmatched_at
+  ) {
+    return prev;
+  }
+  const next: MatchListItem = {
+    ...row,
+    round_trip_count: nextRT,
+    photo_access: nextAccess,
+    unmatched_at: update.unmatched_at,
+  };
+  return [...prev.slice(0, idx), next, ...prev.slice(idx + 1)];
 }
 
 // Apply a freshly-arrived message to the matches list state without a full
@@ -204,6 +242,80 @@ export function useMatches() {
       clearRetry();
       subscription.remove();
       unsubscribeFromAllMessages();
+    };
+  }, [myUserId, mutate]);
+
+  // mig 014 match-roundtrip-realtime: 리스트 화면용 matches UPDATE 구독.
+  // 트리거가 갱신한 round_trip_count / *_unlocked_at 변화를 실시간으로 머지.
+  // per-match 채널과 분리되어 있어 채팅 화면이 열린 상태에서도 독립 동작.
+  // RLS 가 본인 매치만 통과시키므로 필터 없이 구독.
+  useEffect(() => {
+    if (!myUserId) return;
+    let cancelled = false;
+    let retryAttempt = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const clearRetry = () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+    };
+
+    const connect = async () => {
+      clearRetry();
+      await subscribeToAllMatchUpdates(
+        (payload) => {
+          if (cancelled) return;
+          mutate(
+            (prev) => applyMatchUpdate(prev ?? [], payload),
+            { revalidate: false },
+          );
+          setExtraPages((prev) => applyMatchUpdate(prev, payload));
+          // photoAccessStore 동기화 — partner.id 는 update payload 에 없으므로
+          // 현 캐시에서 매치를 찾아 추출. downgrade guard 가 잠금 역행 차단.
+          const cached = dataRef.current?.find((m) => m.match_id === payload.id)
+            ?? extraPagesRef.current.find((m) => m.match_id === payload.id);
+          const partnerUserId = cached?.partner?.id;
+          if (partnerUserId) {
+            photoAccessStore.update(partnerUserId, {
+              main_photo_unlocked: payload.main_photo_unlocked_at !== null,
+              all_photos_unlocked: payload.all_photos_unlocked_at !== null,
+            });
+          }
+        },
+        (status) => {
+          if (cancelled) return;
+          if (status === 'SUBSCRIBED') {
+            retryAttempt = 0;
+            return;
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            const delay = computeBackoffDelay(retryAttempt);
+            retryAttempt += 1;
+            clearRetry();
+            retryTimer = setTimeout(() => {
+              if (!cancelled) connect();
+            }, delay);
+          }
+        },
+      );
+    };
+
+    connect();
+
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        retryAttempt = 0;
+        connect();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      clearRetry();
+      subscription.remove();
+      unsubscribeFromAllMatchUpdates();
     };
   }, [myUserId, mutate]);
 
