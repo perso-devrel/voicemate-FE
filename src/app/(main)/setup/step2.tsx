@@ -74,7 +74,11 @@ const ringContainerStyle = {
 export default function SetupStep2() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const { status, loading, uploadClone, deleteClone, checkStatus } = useVoice();
+  const { status, loading, uploadClone, checkStatus } = useVoice();
+  // voice-first-message-gate follow-up: ready 상태에서 사용자가 "재생성" 을
+  // 누르면 본 플래그가 true → 녹음 UI 노출. 새 녹음 업로드 성공 시 false 로
+  // 복귀하며, 중간에 취소하면 기존 voice 유지된 채 false 로 복귀.
+  const [isReRecording, setIsReRecording] = useState(false);
   const profile = useAuthStore((s) => s.profile);
   const {
     isRecording,
@@ -93,6 +97,12 @@ export default function SetupStep2() {
 
   const cloneStatus = status?.status ?? profile?.voice_clone_status ?? 'pending';
   const voiceReady = cloneStatus === 'ready';
+  // 재녹음 진입 시 ready 분기를 가리고 녹음 UI 를 노출. wizard 의 voiceReady
+  // 게이트는 그대로 유지 — 사용자가 재녹음 중에도 직전 ready 상태이므로 next
+  // 버튼은 활성. 새 업로드를 완료해야 새 voice 로 덮어쓰기되고, 취소 시 기존
+  // voice 그대로 유지된 채 next 진행 가능.
+  const showRecordingUI =
+    cloneStatus === 'pending' || cloneStatus === 'failed' || isReRecording;
 
   const startRecording = async () => {
     const result = await start();
@@ -145,21 +155,27 @@ export default function SetupStep2() {
     try {
       await uploadClone(recordingUri);
       clear();
+      setIsReRecording(false);
     } catch (e: any) {
       showAlert({ variant: 'error', title: t('setupVoice.uploadFailed'), message: e.message });
     }
   };
 
-  const handleDelete = () => {
+  // voice-first-message-gate follow-up: 단독 삭제 대신 재생성 진입.
+  const handleRegenerate = () => {
     showAlert({
       variant: 'confirm',
-      title: t('setupVoice.deleteVoiceClone'),
-      message: t('setupVoice.deleteConfirm'),
+      title: t('setupVoice.regenerateVoiceClone'),
+      message: t('setupVoice.regenerateConfirm'),
       cancelText: t('common.cancel'),
-      confirmText: t('common.delete'),
-      destructive: true,
-      onConfirm: deleteClone,
+      confirmText: t('common.confirm'),
+      onConfirm: () => setIsReRecording(true),
     });
+  };
+
+  const handleCancelReRecord = () => {
+    clear();
+    setIsReRecording(false);
   };
 
   // Skip leaves voice_clone_status as-is (BE side); step3 will detect
@@ -194,7 +210,7 @@ export default function SetupStep2() {
         {/* Status card mirrors settings/voice.tsx layout exactly so a user
             comparing the two surfaces sees the same shape. */}
         <View style={styles.statusCard}>
-          {cloneStatus === 'ready' && profile?.voice_sample_url ? (
+          {cloneStatus === 'ready' && !isReRecording && profile?.voice_sample_url ? (
             <AudioPlayer url={profile.voice_sample_url} showProgressBar tintColor={REGISTERED_PINK} />
           ) : cloneStatus === 'processing' ? (
             <>
@@ -217,11 +233,14 @@ export default function SetupStep2() {
           )}
         </View>
 
-        {cloneStatus === 'pending' || cloneStatus === 'failed' ? (
+        {showRecordingUI ? (
           recordingUri ? (
             <View style={styles.actions}>
               <Button title={t('setupVoice.uploadVoice')} onPress={handleUpload} loading={loading} />
               <Button title={t('setupVoice.reRecord')} variant="outline" onPress={clear} />
+              {isReRecording && (
+                <Button title={t('common.cancel')} variant="secondary" onPress={handleCancelReRecord} />
+              )}
             </View>
           ) : (
             <View style={styles.recordSection}>
@@ -241,12 +260,15 @@ export default function SetupStep2() {
                   </ScrollView>
                 )}
               </View>
+              {isReRecording && (
+                <Button title={t('common.cancel')} variant="secondary" onPress={handleCancelReRecord} />
+              )}
             </View>
           )
         ) : cloneStatus === 'processing' ? (
           <Text style={styles.hint}>{t('setupVoice.processingHint')}</Text>
         ) : cloneStatus === 'ready' ? (
-          <Button title={t('setupVoice.deleteVoiceClone')} variant="outline" onPress={handleDelete} />
+          <Button title={t('setupVoice.regenerateVoiceClone')} variant="outline" onPress={handleRegenerate} />
         ) : null}
 
         {!voiceReady && (

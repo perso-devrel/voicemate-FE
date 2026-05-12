@@ -1,4 +1,5 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { ProfilePhoto } from '@/components/ui/ProfilePhoto';
@@ -19,6 +20,10 @@ interface ChatBubbleProps {
   partnerPhoto?: string | null;
   showAvatar?: boolean;
   onAvatarPress?: () => void;
+  // voice-first-message-gate sprint: 수신자가 편지 카드(게이팅 분기)에서
+  // 재생을 시작해 자연 완료에 도달하면 본 ChatBubble 내부의 transition
+  // detection useEffect 가 1회 발화. 송신자 본인 메시지에는 호출 가드.
+  onListened?: (messageId: string) => void;
 }
 
 const AVATAR_SIZE = 36;
@@ -30,6 +35,7 @@ export function ChatBubble({
   partnerPhoto,
   showAvatar = true,
   onAvatarPress,
+  onListened,
 }: ChatBubbleProps) {
   const { t } = useTranslation();
   const sharedState = useSharedAudioState();
@@ -51,6 +57,52 @@ export function ChatBubble({
     !!message.translated_text &&
     message.translated_text !== message.original_text;
 
+  // voice-first-message-gate sprint: 수신자 한정 게이팅 상태.
+  //   * isReady — 음성 재생 가능 (audio_status='ready' 이며 url 존재). 편지
+  //     카드에서 탭 → playSharedAudio 호출.
+  //   * isListened — 수신자가 1회 끝까지 청취 완료 (BE 가 보장하는 단방향
+  //     플래그 또는 useChat optimistic). 이 시점부터는 텍스트+재생 버튼
+  //     렌더 (기존 inner).
+  const isReady = message.audio_status === 'ready' && !!message.audio_url;
+  const isListened = !!message.listened_at;
+  const showGate = !isMine && !isListened;
+
+  // 재생 완료(transition) 자체 감지. sharedAudioPlayer 의 status update 에서
+  //   * wasPlaying === true && nowPlaying === false  → stop transition
+  //   * currentTime >= duration - 0.2                 → end of track (자연 완료)
+  // 두 조건이 같이 성립할 때만 onListened 발화. 일시정지(중간에서 stop) 또는
+  // source 교체로 다른 메시지가 currentUrl 을 가져간 경우는 자연스럽게 분기
+  // 밖이라 미발화. fragile 한 sharedAudioPlayer 는 절대 손대지 않는 전제.
+  const prevPlayingRef = useRef(false);
+  useEffect(() => {
+    if (isMine || isListened || !isReady) return;
+    const isOurTrack = sharedState.currentUrl === message.audio_url;
+    if (!isOurTrack) {
+      prevPlayingRef.current = sharedState.isPlaying;
+      return;
+    }
+    const wasPlaying = prevPlayingRef.current;
+    const nowStopped = !sharedState.isPlaying;
+    const reachedEnd =
+      sharedState.duration > 0 &&
+      sharedState.currentTime >= sharedState.duration - 0.2;
+    if (wasPlaying && nowStopped && reachedEnd) {
+      onListened?.(message.id);
+    }
+    prevPlayingRef.current = sharedState.isPlaying;
+  }, [
+    sharedState.isPlaying,
+    sharedState.currentTime,
+    sharedState.duration,
+    sharedState.currentUrl,
+    message.id,
+    message.audio_url,
+    isMine,
+    isListened,
+    isReady,
+    onListened,
+  ]);
+
   // chat-audio-async-insert sprint: audio_status 가 가질 수 있는 값은 세 가지.
   //   * 'pending' — 본인 발신 stub. BE 응답 직후, TTS 완료 전. realtime INSERT
   //     도착 시 같은 id 로 useChat 이 replace → 'ready' 가 됨. 상대방에게는
@@ -60,6 +112,112 @@ export function ChatBubble({
   //   * 'failed' — TTS 파이프라인 실패 → 텍스트 전용으로 영구 저장. 사용자는
   //     같은 텍스트로 새 메시지를 보내 재시도. 별도 retry UI 없음 (mid-session
   //     UPDATE 패턴을 폐기했기 때문).
+  const timeLabel = new Date(message.created_at).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  // voice-first-message-gate sprint: 수신자 게이팅. isReady 면 탭 가능한 편지
+  // 카드(mail-outline + tapToListen), 아니면 비활성 편지 카드(mail-unread-outline
+  // + messagePreparing). pending/processing/failed 모두 후자 — 메시지 본문 공개를
+  // 일관되게 차단. 청취 완료 후에는 본 분기 밖으로 빠져 기존 inner 렌더.
+  //
+  // 재생 중 펄스: isPlayingThis 동안 편지 아이콘 뒤에서 분홍 동그라미 두 개가
+  // staggered 로 퍼지는 wave 효과. native driver 만 사용 (transform.scale +
+  // opacity) → JS 스레드 영향 없음. chat-audio-singleton 의 fragile sharedPlayer
+  // 영역과 분리 — 본 컴포넌트 안의 순수 시각 효과.
+  const pulse1 = useRef(new Animated.Value(0)).current;
+  const pulse2 = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!isPlayingThis) {
+      pulse1.setValue(0);
+      pulse2.setValue(0);
+      return;
+    }
+    const makeLoop = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, {
+            toValue: 1,
+            duration: 1400,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+    const a = makeLoop(pulse1, 0);
+    const b = makeLoop(pulse2, 700);
+    a.start();
+    b.start();
+    return () => {
+      a.stop();
+      b.stop();
+      pulse1.setValue(0);
+      pulse2.setValue(0);
+    };
+  }, [isPlayingThis, pulse1, pulse2]);
+
+  const pulseTransform = (val: Animated.Value) => ({
+    transform: [
+      {
+        scale: val.interpolate({
+          inputRange: [0, 1],
+          outputRange: [1, 1.8],
+        }),
+      },
+    ],
+    opacity: val.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.55, 0],
+    }),
+  });
+
+  const gateInner = isReady ? (
+    <Pressable
+      onPress={() => {
+        if (!message.audio_url) return;
+        if (isPlayingThis) {
+          pauseSharedAudio();
+        } else {
+          playSharedAudio(message.audio_url);
+        }
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={isPlayingThis ? t('chat.playing') : t('chat.tapToListen')}
+      style={styles.letterCard}
+    >
+      <View style={styles.letterIconWrap}>
+        {isPlayingThis && (
+          <>
+            <Animated.View
+              style={[styles.pulseDot, pulseTransform(pulse1)]}
+              pointerEvents="none"
+            />
+            <Animated.View
+              style={[styles.pulseDot, pulseTransform(pulse2)]}
+              pointerEvents="none"
+            />
+          </>
+        )}
+        <Ionicons name="mail-outline" size={20} color={colors.primary} />
+      </View>
+      <Text style={styles.letterText}>
+        {isPlayingThis ? t('chat.playing') : t('chat.tapToListen')}
+      </Text>
+      <Text style={styles.letterTime}>{timeLabel}</Text>
+    </Pressable>
+  ) : (
+    <View
+      style={[styles.letterCard, styles.letterCardPending]}
+      pointerEvents="none"
+    >
+      <Ionicons name="mail-unread-outline" size={20} color={colors.primary} />
+      <Text style={styles.letterText}>{t('chat.messagePreparing')}</Text>
+      <Text style={styles.letterTime}>{timeLabel}</Text>
+    </View>
+  );
+
   const inner = (
     <>
       <Text style={[styles.text, isMine && styles.mineText]}>
@@ -102,10 +260,7 @@ export function ChatBubble({
         {/* failed 메시지는 텍스트 전용 — 별도 인디케이터 없이 timestamp 만. */}
 
         <Text style={[styles.time, isMine && styles.mineTime]}>
-          {new Date(message.created_at).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {timeLabel}
         </Text>
 
         {isMine && message.read_at && (
@@ -144,9 +299,12 @@ export function ChatBubble({
             shadows.soft,
           ]}
         >
-          {inner}
+          {showGate ? gateInner : inner}
         </View>
-        {message.emotion && message.emotion !== 'neutral' && (
+        {/* voice-first-message-gate sprint: 청취 전에는 emotion 뱃지도 노출
+            안 함 — 음성 청취 전에 단서를 흘리지 않도록. 청취 완료(또는 본인
+            송신) 시점부터 자연 노출. */}
+        {!showGate && message.emotion && message.emotion !== 'neutral' && (
           <View
             style={[
               styles.emotionBadge,
@@ -255,5 +413,49 @@ const styles = StyleSheet.create({
   emotionBadgeText: {
     fontSize: 12,
     lineHeight: 14,
+  },
+  // voice-first-message-gate sprint: 편지 카드(수신자 게이팅). 기존
+  // theirsBubble 안에 들어가는 children 이므로 배경/보더는 부모가 담당,
+  // 본 스타일은 아이콘 + 텍스트 + 시간 한 줄 정렬만 책임진다.
+  letterCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  letterCardPending: {
+    opacity: 0.6,
+  },
+  letterText: {
+    flexShrink: 1,
+    fontSize: 13,
+    color: colors.text,
+    fontFamily: fonts.medium,
+    letterSpacing: 0.2,
+  },
+  letterTime: {
+    marginLeft: 'auto',
+    fontSize: 9,
+    color: colors.textSecondary,
+    fontFamily: fonts.regular,
+  },
+  // 편지 아이콘 wrap — 펄스 dot 를 absolute 로 깔기 위한 컨테이너. width/height
+  // 는 아이콘 크기(20) 와 동일해 letterCard 의 row gap/alignment 영향 없음.
+  letterIconWrap: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  // 재생 중 펄스 — 아이콘과 같은 크기에서 시작해 transform.scale 로 퍼져나간다.
+  // JSX 에서 아이콘보다 먼저 렌더되므로 z-stack 상 아이콘이 위에 노출됨 (RN
+  // 기본 stacking — JSX 순서 후자가 위).
+  pulseDot: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
   },
 });

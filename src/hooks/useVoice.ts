@@ -37,20 +37,8 @@ export function useVoice() {
     }
   }, [loadProfile]);
 
-  const deleteClone = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await voiceService.deleteVoiceClone();
-      setStatus({ status: 'pending', voice_id: null });
-      await loadProfile();
-    } catch (e: any) {
-      setError(e.message);
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadProfile]);
+  // 정책: voice clone 단독 삭제 훅은 의도적으로 제거됨 (haru sprint
+  // voice-first-message-gate follow-up). 재녹음은 uploadClone 으로 덮어쓰기.
 
   const startPolling = useCallback((intervalMs = 3000) => {
     stopPolling();
@@ -74,5 +62,5 @@ export function useVoice() {
     return () => stopPolling();
   }, [stopPolling]);
 
-  return { status, loading, error, checkStatus, uploadClone, deleteClone, startPolling, stopPolling };
+  return { status, loading, error, checkStatus, uploadClone, startPolling, stopPolling };
 }

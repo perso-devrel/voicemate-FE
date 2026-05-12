@@ -2,7 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { api, ApiRequestError, getAccessToken } from './api';
 import { API_BASE_URL } from '@/constants/config';
 import { uploadWithTimeout } from '@/utils/upload';
-import type { VoiceCloneResponse, VoiceStatusResponse, VoiceDeleteResponse } from '@/types';
+import type { VoiceCloneResponse, VoiceStatusResponse } from '@/types';
 
 const AUDIO_MIME_MAP: Record<string, string> = {
   wav: 'audio/wav',
@@ -47,6 +47,5 @@ export async function getVoiceStatus(): Promise<VoiceStatusResponse> {
   return api.get<VoiceStatusResponse>('/api/voice/status');
 }
 
-export async function deleteVoiceClone(): Promise<VoiceDeleteResponse> {
-  return api.delete<VoiceDeleteResponse>('/api/voice/clone');
-}
+// 정책: voice clone 단독 삭제는 의도적으로 제거됨. 재녹음을 원하면 uploadVoiceClone
+// 으로 덮어쓰기 (서버가 옛 voice 자동 정리). 데이터 삭제권은 계정 탈퇴로만 행사.

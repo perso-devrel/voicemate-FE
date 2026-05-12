@@ -41,3 +41,16 @@ export async function markAsRead(matchId: string): Promise<ReadResponse> {
 // chat-audio-async-insert sprint: retryAudio 함수 제거.
 // 실패한 메시지는 audio_url=null, audio_status='failed' 로 영구 저장되며
 // 사용자는 동일 텍스트로 새 메시지를 보내 재시도한다.
+
+// voice-first-message-gate sprint: 수신자가 메시지 음성을 1회 끝까지 재생
+// 했음을 서버에 마킹. idempotent — 같은 messageId 로 여러 번 호출돼도 BE 가
+// 처음 한 번만 실제 UPDATE. 실패해도 다음 realtime UPDATE 동기화로 결국
+// 정합화되므로 호출처는 fire-and-forget 패턴 권장.
+export async function markMessageListened(
+  matchId: string,
+  messageId: string,
+): Promise<Message> {
+  return api.post<Message>(
+    `/api/matches/${matchId}/messages/${messageId}/listened`,
+  );
+}

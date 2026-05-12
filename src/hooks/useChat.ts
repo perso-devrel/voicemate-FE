@@ -150,6 +150,32 @@ export function useChat(matchId: string) {
     }
   }, [matchId]);
 
+  // voice-first-message-gate sprint: 수신자가 음성을 끝까지 재생 완료한 메시지에
+  // 대해 호출. optimistic — listened_at 를 즉시 set 해 ChatBubble 이 텍스트 노출
+  // 분기로 전환. BE 호출 실패해도 다음 채팅방 진입 시 서버 권위 row 가 NULL 이면
+  // 게이팅 복귀, 사용자가 다시 청취하면 자동 재호출되므로 별도 retry 불필요.
+  // 성공 시 realtime UPDATE 가 같은 row 를 머지 — 서버 timestamp 가 client
+  // 임시값을 덮어쓰지만 둘 다 truthy 라 게이팅 분기 결과 동일.
+  const markListened = useCallback(
+    async (messageId: string) => {
+      let didOptimistic = false;
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (m.id !== messageId || m.listened_at) return m;
+          didOptimistic = true;
+          return { ...m, listened_at: new Date().toISOString() };
+        }),
+      );
+      if (!didOptimistic) return;
+      try {
+        await messageService.markMessageListened(matchId, messageId);
+      } catch {
+        // silent — realtime UPDATE 가 NULL 그대로 도착하면 게이팅 회귀 후 자동 복구.
+      }
+    },
+    [matchId],
+  );
+
   // chat-audio-async-insert sprint: retryAudio 제거. 실패한 메시지는
   // audio_url=null, audio_status='failed' 로 영구 저장되며 사용자는 동일 텍스트로
   // 새 메시지를 보내 재시도한다.
@@ -173,6 +199,13 @@ export function useChat(matchId: string) {
         matchId,
         (newMsg) => {
           if (cancelled) return;
+          // voice-first-message-gate sprint follow-up: 상대 발신이면서
+          // audio_status != 'ready' 인 메시지는 청취 불가 → 영구 락 → 수신자
+          // 화면에서 아예 숨김. 본인 발신은 status 무관하게 통과 (재전송 등
+          // 대응을 위해 본인은 본인 메시지를 알아야 함).
+          if (newMsg.sender_id !== userId && newMsg.audio_status !== 'ready') {
+            return;
+          }
           // chat-audio-async-insert sprint: 두 가지 INSERT 경로 reconcile.
           //   * 본인 발신 (voice clone 보유): send() 가 stub(audio_status='pending')
           //     을 먼저 넣었고, BE 가 TTS 완료 후 같은 id 로 INSERT → 같은 id 의
@@ -193,10 +226,18 @@ export function useChat(matchId: string) {
         },
         (updatedMsg) => {
           if (cancelled) return;
-          // chat-audio-async-insert sprint: audio_status 전이 UPDATE 는 더 이상
-          // 발생하지 않는다 — 새 모델에서 INSERT 가 곧 최종 상태. 본 핸들러는
-          // 이제 read_at 같은 부수 컬럼 UPDATE 만 처리한다 (recipient 가 읽음
-          // 처리할 때 매치 전체 messages 일괄 UPDATE).
+          // voice-first-message-gate follow-up: 동일 룰 적용 (수신자 게이팅).
+          // 사실상 UPDATE 가 도착하는 케이스는 ready 메시지의 read_at/listened_at
+          // 뿐이지만, 안전 차원에서 INSERT 핸들러와 같은 필터 유지.
+          if (updatedMsg.sender_id !== userId && updatedMsg.audio_status !== 'ready') {
+            return;
+          }
+          // chat-audio-async-insert sprint: audio_status 전이 UPDATE 는 발생
+          // 안 함 (INSERT 가 곧 최종 상태). 본 핸들러는 부수 컬럼 UPDATE 만 처리:
+          //   * read_at — 채팅방 진입 시 일괄 UPDATE.
+          //   * listened_at — voice-first-message-gate sprint, 수신자가 음성
+          //     끝까지 재생 시 단건 UPDATE. 다른 기기에서 청취 시 본 채널로
+          //     수신해 텍스트 노출이 동기화된다.
           setMessages((prev) =>
             prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)),
           );
@@ -280,5 +321,9 @@ export function useChat(matchId: string) {
     loadOlder,
     send,
     markRead,
+    // voice-first-message-gate sprint: ChatBubble 에 prop 으로 전달되어 음성
+    // 재생 완료 시점에 발화된다. 송신자 본인 메시지에는 호출되지 않도록 호출처
+    // (ChatBubble) 에서 isMine 분기 가드.
+    markListened,
   };
 }

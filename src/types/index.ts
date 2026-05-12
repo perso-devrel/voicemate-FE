@@ -98,9 +98,8 @@ export interface VoiceStatusResponse {
   voice_id: string | null;
 }
 
-export interface VoiceDeleteResponse {
-  status: 'deleted';
-}
+// voice-first-message-gate follow-up: voice clone 단독 삭제 라우트가 제거됨에
+// 따라 본 응답 타입도 사용처 없음. 정의는 삭제했다 — 재녹음은 덮어쓰기로 일원화.
 
 // === Discover / Swipe ===
 export interface DiscoverCandidate {
@@ -220,6 +219,11 @@ export interface Message {
   // BE normalises 'neutral' → null for storage; both shapes are observed.
   emotion: Emotion | null;
   read_at: string | null;
+  // voice-first-message-gate sprint (mig 015): 수신자가 음성을 1회 끝까지
+  // 재생한 시각. NULL = 미청취 → ChatBubble 이 텍스트(original_text +
+  // translated_text)를 숨기고 편지 UI 만 노출. 본인 발신 메시지는 항상 null
+  // (BE 라우트가 sender_id == req.userId 호출을 403 반환).
+  listened_at: string | null;
   created_at: string;
 }
 

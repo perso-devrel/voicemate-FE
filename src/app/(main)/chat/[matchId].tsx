@@ -179,6 +179,10 @@ export default function ChatScreen() {
     loadOlder,
     send,
     markRead,
+    // voice-first-message-gate sprint: 수신자가 편지 카드에서 음성을 끝까지
+    // 들으면 ChatBubble 의 transition detection useEffect 가 본 콜백을 1회
+    // 발화 → BE PATCH 로 listened_at 영구화 + optimistic 으로 즉시 본문 노출.
+    markListened,
   } = useChat(matchId!);
 
   // mig 014 match-roundtrip-realtime: 클라이언트 윈도우 재계산 제거.
@@ -414,6 +418,7 @@ export default function ChatScreen() {
           partnerId={partnerId}
           partnerPhoto={partnerPhoto}
           showAvatar={showAvatar}
+          onListened={markListened}
           onAvatarPress={() => {
             // Tombstone partner has nothing meaningful in the profile modal
             // (cleared name/photos/interests/voice intro), so suppress the
