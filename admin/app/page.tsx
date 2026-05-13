@@ -46,6 +46,35 @@ const C = {
   error: '#DC2626',
 } as const;
 
+// 관심사 ID → 한국어 라벨 (haru_FE/src/i18n/locales/ko.ts 의 interestOptions 동기).
+// dev 계정 interests 는 canonical ID 로 저장 — 표시는 한국어. ID 와 매칭 안 되는
+// legacy 값(옛 raw 문자열) 은 폴백으로 그대로 표시.
+const INTEREST_LABELS_KO: Record<string, string> = {
+  drama: '드라마', movies: '영화', anime: '애니', youtube: '유튜브', webtoon: '웹툰',
+  variety: '예능', documentary: '다큐멘터리', thriller: '스릴러', romance: '로맨스', scifi: 'SF',
+  gaming: '콘솔/PC 게임', lol: '롤', overwatch: '오버워치', valorant: '발로란트', pubg: '배틀그라운드',
+  minecraft: '마인크래프트', roblox: '로블록스', genshin: '원신', mobileGame: '모바일 게임',
+  nintendo: '닌텐도', playstation: '플레이스테이션', rpg: 'RPG', fps: 'FPS', simulation: '시뮬레이션',
+  cafe: '카페 투어', walking: '산책', foodie: '맛집 탐방', escapeRoom: '방탈출', bar: '바',
+  camping: '캠핑', travel: '여행', shopping: '쇼핑', driving: '드라이브', picnic: '피크닉',
+  karaoke: '노래방', cinema: '영화관', concert: '콘서트', exhibition: '전시', festival: '페스티벌',
+  reading: '독서', cooking: '요리', baking: '베이킹', drawing: '그림 그리기', bingeWatch: '정주행',
+  boardGame: '보드게임', homeCafe: '홈카페', gardening: '식물 키우기', writing: '글쓰기', puzzle: '퍼즐',
+  homeWorkout: '홈트', knitting: '뜨개질', candleMaking: '향초 만들기', diy: 'DIY', teaCeremony: '다도',
+  gym: '헬스', yoga: '요가', running: '러닝', cycling: '자전거', hiking: '등산', swimming: '수영',
+  climbing: '클라이밍', basketball: '농구', soccer: '축구', tennis: '테니스', badminton: '배드민턴',
+  bowling: '볼링', golf: '골프', pilates: '필라테스', dance: '댄스',
+  music: '음악', kpop: 'K-POP', jpop: 'J-POP', pop: '팝송', hiphop: '힙합',
+  ballad: '발라드', indie: '인디', rock: '록', rnb: 'R&B', jazz: '재즈',
+  photography: '사진', pets: '반려동물', wine: '와인', coffee: '커피', meditation: '명상',
+  selfDev: '자기계발', languageLearn: '외국어', fashion: '패션', beauty: '뷰티', tattoo: '타투',
+  cosplay: '코스프레', perfume: '향수', mbti: 'MBTI', astrology: '별자리', tarot: '타로',
+};
+
+function interestLabel(id: string): string {
+  return INTEREST_LABELS_KO[id] ?? id;
+}
+
 const FONT_STACK =
   "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, " +
   "'Segoe UI', Roboto, 'Helvetica Neue', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
@@ -986,7 +1015,7 @@ function DiscoverRow({
                 className="rounded-full px-2 py-0.5 text-[11px] font-medium"
                 style={{ background: C.primaryLight, color: C.primaryDark }}
               >
-                {i}
+                {interestLabel(i)}
               </span>
             ))}
           </div>
