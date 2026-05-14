@@ -143,7 +143,6 @@ export type DiscoverCard = {
   nationality: string;
   language: string;
   voice_intro: string | null;
-  voice_intro_audio_url: string | null;
   interests: string[];
   photos: string[];
 };

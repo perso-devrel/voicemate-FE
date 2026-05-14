@@ -17,11 +17,11 @@ export interface TokenRefreshResponse {
 }
 
 // === Profile ===
-// Mig 011 introduces ko/ja/en multi-slot voice intro audio. The single
-// `voice_intro_audio_url` column is kept as a compatibility mirror of the
-// author-language slot URL so chat partner detail (which reads via supabase
-// directly) keeps working without code changes. New code should prefer the
-// per-slot `voice_intro_audio_urls` / `voice_intro_audio_status` maps below.
+// Mig 011 introduces ko/ja/en multi-slot voice intro audio.
+// Mig 019 dropped the legacy single `voice_intro_audio_url` column — the only
+// remaining wire keys with that name are per-request mirrors in the discover
+// (`DiscoverCandidate`) and chat-partner (`PartnerDetail`) responses, where BE
+// extracts the viewer-language slot from `voice_intro_audio_urls` JSONB.
 export type VoiceIntroSlotLanguage = 'ko' | 'ja' | 'en';
 export type VoiceIntroAudioStatus = 'pending' | 'processing' | 'ready' | 'failed';
 export const VOICE_INTRO_SLOT_LANGUAGES: readonly VoiceIntroSlotLanguage[] = ['ko', 'ja', 'en'] as const;
@@ -43,16 +43,9 @@ export interface Profile {
   elevenlabs_voice_id: string | null;
   voice_sample_url: string | null;
   voice_clone_status: 'pending' | 'processing' | 'ready' | 'failed';
-  // Compatibility mirror of the author-language slot URL (mig 011). Kept so
-  // existing read paths (chat partner detail, profile.tsx single-player
-  // fallback) keep working without code changes. May go null briefly after
-  // mig 011 is applied and before the next voice_intro save re-triggers the
-  // pipeline.
-  voice_intro_audio_url: string | null;
   // Mig 011 — optional because BE may transiently emit `{}` right after the
   // migration is applied (before the user re-saves voice_intro). Consumers
-  // must treat empty/undefined as "not yet known" and fall back to the
-  // single-column mirror above when polling for synthesis completion.
+  // treat empty/undefined as "not yet known" while polling for synthesis.
   voice_intro_translations?: Partial<Record<VoiceIntroSlotLanguage, string>>;
   voice_intro_audio_urls?: Partial<Record<VoiceIntroSlotLanguage, string | null>>;
   voice_intro_audio_status?: Partial<Record<VoiceIntroSlotLanguage, VoiceIntroAudioStatus>>;

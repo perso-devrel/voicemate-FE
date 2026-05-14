@@ -129,8 +129,10 @@ export default function ChatScreen() {
   useEffect(() => {
     // BE /api/matches returns only basic MatchPartner fields. We pull the partner
     // from that list for photo/name/nationality/language (no single-match endpoint),
-    // then call Supabase directly for birth_date/interests/voice_intro_audio_url
-    // (RLS "Anyone can read active profiles" permits it).
+    // then call GET /api/matches/:matchId/partner for birth_date/interests/
+    // voice_intro_audio_url. BE 가 viewer 언어 슬롯으로 voice_intro_audio_url 을
+    // 미러해 응답하므로 채팅 프로필 모달에서도 시청자 언어로 재생된다
+    // (디스커버 응답과 동일 정책 — 차별점 2 정합 회복).
     if (!matchId) return;
     let cancelled = false;
     (async () => {
@@ -162,7 +164,7 @@ export default function ChatScreen() {
         setPartnerPhotos(partner.photos ?? []);
         setPartnerNationality(partner.nationality ?? null);
         setPartnerLanguage(partner.language ?? null);
-        const detail = await matchService.getPartnerDetail(partner.id);
+        const detail = await matchService.getPartnerDetail(matchId);
         if (cancelled || !detail) return;
         setPartnerInterests(detail.interests);
         setPartnerBioAudio(detail.voice_intro_audio_url);

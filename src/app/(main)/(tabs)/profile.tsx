@@ -86,21 +86,25 @@ export default function ProfileScreen() {
   }, [navigation, t]);
 
   // BE generates voice_intro audio asynchronously (fire-and-forget TTS).
-  // Mig 011 expanded the single voice_intro_audio_url into a 3-slot
-  // (ko/ja/en) status object — poll until every slot has resolved to
-  // ready/failed. While the migration is rolling out the BE may also emit
-  // an empty `{}` status object (no synthesis attempted yet), in which
-  // case we fall back to the legacy single-column boolean so the previous
-  // behaviour is preserved.
+  // Mig 011 의 3슬롯 (ko/ja/en) status 가 진실원 — 모든 슬롯이 ready/failed
+  // 로 자리잡힐 때까지 polling. 단, status 가 비어있는 (`{}`) 케이스 분기는
+  // voice clone 보유 여부로 가른다:
+  //   * voice clone 보유: PUT /api/profile/me 가 동기 응답을 status `{}` 로
+  //     반환한 직후의 윈도우. BE 파이프라인은 응답 이후에 fire-and-forget 로
+  //     'pending' → 'ready' 를 commit 하므로 FE 는 그 전이를 잡으려면 폴링을
+  //     시작해야 한다. 옛 로직은 이 케이스를 settled 로 잘못 분류해 폴링이
+  //     아예 시작되지 않아 "음성 합성 중입니다..." 가 영구 잔류했다.
+  //   * voice clone 미보유: 파이프라인 자체가 트리거되지 않아 status `{}` 가
+  //     영구 — settled 로 처리해 폴링 진입을 차단.
   const bioSet = Boolean(profile?.voice_intro && profile.voice_intro.trim().length > 0);
+  const hasVoiceClone = Boolean(profile?.elevenlabs_voice_id);
   const status = profile?.voice_intro_audio_status;
-  const hasNewStatus = Boolean(status && Object.keys(status).length > 0);
-  const allSlotsSettled = hasNewStatus
-    ? VOICE_INTRO_SLOT_LANGUAGES.every((l) => {
+  const allSlotsSettled = !hasVoiceClone
+    ? true
+    : VOICE_INTRO_SLOT_LANGUAGES.every((l) => {
         const s = status?.[l];
         return s === 'ready' || s === 'failed';
-      })
-    : Boolean(profile?.voice_intro_audio_url); // legacy single-column fallback (mig 011 backfill window)
+      });
   const [synthesizing, setSynthesizing] = useState(false);
   useEffect(() => {
     if (!bioSet || allSlotsSettled) {

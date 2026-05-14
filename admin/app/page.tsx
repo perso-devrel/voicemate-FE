@@ -999,13 +999,6 @@ function DiscoverRow({
               {age} · {card.language}/{card.nationality}
             </span>
           </div>
-          {card.voice_intro_audio_url && (
-            <audio
-              src={card.voice_intro_audio_url}
-              controls
-              className="mt-2 h-8 w-full max-w-[320px]"
-            />
-          )}
         </div>
         {card.interests?.length > 0 && (
           <div className="flex flex-wrap gap-1">

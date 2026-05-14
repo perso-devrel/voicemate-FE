@@ -1,5 +1,4 @@
 import { api } from './api';
-import { supabase } from './realtime';
 import type { MatchListItem, PartnerDetail } from '@/types';
 
 export async function getMatches(
@@ -18,18 +17,16 @@ export async function hideMatch(matchId: string): Promise<void> {
   await api.post<void>(`/api/matches/${matchId}/hide`);
 }
 
-// BE's MatchPartner DTO omits birth_date/interests/voice_intro_audio_url. We pull those
-// directly from Supabase — RLS policy "Anyone can read active profiles" permits it.
-export async function getPartnerDetail(userId: string): Promise<PartnerDetail | null> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('birth_date, interests, voice_intro_audio_url')
-    .eq('id', userId)
-    .maybeSingle();
-  if (error || !data) return null;
-  return {
-    birth_date: data.birth_date ?? '',
-    interests: (data.interests as string[]) ?? [],
-    voice_intro_audio_url: (data.voice_intro_audio_url as string | null) ?? null,
-  };
+// BE 의 MatchPartner DTO 는 birth_date / interests / voice_intro_audio_url 을
+// 생략한다. 종전엔 FE 가 supabase 에서 directly select 했지만, 그 경로의
+// `voice_intro_audio_url` 는 mig 011 의 정의상 "작성자 언어 슬롯 미러" 라
+// 시청자가 자기 언어가 아닌 작성자 언어로 듣게 되는 비대칭이 있었다. BE
+// 의 GET /api/matches/:matchId/partner 가 시청자 언어 슬롯을 골라 미러해서
+// 응답하므로 그 라우트를 호출한다(디스커버 응답과 동일 정책).
+export async function getPartnerDetail(matchId: string): Promise<PartnerDetail | null> {
+  try {
+    return await api.get<PartnerDetail>(`/api/matches/${matchId}/partner`);
+  } catch {
+    return null;
+  }
 }
