@@ -188,10 +188,12 @@ export default function ChatScreen() {
     loadMessages,
     loadOlder,
     send,
-    markRead,
     // voice-first-message-gate sprint: 수신자가 편지 카드에서 음성을 끝까지
     // 들으면 ChatBubble 의 transition detection useEffect 가 본 콜백을 1회
     // 발화 → BE PATCH 로 listened_at 영구화 + optimistic 으로 즉시 본문 노출.
+    // read-at-removal-list-mask sprint: markRead 제거 — 일괄 "읽음" 마킹은
+    // listened_at 일원화로 의미를 잃었다. 메시지별 청취 마킹은 markListened
+    // 단일 동선.
     markListened,
   } = useChat(matchId!);
 
@@ -235,11 +237,9 @@ export default function ChatScreen() {
     loadMessages();
   }, [loadMessages]);
 
-  useEffect(() => {
-    if (messages.length > 0) {
-      markRead();
-    }
-  }, [messages.length, markRead]);
+  // read-at-removal-list-mask sprint: 진입 시 일괄 markRead 효과 제거.
+  // listened_at 단일 진실원으로 일원화되면서 채팅방 진입 = 읽음 의미가 사라졌고,
+  // 메시지별 청취 완료 시점에 markListened 가 발화된다 (ChatBubble 내부).
 
   // Inverted FlatList anchors the visual bottom (newest message) at scroll
   // offset 0 — opening the chat puts the newest message in view from the
@@ -503,7 +503,9 @@ export default function ChatScreen() {
           // **upsert** 되며, 그 시점에 ChatBubble 내부에서 `audio_url` key 를 가진
           // AudioPlayer 가 처음 mount → expo-audio cold-start path. 셀 자체를
           // fresh re-mount 시킬 필요가 없으므로 무관한 UPDATE(read_at 등) 에 대한
-          // 불필요한 unmount 비용도 사라진다.
+          // 불필요한 unmount 비용도 사라진다. (read-at-removal-list-mask sprint
+          // 이후 read_at 컬럼은 사라졌고, listened_at / audio_status 등의 부수
+          // UPDATE 만 도착한다.)
           keyExtractor={(item) => item.id}
           inverted
           onEndReached={hasMore ? loadOlder : undefined}

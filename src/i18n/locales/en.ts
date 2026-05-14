@@ -144,6 +144,10 @@ export default {
     tombstone: {
       unmatched: 'This match has ended',
     },
+    preview: {
+      // read-at-removal-list-mask sprint: masked preview for unheard partner messages.
+      newMessage: 'New message',
+    },
     report: {
       title: 'Report',
       subtitle: 'Pick a reason to report {{name}}.',

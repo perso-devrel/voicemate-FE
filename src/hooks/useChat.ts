@@ -142,13 +142,9 @@ export function useChat(matchId: string) {
     }
   }, [matchId]);
 
-  const markRead = useCallback(async () => {
-    try {
-      await messageService.markAsRead(matchId);
-    } catch {
-      // silent fail for read receipts
-    }
-  }, [matchId]);
+  // read-at-removal-list-mask sprint: markRead 콜백 제거. "읽음" 의미가
+  // listened_at (음성 청취 완료) 으로 일원화되면서 PATCH /messages/read 라우트와
+  // 함께 일괄 마킹 동선이 폐기됐다. 메시지별 청취 마킹은 markListened 가 담당.
 
   // voice-first-message-gate sprint: 수신자가 음성을 끝까지 재생 완료한 메시지에
   // 대해 호출. optimistic — listened_at 를 즉시 set 해 ChatBubble 이 텍스트 노출
@@ -234,10 +230,11 @@ export function useChat(matchId: string) {
           }
           // chat-audio-async-insert sprint: audio_status 전이 UPDATE 는 발생
           // 안 함 (INSERT 가 곧 최종 상태). 본 핸들러는 부수 컬럼 UPDATE 만 처리:
-          //   * read_at — 채팅방 진입 시 일괄 UPDATE.
           //   * listened_at — voice-first-message-gate sprint, 수신자가 음성
           //     끝까지 재생 시 단건 UPDATE. 다른 기기에서 청취 시 본 채널로
           //     수신해 텍스트 노출이 동기화된다.
+          //   * read-at-removal-list-mask sprint (mig 018): 옛 read_at 컬럼 제거.
+          //     "읽음" 의미는 listened_at 단일 진실원.
           setMessages((prev) =>
             prev.map((m) => (m.id === updatedMsg.id ? updatedMsg : m)),
           );
@@ -320,7 +317,6 @@ export function useChat(matchId: string) {
     loadMessages,
     loadOlder,
     send,
-    markRead,
     // voice-first-message-gate sprint: ChatBubble 에 prop 으로 전달되어 음성
     // 재생 완료 시점에 발화된다. 송신자 본인 메시지에는 호출되지 않도록 호출처
     // (ChatBubble) 에서 isMine 분기 가드.

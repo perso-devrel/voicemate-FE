@@ -16,9 +16,9 @@ export default function MatchesScreen() {
   const [actionTarget, setActionTarget] = useState<MatchListItem | null>(null);
 
   // Refetch every time the tab regains focus so unread_count reflects the
-  // BE truth after the chat screen's markRead. The list-level Realtime
-  // channel only listens to INSERTs, so unread decrements (read_at flips)
-  // never reach the list otherwise.
+  // BE truth after listened POSTs from the chat screen. The list-level
+  // Realtime channel only listens to INSERTs, so unread decrements
+  // (listened_at flips on messages) never reach the list otherwise.
   useFocusEffect(
     useCallback(() => {
       loadMatches();

@@ -21,7 +21,6 @@ import {
   listDevAccounts,
   listMatches,
   listMessages,
-  markMessagesRead,
   sendMessage,
   setAdminSecret,
   swipe,
@@ -634,9 +633,10 @@ function ChatView({ account, match }: { account: DevAccount; match: MatchSummary
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
-  useEffect(() => {
-    markMessagesRead(account.user_id, match.match_id).catch(() => {});
-  }, [account.user_id, match.match_id]);
+  // read-at-removal-list-mask sprint: 일괄 read 마킹 effect 제거. "읽음" 의미가
+  // listened_at (음성 청취 완료) 으로 일원화되면서 admin 대시보드에서도 채팅창
+  // 진입 시 일괄 마킹할 필요가 없어졌다. 메시지별 청취 마킹은 dev seed 계정의
+  // 실제 음성 청취 동작(BE listened POST) 으로만 발생.
 
   useEffect(() => {
     if (scrollRef.current) {

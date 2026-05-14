@@ -263,7 +263,11 @@ export function ChatBubble({
           {timeLabel}
         </Text>
 
-        {isMine && message.read_at && (
+        {/* read-at-removal-list-mask sprint: 송신자 체크마크 기준을 read_at →
+            listened_at 로 전환. "상대가 내 메시지의 음성을 끝까지 들었음 = 읽음"
+            의미로 일원화. mig 015 백필로 기존 메시지는 read_at == listened_at
+            이라 회귀 없음. */}
+        {isMine && message.listened_at && (
           <Ionicons name="checkmark-done" size={14} color={colors.white} style={{ marginLeft: 4 }} />
         )}
       </View>

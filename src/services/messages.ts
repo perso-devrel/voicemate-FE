@@ -2,7 +2,6 @@ import { api } from './api';
 import type {
   Emotion,
   Message,
-  ReadResponse,
   SendMessageResponse,
 } from '@/types';
 
@@ -34,9 +33,10 @@ export async function sendMessage(
   return api.post<SendMessageResponse>(`/api/matches/${matchId}/messages`, body);
 }
 
-export async function markAsRead(matchId: string): Promise<ReadResponse> {
-  return api.patch<ReadResponse>(`/api/matches/${matchId}/messages/read`);
-}
+// read-at-removal-list-mask sprint: markAsRead 함수 제거.
+// "읽음" 의 의미가 listened_at (음성 청취 완료) 으로 일원화되면서 PATCH
+// /messages/read 라우트가 사라졌고, 일괄 마킹 동선 자체가 폐기됐다. 메시지별
+// 청취 마킹은 markMessageListened 가 단일 진실원.
 
 // chat-audio-async-insert sprint: retryAudio 함수 제거.
 // 실패한 메시지는 audio_url=null, audio_status='failed' 로 영구 저장되며

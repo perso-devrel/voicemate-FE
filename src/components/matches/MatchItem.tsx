@@ -28,9 +28,46 @@ export function MatchItem({ item, onPress, onLongPress }: MatchItemProps) {
   const displayName = isDeleted
     ? t('common.deletedUser')
     : (partner?.display_name || t('matches.unknown'));
-  const lastMessageText = isUnmatched && !item.last_message
-    ? t('matches.tombstone.unmatched')
-    : (item.last_message?.original_text ?? t('matches.startConversation'));
+
+  // read-at-removal-list-mask sprint: 마지막 메시지 미리보기 마스킹 분기.
+  // 분기 우선순위 (위에서부터 평가):
+  //   1. tombstone (deleted/unmatched) → "매치 종료" 또는 last_message 무시
+  //   2. last_message 없음 → startConversation
+  //   3. 본인 발신 → 원문 (현행 유지)
+  //   4. 상대 발신 + audio_status != 'ready' → startConversation (defense-in-depth;
+  //      BE v3 RPC 가 이미 last_message 후보에서 제외)
+  //   5. 상대 발신 + 청취 완료 → 원문 (현행 유지)
+  //   6. 상대 발신 + 미청취 → "새 메시지" 마스킹
+  //
+  // viewerId 출처: partner.id 비교로 prop drilling 회피 (plan §3.7 옵션 B).
+  // partner null 시 isFromMe=false 로 fallback — last_message 가 있다면 상대 발신
+  // 으로 간주, 단 partner 가 null 이면 일반적으로 매치 자체가 비정상 상태.
+  const lastMessage = item.last_message;
+  const isFromMe = lastMessage && partner ? lastMessage.sender_id !== partner.id : false;
+  const isReadyAudio = lastMessage?.audio_status === 'ready';
+  const isListened = !!lastMessage?.listened_at;
+
+  let lastMessageText: string;
+  let isMaskedPreview = false;
+  if (isTombstone) {
+    lastMessageText = isUnmatched ? t('matches.tombstone.unmatched') : '';
+  } else if (!lastMessage) {
+    lastMessageText = t('matches.startConversation');
+  } else if (isFromMe) {
+    // BE 가 tombstone 매치에 한해 original_text 를 null 로 normalize 한다
+    // (safety 권고 #2 의 raw API 누설 차단). tombstone 은 위 분기에서 처리되므로
+    // 여기 도달 시 비어있을 일은 없지만 타입 safety 용 fallback.
+    lastMessageText = lastMessage.original_text ?? '';
+  } else if (!isReadyAudio) {
+    // 상대 발신이지만 비정상 status — BE v3 가 last_message 후보에서 제외하므로
+    // 실제로 도달하기 어려운 분기. "비어 있는 카드" 회피용 폴백.
+    lastMessageText = t('matches.startConversation');
+  } else if (isListened) {
+    lastMessageText = lastMessage.original_text ?? '';
+  } else {
+    lastMessageText = t('matches.preview.newMessage');
+    isMaskedPreview = true;
+  }
 
   return (
     <Pressable
@@ -61,7 +98,11 @@ export function MatchItem({ item, onPress, onLongPress }: MatchItemProps) {
           <Text
             style={[
               styles.lastMessage,
-              hasUnread && !isTombstone && styles.lastMessageUnread,
+              // 마스킹 미리보기도 unread 톤(굵게/강조) 으로 표시 — strategist
+              // 권고. hasUnread 와 isMaskedPreview 가 일반적으로 동조하지만
+              // 별도 케이스 (BE v3 가 정합 상태로 양쪽을 같이 움직이지만 안전망)
+              // 를 위해 OR 분기.
+              (hasUnread || isMaskedPreview) && !isTombstone && styles.lastMessageUnread,
               isTombstone && styles.lastMessageTombstone,
             ]}
             numberOfLines={1}

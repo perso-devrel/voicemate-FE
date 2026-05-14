@@ -129,7 +129,8 @@ export type Message = {
   audio_url: string | null;
   audio_status: 'pending' | 'processing' | 'ready' | 'failed';
   emotion: string | null;
-  read_at: string | null;
+  // read-at-removal-list-mask sprint (mig 018): 옛 read_at 컬럼 제거. "읽음" 의미는
+  // listened_at 단일 진실원.
   listened_at: string | null;
   created_at: string;
 };
@@ -177,18 +178,10 @@ export async function sendMessage(asUserId: string, matchId: string, text: strin
   });
 }
 
-// 상대가 보낸 미읽음 메시지 일괄 read 처리.
-// 본인 발신 메시지는 BE 가 sender_id != viewer 조건으로 제외하므로 영향 없음.
-// 반환: { read_count: N } — 실제 read 로 전환된 row 수.
-export async function markMessagesRead(
-  asUserId: string,
-  matchId: string,
-): Promise<{ read_count: number }> {
-  return adminFetch<{ read_count: number }>(`/api/matches/${matchId}/messages/read`, {
-    method: 'PATCH',
-    impersonate: asUserId,
-  });
-}
+// read-at-removal-list-mask sprint: markMessagesRead 함수 제거.
+// PATCH /api/matches/:matchId/messages/read 라우트가 폐기되었고, "읽음" 의미는
+// listened_at 단일 진실원으로 일원화됐다. admin 대시보드에서 일괄 read 마킹이
+// 필요했던 동선 자체가 무의미해짐.
 
 export async function getDiscover(asUserId: string, limit = 10): Promise<DiscoverCard[]> {
   return adminFetch<DiscoverCard[]>(`/api/discover?limit=${limit}`, { impersonate: asUserId });

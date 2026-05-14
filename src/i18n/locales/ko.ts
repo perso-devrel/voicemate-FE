@@ -143,6 +143,11 @@ export default {
         tombstone: {
             unmatched: "매치가 종료되었어요",
         },
+        preview: {
+            // read-at-removal-list-mask sprint: 상대가 보낸 미청취 메시지 마스킹.
+            // "음성을 들어야 안다" funnel 일관성 — 채팅 목록 카드에서도 본문 노출 차단.
+            newMessage: "새 메시지",
+        },
         report: {
             title: "신고하기",
             subtitle: "{{name}}님을 신고할 사유를 선택해 주세요.",

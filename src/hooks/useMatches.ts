@@ -69,8 +69,9 @@ function applyMatchUpdate(
 
 // Apply a freshly-arrived message to the matches list state without a full
 // network re-fetch. The row's last_message becomes the new message and its
-// unread_count bumps when the message is from the partner (the chat screen's
-// markRead/realtime path keeps own-sent messages from triggering a bump).
+// unread_count bumps when the message is from the partner.
+// read-at-removal-list-mask sprint: 본 함수는 realtime INSERT 핸들러에서 호출되며,
+// "읽음" 추적은 listened_at 일원화 후에도 BE 응답 (focus refetch) 가 진실원.
 function applyIncomingMessage(
   prev: MatchListItem[],
   message: Message,
@@ -93,6 +94,10 @@ function applyIncomingMessage(
       original_text: message.original_text,
       sender_id: message.sender_id,
       created_at: message.created_at,
+      // read-at-removal-list-mask sprint (mig 017 v3): MatchItem 마스킹 분기
+      // 입력값. INSERT realtime payload 의 status/listened_at 을 그대로 반영.
+      audio_status: message.audio_status,
+      listened_at: message.listened_at,
     },
     unread_count: isMine ? row.unread_count : row.unread_count + 1,
   };

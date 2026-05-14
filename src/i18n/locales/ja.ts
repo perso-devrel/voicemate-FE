@@ -143,6 +143,10 @@ export default {
         tombstone: {
             unmatched: "マッチが終了しました",
         },
+        preview: {
+            // read-at-removal-list-mask sprint: 相手の未試聴メッセージのマスキング。
+            newMessage: "新しいメッセージ",
+        },
         report: {
             title: "通報する",
             subtitle: "{{name}}さんを通報する理由を選んでください。",

@@ -176,9 +176,17 @@ export interface MatchListItem {
   partner: MatchPartner | null;
   last_message: {
     id: string;
-    original_text: string;
+    // tombstone 매치(언매치/상대 탈퇴) 는 BE 가 null 로 normalize 해 raw API
+    // 응답에서도 차단 직전 마지막 메시지 원문이 노출되지 않게 한다. FE 마스킹
+    // 분기 1번이 tombstone 카피로 덮으므로 표시 경로는 변함 없음.
+    original_text: string | null;
     sender_id: string;
     created_at: string;
+    // read-at-removal-list-mask sprint (mig 017 v3): MatchItem 미리보기 마스킹
+    // 분기용 raw 필드. 본인 발신 / 상대 발신·이미 청취 / 상대 발신·미청취 분기를
+    // 별도 fetch 없이 평가.
+    audio_status: AudioStatus;
+    listened_at: string | null;
   } | null;
   unread_count: number;
   // Per-match, viewer-relative photo reveal flags aggregated by BE.
@@ -218,7 +226,6 @@ export interface Message {
   audio_status: AudioStatus;
   // BE normalises 'neutral' → null for storage; both shapes are observed.
   emotion: Emotion | null;
-  read_at: string | null;
   // voice-first-message-gate sprint (mig 015): 수신자가 음성을 1회 끝까지
   // 재생한 시각. NULL = 미청취 → ChatBubble 이 텍스트(original_text +
   // translated_text)를 숨기고 편지 UI 만 노출. 본인 발신 메시지는 항상 null
@@ -255,9 +262,8 @@ export interface MatchAfter {
 // 어느 쪽이든 Message 필드 구조는 동일.
 export type SendMessageResponse = Message;
 
-export interface ReadResponse {
-  read_count: number;
-}
+// read-at-removal-list-mask sprint: ReadResponse 타입 제거.
+// PATCH /messages/read 라우트가 폐기되면서 본 응답 모양도 사용처 없음.
 
 // chat-audio-async-insert sprint: retry 엔드포인트 제거. 실패 메시지는
 // audio_url=null, audio_status='failed' 로 INSERT 되어 텍스트는 전달되며,
