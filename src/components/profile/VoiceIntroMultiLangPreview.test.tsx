@@ -35,25 +35,57 @@ jest.mock('@/components/chat/AudioPlayer', () => ({
 }));
 
 import {
+  getAuthorSlot,
+  getVisibleSlots,
   pickDefaultSlot,
   resolveBodyBranch,
 } from './VoiceIntroMultiLangPreview';
 
-describe('pickDefaultSlot', () => {
+describe('getAuthorSlot', () => {
   it('passes through ko/ja/en author languages unchanged', () => {
-    expect(pickDefaultSlot('ko')).toBe('ko');
-    expect(pickDefaultSlot('ja')).toBe('ja');
-    expect(pickDefaultSlot('en')).toBe('en');
+    expect(getAuthorSlot('ko')).toBe('ko');
+    expect(getAuthorSlot('ja')).toBe('ja');
+    expect(getAuthorSlot('en')).toBe('en');
   });
 
   it('falls back to en for non-slot author languages (th/hi/empty)', () => {
-    // Mirrors the BE pipeline's `normalizeAuthorLanguage` — without this
-    // alignment a Thai user would land on the ko tab even though their
-    // own audio actually lives in the en slot.
-    expect(pickDefaultSlot('th')).toBe('en');
-    expect(pickDefaultSlot('hi')).toBe('en');
-    expect(pickDefaultSlot('')).toBe('en');
-    expect(pickDefaultSlot('zz')).toBe('en');
+    // BE forces th/hi authors to enter the voice intro in English, so
+    // their authored slot lives in 'en'. Mirrors `normalizeAuthorLanguage`.
+    expect(getAuthorSlot('th')).toBe('en');
+    expect(getAuthorSlot('hi')).toBe('en');
+    expect(getAuthorSlot('')).toBe('en');
+    expect(getAuthorSlot('zz')).toBe('en');
+  });
+});
+
+describe('getVisibleSlots', () => {
+  it('hides the author slot for ko/ja/en primary users', () => {
+    // Cross-language matching means other users never land on the author
+    // slot anyway — hiding it removes the uncanny self-listen experience.
+    expect(getVisibleSlots('ko')).toEqual(['ja', 'en']);
+    expect(getVisibleSlots('ja')).toEqual(['ko', 'en']);
+    expect(getVisibleSlots('en')).toEqual(['ko', 'ja']);
+  });
+
+  it('hides the en slot for th/hi/empty primary users (author slot fallback)', () => {
+    expect(getVisibleSlots('th')).toEqual(['ko', 'ja']);
+    expect(getVisibleSlots('hi')).toEqual(['ko', 'ja']);
+    expect(getVisibleSlots('')).toEqual(['ko', 'ja']);
+  });
+});
+
+describe('pickDefaultSlot', () => {
+  it('returns the first visible (non-author) slot', () => {
+    expect(pickDefaultSlot('ko')).toBe('ja');
+    expect(pickDefaultSlot('ja')).toBe('ko');
+    expect(pickDefaultSlot('en')).toBe('ko');
+  });
+
+  it('returns ko for th/hi/empty (en is the hidden author slot)', () => {
+    expect(pickDefaultSlot('th')).toBe('ko');
+    expect(pickDefaultSlot('hi')).toBe('ko');
+    expect(pickDefaultSlot('')).toBe('ko');
+    expect(pickDefaultSlot('zz')).toBe('ko');
   });
 });
 

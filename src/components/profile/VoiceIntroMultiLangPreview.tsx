@@ -35,11 +35,15 @@ interface VoiceIntroMultiLangPreviewProps {
 }
 
 /**
- * Pure helper exported for unit testing. ko/ja/en pass through; anything
- * else (th/hi/empty) falls back to en — same rule the BE applies when
- * picking the author slot.
+ * Returns the author's own slot — the one we hide on self-profile so the
+ * user doesn't listen to their own voice cloned in their own language
+ * (uncanny + redundant since cross-language matching means other users
+ * never land on this slot). ko/ja/en pass through; anything else
+ * (th/hi/empty) falls back to en — BE forces th/hi authors to enter the
+ * voice intro in English so their authored slot lives in 'en'. Mirrors
+ * `normalizeAuthorLanguage` on the BE.
  */
-export function pickDefaultSlot(
+export function getAuthorSlot(
     authorLanguage: string,
 ): VoiceIntroSlotLanguage {
     if (
@@ -50,6 +54,24 @@ export function pickDefaultSlot(
         return authorLanguage;
     }
     return "en";
+}
+
+export function getVisibleSlots(
+    authorLanguage: string,
+): readonly VoiceIntroSlotLanguage[] {
+    const hidden = getAuthorSlot(authorLanguage);
+    return VOICE_INTRO_SLOT_LANGUAGES.filter((l) => l !== hidden);
+}
+
+/**
+ * Default-selected slot on first render — the first visible (non-author)
+ * slot in `VOICE_INTRO_SLOT_LANGUAGES` order. ko → ja, ja → ko, en → ko,
+ * th/hi → ko.
+ */
+export function pickDefaultSlot(
+    authorLanguage: string,
+): VoiceIntroSlotLanguage {
+    return getVisibleSlots(authorLanguage)[0];
 }
 
 /**
@@ -108,6 +130,7 @@ export function VoiceIntroMultiLangPreview({
     audioStatus,
 }: VoiceIntroMultiLangPreviewProps) {
     const { t } = useTranslation();
+    const visibleSlots = getVisibleSlots(authorLanguage);
     const [selectedLang, setSelectedLang] = useState<VoiceIntroSlotLanguage>(
         () => pickDefaultSlot(authorLanguage),
     );
@@ -122,7 +145,7 @@ export function VoiceIntroMultiLangPreview({
     return (
         <View style={styles.container} testID="voice-intro-multilang-preview">
             <View style={styles.tabs} accessibilityRole="tablist">
-                {VOICE_INTRO_SLOT_LANGUAGES.map((lang) => {
+                {visibleSlots.map((lang) => {
                     const isSelected = lang === selectedLang;
                     const slotStatus: VoiceIntroAudioStatus | "unknown" =
                         status[lang] ?? "unknown";
