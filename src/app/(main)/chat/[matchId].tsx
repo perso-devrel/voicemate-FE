@@ -771,7 +771,12 @@ export default function ChatScreen() {
         animationType="fade"
         onRequestClose={() => setPartnerModalOpen(false)}
       >
-        <View style={[styles.modalBackdrop, { paddingTop: 24 + insets.top }]}>
+        <View
+          style={[
+            styles.modalBackdrop,
+            { paddingTop: 24 + insets.top, paddingBottom: 24 + insets.bottom },
+          ]}
+        >
           <Pressable
             style={StyleSheet.absoluteFill}
             onPress={() => setPartnerModalOpen(false)}
