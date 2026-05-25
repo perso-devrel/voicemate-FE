@@ -57,7 +57,11 @@ export default async function LocaleLayout({
       <body className="flex min-h-screen flex-col bg-[color:var(--color-bg)] text-[color:var(--color-text)] antialiased">
         <NextIntlClientProvider>
           <Navbar />
-          <div className="flex-1">{children}</div>
+          {/* Navbar is position:fixed, so it leaves no flow space.
+              The pt-* here matches the navbar's vertical footprint
+              (py-4 + the wordmark line-height) so the hero doesn't
+              hide under the floating header. */}
+          <div className="flex-1 pt-20 md:pt-24">{children}</div>
           <Footer />
         </NextIntlClientProvider>
       </body>

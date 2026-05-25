@@ -4,27 +4,38 @@ import { routing } from '@/i18n/routing';
 import LangSwitcher from './LangSwitcher';
 
 /**
- * Bumble-style fixed header. Wordmark left, language switcher right.
- * Stays pinned to the viewport top while the user scrolls (sticky +
- * translucent backdrop). Both child slots are intentionally minimal so
- * the header never competes with the hero copy below.
+ * Fully fixed header — pinned to the viewport top for the entire page,
+ * not just until the scroll region ends. No background fill or blur:
+ * the wordmark + switcher float directly on the page so the hero behind
+ * them stays visible.
+ *
+ * Because the header is now `position: fixed` it leaves no flow space,
+ * so the page wrapper in app/[locale]/layout.tsx adds matching top
+ * padding to prevent the hero from disappearing under it.
  */
 export default function Navbar() {
   const locale = useLocale();
   const prefix = locale === routing.defaultLocale ? '' : `/${locale}`;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[color:var(--color-border-soft)]/60 bg-[color:var(--color-bg)]/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+    <header className="fixed inset-x-0 top-0 z-50">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link
           href={`${prefix}/`}
-          className="flex items-baseline gap-2 transition hover:opacity-80"
+          className="transition hover:opacity-85"
+          aria-label="haru — home"
         >
-          <span className="text-2xl font-bold tracking-tight text-[color:var(--color-primary-dark)] md:text-3xl">
-            하루
-          </span>
-          <span className="text-lg font-medium text-[color:var(--color-primary)]/80 md:text-xl">
-            春
+          <span
+            className="text-3xl font-extrabold tracking-tight md:text-4xl"
+            style={{
+              backgroundImage:
+                'linear-gradient(135deg, #FFC1A6 0%, #E27AA0 50%, #B85478 100%)',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            HARU 春
           </span>
         </Link>
         <LangSwitcher />
