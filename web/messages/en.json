@@ -3,15 +3,9 @@
     "title": "haru — Voice-first cross-language dating",
     "description": "Your message arrives in their language, in your own voice. Hear before you swipe. Slow dating, on purpose."
   },
-  "app": {
-    "badgeKr": "🇰🇷 KR",
-    "badgeJp": "🇯🇵 JP",
-    "badge18": "18+"
-  },
   "hero": {
     "eyebrow": "VOICE-FIRST · CROSS-LANGUAGE",
     "title": "Your voice, in their language.",
-    "subtitle": "Hear a short voice intro before you swipe. The messages you send arrive translated — but spoken in your own cloned voice.",
     "mockup": {
       "cardLabel": "Voice intro",
       "name": "Aiko, 27",
@@ -24,9 +18,6 @@
     "eyebrow": "WHY 1",
     "title": "Break the language wall, keep the human trace.",
     "body": "Translated messages are not robot TTS. They are synthesized in the sender's own ElevenLabs voice clone — tone, pacing, accent all survive.",
-    "bullet1": "Your voice, synthesized via ElevenLabs eleven_v3",
-    "bullet2": "Translation by Vertex AI Gemini 2.5 Flash",
-    "bullet3": "5 languages modelled: ko · ja · en · th · hi (UI: ko·ja·en)",
     "mockup": {
       "partnerName": "Aiko",
       "online": "Online",
@@ -42,55 +33,24 @@
     "eyebrow": "WHY 2",
     "title": "Slowness, by design.",
     "subtitle": "The opposite of instant matching. haru gives you less information up front on purpose — so a first impression can actually take shape.",
-    "common": {
-      "them": "Others",
-      "us": "haru"
-    },
     "discover": {
       "label": "Discover",
       "title": "Hear first, look later",
-      "body": "Profile photos stay blurred while the voice intro plays. We reduce the pure-photo filter loop on purpose.",
-      "them": "Photo swipe",
-      "us": "Blurred photo + voice intro"
+      "body": "Profile photos stay blurred while the voice intro plays. We reduce the pure-photo filter loop on purpose."
     },
     "message": {
       "label": "Messages",
       "title": "Listen before you read",
-      "body": "Incoming messages arrive sealed like a letter. Playing the audio once is what unlocks the translated text — the voice is part of the meeting.",
-      "them": "Text shown instantly",
-      "us": "Listen once → text reveals"
+      "body": "Incoming messages arrive sealed like a letter. Playing the audio once is what unlocks the translated text — the voice is part of the meeting."
     },
     "photo": {
       "label": "Photo reveal",
       "title": "Photos unlock with the chat",
-      "body": "After 5 message round-trips you see part of their photo. At 10, it's fully revealed. Connection is paced by conversation, not by a paywall.",
-      "them": "Everything visible upfront",
-      "us": "5 trips → partial · 10 → full"
+      "body": "After 5 message round-trips you see part of their photo. At 10, it's fully revealed. Connection is paced by conversation, not by a paywall."
     }
-  },
-  "persona": {
-    "eyebrow": "Built on existing demand",
-    "title": "Korean men × Japanese women",
-    "body": "Real-world unions between the two countries are climbing fast. haru is built on top of that flow — for the pair where language is the only wall left standing.",
-    "source": "Source: Statistics Korea population trends, 2024",
-    "stat1": {
-      "label": "KR↔JP marriages, 2024",
-      "caption": "838 → 1,176 year-over-year"
-    },
-    "stat2": {
-      "label": "Year-over-year growth",
-      "caption": "Highest in the last decade"
-    },
-    "stat3": {
-      "label": "~8× the reverse pairing",
-      "caption": "1,176 vs 147 (2024)"
-    },
-    "roadmap": "Launch order"
   },
   "cta": {
     "title": "Start with haru",
-    "body": "Available on iOS and Android. Sign-up is done as soon as your voice intro is recorded.",
-    "appStore": "App Store",
     "playStore": "Google Play",
     "disclaimer": "Must be 18 or older to use haru."
   },

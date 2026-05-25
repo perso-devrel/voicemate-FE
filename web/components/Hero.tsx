@@ -3,33 +3,26 @@ import PhoneFrame from './PhoneFrame';
 
 export default function Hero() {
   const t = useTranslations('hero');
-  const tApp = useTranslations('app');
 
   return (
     <section className="relative overflow-hidden bg-dawn">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 pt-24 pb-20 md:grid-cols-2 md:gap-8 md:pt-32 md:pb-28">
+      <div className="mx-auto max-w-6xl px-6 pt-20 md:pt-28">
+        {/* Brand wordmark — sets the identity before any pitch copy. */}
+        <h1 className="text-center text-6xl font-bold tracking-tight text-[color:var(--color-primary-dark)] md:text-8xl lg:text-9xl">
+          하루{' '}
+          <span className="text-[color:var(--color-primary)]">(春)</span>
+        </h1>
+      </div>
+
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 pt-12 pb-20 md:grid-cols-2 md:gap-8 md:pb-28 md:pt-16">
         {/* Left — copy */}
         <div className="flex flex-col items-center gap-6 text-center md:items-start md:text-left">
           <span className="rounded-full border border-[color:var(--color-primary)]/30 bg-white/60 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--color-primary-dark)] backdrop-blur">
             {t('eyebrow')}
           </span>
-          <h1 className="max-w-xl break-keep text-4xl font-semibold leading-[1.2] text-[color:var(--color-text)] md:text-5xl lg:text-6xl">
+          <h2 className="max-w-xl break-keep text-4xl font-semibold leading-[1.2] text-[color:var(--color-text)] md:text-5xl lg:text-6xl">
             {t('title')}
-          </h1>
-          <p className="max-w-md break-keep text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg">
-            {t('subtitle')}
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start">
-            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-[color:var(--color-text-secondary)] ring-1 ring-[color:var(--color-border)]">
-              {tApp('badgeKr')}
-            </span>
-            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-[color:var(--color-text-secondary)] ring-1 ring-[color:var(--color-border)]">
-              {tApp('badgeJp')}
-            </span>
-            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-[color:var(--color-text-secondary)] ring-1 ring-[color:var(--color-border)]">
-              {tApp('badge18')}
-            </span>
-          </div>
+          </h2>
         </div>
 
         {/* Right — phone mockup with the discover card */}
@@ -46,7 +39,7 @@ export default function Hero() {
 /**
  * Mirrors the real discover screen (haru_FE/src/components/discover/SwipeCard).
  * Background photo is blurred until the user listens to the voice intro — the
- * "slow dating" core value 1 is visible here, before reading any copy below.
+ * "slow dating" core value is visible here, before reading any copy below.
  */
 function DiscoverCardMockup() {
   const t = useTranslations('hero.mockup');
@@ -100,7 +93,7 @@ function DiscoverCardMockup() {
             {t('distance')}
           </p>
         </div>
-        <p className="mt-1 text-sm leading-snug text-[color:var(--color-text-secondary)]">
+        <p className="mt-1 break-keep text-sm leading-snug text-[color:var(--color-text-secondary)]">
           {t('intro')}
         </p>
         <div className="mt-3 flex items-center gap-2">

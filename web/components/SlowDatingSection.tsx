@@ -2,26 +2,18 @@ import { useTranslations } from 'next-intl';
 
 /**
  * The core differentiator: slowness as design. Three stacked steps mirror
- * the README "비효율과 느림의 미학" table — listen-first discovery, voice-
- * before-text in chat, photo unlock via roundtrip count. Each row pairs the
- * "일반 데이팅앱 vs haru" contrast with a small visual cue.
+ * the README "비효율과 느림의 미학" idea — listen-first discovery,
+ * voice-before-text in chat, photo unlock via roundtrip count. All three
+ * rows share the same layout (copy left / visual right) so the eye doesn't
+ * have to zigzag between sections.
  */
 export default function SlowDatingSection() {
   const t = useTranslations('slowDating');
 
   const rows = [
-    {
-      key: 'discover',
-      visual: <DiscoverVisual />,
-    },
-    {
-      key: 'message',
-      visual: <MessageVisual />,
-    },
-    {
-      key: 'photo',
-      visual: <PhotoVisual />,
-    },
+    { key: 'discover', visual: <DiscoverVisual /> },
+    { key: 'message', visual: <MessageVisual /> },
+    { key: 'photo', visual: <PhotoVisual /> },
   ] as const;
 
   return (
@@ -42,14 +34,9 @@ export default function SlowDatingSection() {
         {rows.map((row, i) => (
           <div
             key={row.key}
-            className={`grid items-center gap-8 md:grid-cols-2 md:gap-16 ${
-              i % 2 === 1 ? 'md:[&>*:first-child]:order-2' : ''
-            }`}
+            className="grid items-center gap-8 md:grid-cols-2 md:gap-16"
           >
-            {/* Visual */}
-            <div className="relative flex justify-center">{row.visual}</div>
-
-            {/* Copy */}
+            {/* Copy — always on the left on desktop */}
             <div className="flex flex-col gap-4">
               <span className="inline-flex w-fit items-center gap-2 rounded-full bg-[color:var(--color-primary-light)] px-3 py-1 text-xs font-semibold text-[color:var(--color-primary-dark)]">
                 <span className="grid h-5 w-5 place-items-center rounded-full bg-[color:var(--color-primary)] text-[10px] font-bold text-white">
@@ -63,56 +50,14 @@ export default function SlowDatingSection() {
               <p className="break-keep text-base leading-relaxed text-[color:var(--color-text-secondary)]">
                 {t(`${row.key}.body`)}
               </p>
-              <div className="mt-2 grid gap-2 rounded-2xl border border-[color:var(--color-border)] bg-white/70 p-4">
-                <ComparisonRow
-                  label={t('common.them')}
-                  value={t(`${row.key}.them`)}
-                  tone="muted"
-                />
-                <ComparisonRow
-                  label={t('common.us')}
-                  value={t(`${row.key}.us`)}
-                  tone="primary"
-                />
-              </div>
             </div>
+
+            {/* Visual — always on the right on desktop */}
+            <div className="relative flex justify-center">{row.visual}</div>
           </div>
         ))}
       </div>
     </section>
-  );
-}
-
-function ComparisonRow({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: 'muted' | 'primary';
-}) {
-  return (
-    <div className="flex items-start gap-3 text-sm">
-      <span
-        className={`min-w-16 shrink-0 rounded-md px-2 py-0.5 text-center text-xs font-semibold ${
-          tone === 'primary'
-            ? 'bg-[color:var(--color-primary)] text-white'
-            : 'bg-[color:var(--color-border)] text-[color:var(--color-text-secondary)]'
-        }`}
-      >
-        {label}
-      </span>
-      <span
-        className={
-          tone === 'primary'
-            ? 'font-medium text-[color:var(--color-text)]'
-            : 'text-[color:var(--color-text-secondary)] line-through decoration-[color:var(--color-text-light)]'
-        }
-      >
-        {value}
-      </span>
-    </div>
   );
 }
 

@@ -2,7 +2,6 @@ import { setRequestLocale } from 'next-intl/server';
 import Hero from '@/components/Hero';
 import CrossLanguageSection from '@/components/CrossLanguageSection';
 import SlowDatingSection from '@/components/SlowDatingSection';
-import PersonaSection from '@/components/PersonaSection';
 import AppStoreCTA from '@/components/AppStoreCTA';
 
 export default async function HomePage({
@@ -18,7 +17,6 @@ export default async function HomePage({
       <Hero />
       <CrossLanguageSection />
       <SlowDatingSection />
-      <PersonaSection />
       <AppStoreCTA />
     </main>
   );

@@ -29,25 +29,9 @@ export default function CrossLanguageSection() {
           <p className="break-keep text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg">
             {t('body')}
           </p>
-          <ul className="mt-2 space-y-3">
-            <BulletPoint text={t('bullet1')} />
-            <BulletPoint text={t('bullet2')} />
-            <BulletPoint text={t('bullet3')} />
-          </ul>
         </div>
       </div>
     </section>
-  );
-}
-
-function BulletPoint({ text }: { text: string }) {
-  return (
-    <li className="flex items-start gap-3">
-      <span className="mt-1 grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-[color:var(--color-primary)] text-[10px] font-bold text-white">
-        ✓
-      </span>
-      <span className="text-[color:var(--color-text)]">{text}</span>
-    </li>
   );
 }
 
