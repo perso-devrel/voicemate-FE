@@ -133,7 +133,7 @@ export default function LoginScreen() {
           setErrors({ email: null, password: t('validation.passwordWrong') });
           return true;
         case 'EMAIL_NOT_CONFIRMED':
-          setErrors({ email: t('validation.emailNotRegistered'), password: null });
+          setErrors({ email: t('validation.emailNotConfirmed'), password: null });
           return true;
         case 'EMAIL_TAKEN':
           setErrors({ email: t('validation.emailTaken'), password: null });
@@ -195,7 +195,20 @@ export default function LoginScreen() {
     setLoadingAction('email');
     try {
       if (isSignup) {
-        await emailSignup(email.trim(), password);
+        const result = await emailSignup(email.trim(), password);
+        // Supabase "Confirm email" ON: no session was issued. Surface the
+        // check-your-inbox message and flip the form back to login mode so
+        // the user lands here naturally after clicking the confirm link.
+        if (result.needsEmailConfirmation) {
+          showAlert({
+            variant: 'info',
+            title: t('auth.signupCheckEmailTitle'),
+            message: t('auth.signupCheckEmailMessage', { email: email.trim() }),
+          });
+          setIsSignup(false);
+          setPassword('');
+          return;
+        }
       } else {
         await emailLogin(email.trim(), password);
       }

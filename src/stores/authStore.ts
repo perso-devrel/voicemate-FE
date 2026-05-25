@@ -27,7 +27,7 @@ interface AuthState {
 
   login: (idToken: string) => Promise<void>;
   emailLogin: (email: string, password: string) => Promise<void>;
-  emailSignup: (email: string, password: string) => Promise<void>;
+  emailSignup: (email: string, password: string) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   tryAutoLogin: () => Promise<void>;
@@ -67,8 +67,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   emailSignup: async (email: string, password: string) => {
     const res = await signupEmailApi(email, password);
-    if (!res.access_token || !res.refresh_token) {
-      throw new Error('Email confirmation required. Please check your inbox.');
+    // Supabase "Confirm email" ON: BE returns a user but no session — the
+    // caller shows a "check your inbox" state and routes the user back to
+    // the login form (no auto-login until they click the confirm link).
+    if (res.needs_email_confirmation || !res.access_token || !res.refresh_token) {
+      return { needsEmailConfirmation: true };
     }
     await saveTokens(res.access_token, res.refresh_token);
     set({
@@ -77,6 +80,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
     await get().loadProfile();
     set({ isAuthenticated: true });
+    return { needsEmailConfirmation: false };
   },
 
   logout: async () => {

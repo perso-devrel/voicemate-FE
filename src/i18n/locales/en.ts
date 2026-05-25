@@ -72,12 +72,15 @@ export default {
     legalDisclaimer: 'By signing up, you agree to the {{terms}} and {{privacy}}',
     termsOfService: 'Terms of Service',
     privacyPolicy: 'Privacy Policy',
+    signupCheckEmailTitle: 'Check your inbox',
+    signupCheckEmailMessage: "We sent a verification email to {{email}}. Tap the link in the email to finish signing up.",
   },
 
   validation: {
     emailRequired: 'Please enter your email',
     emailMalformed: 'Please enter a valid email',
     emailNotRegistered: 'No account found for this email',
+    emailNotConfirmed: 'Email not verified yet. Please check your inbox',
     emailTaken: 'This email is already registered',
     passwordRequired: 'Please enter your password',
     passwordWrong: 'Incorrect password — please try again',

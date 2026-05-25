@@ -43,5 +43,11 @@
   "footer": {
     "terms": "Terms of Service",
     "privacy": "Privacy Policy"
+  },
+  "authCallback": {
+    "badge": "Verified",
+    "title": "Your email has been verified",
+    "body": "Head back to the haru app and sign in.",
+    "hint": "You can close this tab."
   }
 }

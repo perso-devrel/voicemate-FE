@@ -72,12 +72,15 @@ export default {
         legalDisclaimer: "登録すると、{{terms}}および{{privacy}}に同意したものとみなされます",
         termsOfService: "利用規約",
         privacyPolicy: "プライバシーポリシー",
+        signupCheckEmailTitle: "メールをご確認ください",
+        signupCheckEmailMessage: "{{email}} 宛に認証メールを送信しました。メール内のリンクをタップすると登録が完了します。",
     },
 
     validation: {
         emailRequired: "メールアドレスを入力してください",
         emailMalformed: "メールアドレスの形式が正しくありません",
         emailNotRegistered: "登録されていないメールアドレスです",
+        emailNotConfirmed: "メール認証が未完了です。メールをご確認ください",
         emailTaken: "すでに登録されているメールアドレスです",
         passwordRequired: "パスワードを入力してください",
         passwordWrong: "パスワードを再度入力してください",

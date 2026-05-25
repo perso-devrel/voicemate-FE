@@ -72,12 +72,15 @@ export default {
         legalDisclaimer: "회원가입 시 {{terms}}과 {{privacy}}에 동의한 것으로 간주됩니다",
         termsOfService: "이용약관",
         privacyPolicy: "개인정보처리방침",
+        signupCheckEmailTitle: "메일함을 확인해주세요",
+        signupCheckEmailMessage: "{{email}} 로 인증 메일을 보냈어요. 메일의 링크를 누르면 가입이 완료돼요.",
     },
 
     validation: {
         emailRequired: "이메일을 입력해주세요",
         emailMalformed: "올바른 이메일 형식이 아니에요",
         emailNotRegistered: "가입되지 않은 이메일입니다",
+        emailNotConfirmed: "이메일 인증이 완료되지 않았어요. 메일함을 확인해주세요",
         emailTaken: "이미 가입된 이메일입니다",
         passwordRequired: "비밀번호를 입력해주세요",
         passwordWrong: "비밀번호를 다시 입력하세요",
