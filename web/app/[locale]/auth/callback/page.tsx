@@ -33,9 +33,9 @@ export default async function AuthCallbackPage({
       <div className="rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-300">
         {t('badge')}
       </div>
-      <h1 className="text-3xl font-semibold md:text-4xl">{t('title')}</h1>
-      <p className="max-w-md text-zinc-400">{t('body')}</p>
-      <p className="text-xs text-zinc-500">{t('hint')}</p>
+      <h1 className="break-keep text-2xl font-semibold md:text-4xl">{t('title')}</h1>
+      <p className="max-w-md break-keep text-zinc-400">{t('body')}</p>
+      <p className="break-keep text-xs text-zinc-500">{t('hint')}</p>
     </main>
   );
 }
