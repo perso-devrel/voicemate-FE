@@ -406,6 +406,13 @@ export default function ProfileScreen() {
 
   const mainSlot = slotAt(0);
 
+  // 워터컬러 변환 진행 중인 슬롯이 하나라도 있으면 그리드 아래 배너로 안내.
+  // 업로드 전송(photoBusy)이 끝난 뒤 더 긴 변환 구간에 사용자가 진행 상태를
+  // 알 수 있게 한다. AI 변환 라벨은 기존 정책대로 "그림" 으로만 표현.
+  const hasConvertingPhoto = (profile.photo_statuses ?? []).some(
+    (s) => s.status === 'pending' || s.status === 'processing',
+  );
+
   return (
     <PhotoBackground variant="app">
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -512,12 +519,17 @@ export default function ProfileScreen() {
         ))}
       </View>
 
-      {photoBusy && (
+      {photoBusy ? (
         <View style={styles.photoBusyOverlay} pointerEvents="none">
           <ActivityIndicator size="small" color={colors.primary} />
           <Text style={styles.photoBusyText}>{t('profile.reorderingPhotos')}</Text>
         </View>
-      )}
+      ) : hasConvertingPhoto ? (
+        <View style={styles.photoBusyOverlay} pointerEvents="none">
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={styles.photoBusyText}>{t('profile.photoConverting')}</Text>
+        </View>
+      ) : null}
 
       <ErrorText testID="profile-photo-error">{photoError}</ErrorText>
 
