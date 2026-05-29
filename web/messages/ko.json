@@ -56,7 +56,8 @@
   },
   "footer": {
     "terms": "이용약관",
-    "privacy": "개인정보처리방침"
+    "privacy": "개인정보처리방침",
+    "accountDeletion": "계정 삭제 안내"
   },
   "legal": {
     "privacy": {

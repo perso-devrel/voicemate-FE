@@ -93,7 +93,7 @@ Voice message files are subject to the general policy (automatic purge 30 days a
 ## Related Documents
 
 - [Privacy Policy](/privacy) — Processing of voice data and record retention policy
-- [Terms of Service](/terms) — Article 7 (Content moderation) / Article 9 (Account deletion and data removal) / Article 10 (Information retention for dispute resolution)
+- [Terms of Service](/terms) — Content moderation and account deletion policy
 
 ## Contact
 

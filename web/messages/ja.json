@@ -56,7 +56,8 @@
   },
   "footer": {
     "terms": "利用規約",
-    "privacy": "プライバシーポリシー"
+    "privacy": "プライバシーポリシー",
+    "accountDeletion": "アカウント削除"
   },
   "legal": {
     "privacy": {

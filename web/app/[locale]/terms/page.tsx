@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import LegalMarkdown from '@/components/LegalMarkdown';
 import { isAppLocale } from '@/i18n/routing';
-import { loadLegalMarkdown } from '@/lib/legal';
+import { isLocalizedAvailable, loadLegalMarkdown } from '@/lib/legal';
 
 export async function generateMetadata({
   params,
@@ -32,7 +32,7 @@ export default async function TermsPage({
   if (!source) notFound();
 
   const t = await getTranslations({ locale, namespace: 'legal' });
-  const showLocaleNotice = locale !== 'ko';
+  const showLocaleNotice = !isLocalizedAvailable('terms', locale);
 
   return (
     <>
