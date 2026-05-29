@@ -70,6 +70,14 @@ export async function deletePhoto(index: number): Promise<PhotoDeleteResponse> {
   return api.delete<PhotoDeleteResponse>(`/api/profile/photos/${index}`);
 }
 
+// photo-reorder-no-reconvert sprint: 재변환 없이 profile_photos.position 만 원자적
+// 재배치. order = 본인 사진 id 배열, 인덱스가 곧 새 position (order[0] → 메인).
+// 응답은 DELETE 와 동일 shape ({photos, photo_statuses}). BE 가 position 0 = ready
+// 강제 → 비-ready 를 메인으로 보내면 422 + code='main_photo_not_ready'.
+export async function reorderPhotos(order: string[]): Promise<PhotoDeleteResponse> {
+  return api.patch<PhotoDeleteResponse>('/api/profile/photos/order', { order });
+}
+
 // photo-watercolor-pipeline sprint: failed 상태 사진의 사용자 트리거 재시도.
 // rejected (모더레이션 거부) 는 BE 가 422 로 반환하므로 본 라우트 호출 자체가
 // 의미 없음 — 호출처가 status='rejected' 분기에서 재업로드 유도 UX 로 분기.

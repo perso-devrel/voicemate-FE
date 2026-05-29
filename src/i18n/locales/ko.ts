@@ -232,6 +232,7 @@ export default {
         photoConversionFailed: "변환 실패. 다시 시도해주세요.",
         photoBlocked: "이 사진은 사용할 수 없어요. 다른 사진을 선택해주세요.",
         photoRetry: "다시 시도",
+        mainPhotoNotReady: "변환 중인 사진은 대표 사진으로 설정할 수 없어요",
         downloadPhoto: "사진 저장",
         downloadSuccess: "사진을 갤러리에 저장했어요.",
         downloadFailed: "사진 저장에 실패했어요.",

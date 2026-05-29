@@ -232,6 +232,7 @@ export default {
     photoConversionFailed: 'Conversion failed. Please try again.',
     photoBlocked: "This photo can't be used. Please choose another.",
     photoRetry: 'Retry',
+    mainPhotoNotReady: "Photos still being processed can't be set as your main photo",
     downloadPhoto: 'Save photo',
     downloadSuccess: 'Photo saved to your gallery.',
     downloadFailed: 'Failed to save photo.',

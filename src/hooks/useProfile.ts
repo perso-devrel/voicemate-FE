@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import * as FileSystem from 'expo-file-system/legacy';
 import { useAuthStore } from '@/stores/authStore';
 import * as profileService from '@/services/profile';
 import type { ProfileUpsertRequest, PhotoUploadResponse, PhotoDeleteResponse, PhotoStatus } from '@/types';
@@ -19,17 +18,6 @@ const PHOTO_POLL_TIMEOUT_MS = 180_000;
 function allSlotsSettled(statuses: PhotoStatus[] | undefined): boolean {
   if (!statuses || statuses.length === 0) return true;
   return statuses.every((s) => s.status === 'ready' || s.status === 'rejected');
-}
-
-// BE has no reorder/primary endpoint, so mutating photo order means
-// delete-all-then-reupload. Remote URLs must be downloaded to a local
-// cache URI first because uploadAsync requires a file:// source.
-async function materialize(uri: string): Promise<string> {
-  if (uri.startsWith('file://')) return uri;
-  const filename = `reorder-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-  const dest = `${FileSystem.cacheDirectory}${filename}`;
-  const result = await FileSystem.downloadAsync(uri, dest);
-  return result.uri;
 }
 
 export function useProfile() {
@@ -82,43 +70,14 @@ export function useProfile() {
     }
   }, [loadProfile]);
 
-  const replacePhoto = useCallback(async (uri: string): Promise<PhotoUploadResponse> => {
+  // photo-reorder-no-reconvert sprint: 재변환 없이 position 만 재배치. 시그니처는
+  // photo id 배열 (인덱스 = 새 position, order[0] → 메인). BE RPC 가 완전성(전체
+  // row 포함)/소유권/position 0 = ready 를 검증한다.
+  const reorderPhotos = useCallback(async (orderedIds: string[]): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
-      // Refetch fresh server state, then delete index 0 repeatedly until BE reports empty.
-      // Using BE's response as source of truth avoids stale-store mismatches.
-      const fresh = await profileService.getMyProfile();
-      let remaining = fresh.photos.length;
-      while (remaining > 0) {
-        const res = await profileService.deletePhoto(0);
-        remaining = res.photos.length;
-      }
-      const res = await profileService.uploadPhoto(uri);
-      await loadProfile();
-      return res;
-    } catch (e: any) {
-      setError(e.message);
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadProfile]);
-
-  const reorderPhotos = useCallback(async (orderedUris: string[]): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const localUris = await Promise.all(orderedUris.map(materialize));
-      const fresh = await profileService.getMyProfile();
-      let remaining = fresh.photos.length;
-      while (remaining > 0) {
-        const res = await profileService.deletePhoto(0);
-        remaining = res.photos.length;
-      }
-      for (const localUri of localUris) {
-        await profileService.uploadPhoto(localUri);
-      }
+      await profileService.reorderPhotos(orderedIds);
       await loadProfile();
     } catch (e: any) {
       setError(e.message);
@@ -128,19 +87,39 @@ export function useProfile() {
     }
   }, [loadProfile]);
 
-  const setPrimaryPhoto = useCallback(async (index: number): Promise<void> => {
+  // 메인설정: 선택 슬롯(position)의 사진을 맨 앞으로. profile.photo_statuses 를
+  // position ASC 정렬해 전체 id 배열을 구성(비-ready 포함 — 완전성 검증 통과 필수)
+  // 후 선택 사진을 맨 앞으로 옮긴다. 선택 사진이 비-ready 면 BE 가 422
+  // main_photo_not_ready 로 거부 (방어선 — 현행 UI 는 ready 슬롯에서만 메인설정 노출).
+  const setPrimaryPhoto = useCallback(async (position: number): Promise<void> => {
     const fresh = await profileService.getMyProfile();
-    if (index <= 0 || index >= fresh.photos.length) return;
-    const next = [fresh.photos[index], ...fresh.photos.filter((_, i) => i !== index)];
-    await reorderPhotos(next);
+    const ordered = (fresh.photo_statuses ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position);
+    const selected = ordered.find((s) => s.position === position);
+    if (!selected) return;
+    const newOrder = [selected.id, ...ordered.filter((s) => s.id !== selected.id).map((s) => s.id)];
+    await reorderPhotos(newOrder);
   }, [reorderPhotos]);
 
-  const replacePhotoAt = useCallback(async (index: number, newUri: string): Promise<void> => {
-    const fresh = await profileService.getMyProfile();
-    if (index < 0 || index >= fresh.photos.length) return;
-    const next = fresh.photos.map((u, i) => (i === index ? newUri : u));
-    await reorderPhotos(next);
-  }, [reorderPhotos]);
+  // 사진 교체: 해당 슬롯 삭제 후 새 사진 업로드 (새 사진은 변환 필요 — POST 비동기).
+  // 재배치 호출 안 함 (설계 §5.5): 새 사진은 processing 이라 position 0 ready 강제와
+  // 충돌 가능 + POST 가 첫 빈 자리에 재할당하므로 자연 순서 유지. 메인 교체 시 변환
+  // 완료까지 메인 공백은 교체의 자연 트레이드오프 (현행 동작과 동일).
+  const replacePhotoAt = useCallback(async (position: number, newUri: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      await profileService.deletePhoto(position);
+      await profileService.uploadPhoto(newUri);
+      await loadProfile();
+    } catch (e: any) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setLoading(false);
+    }
+  }, [loadProfile]);
 
   const retryPhotoConversion = useCallback(async (photoId: string) => {
     try {
@@ -198,7 +177,6 @@ export function useProfile() {
     upsertProfile,
     uploadPhoto,
     deletePhoto,
-    replacePhoto,
     reorderPhotos,
     setPrimaryPhoto,
     replacePhotoAt,

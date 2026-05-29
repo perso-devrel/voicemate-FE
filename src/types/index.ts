@@ -11,6 +11,16 @@ export interface AuthResponse {
   user: { id: string; email: string };
 }
 
+// BE /api/auth/signup returns one of two shapes:
+//   - "Confirm email" ON: { needs_email_confirmation: true, user } — no session tokens
+//   - session issued:     { access_token, refresh_token, user }
+export interface SignupResponse {
+  access_token?: string;
+  refresh_token?: string;
+  needs_email_confirmation?: boolean;
+  user: { id: string; email: string };
+}
+
 export interface TokenRefreshResponse {
   access_token: string;
   refresh_token: string;
@@ -87,8 +97,12 @@ export interface PhotoUploadResponse {
   status: 'processing';
 }
 
+// photo-reorder-no-reconvert sprint: DELETE /photos/:index 와 PATCH /photos/order
+// 가 동일 shape 으로 photo_statuses 도 반환한다 (BE loadPhotoSnapshot 헬퍼).
+// 타입 정직성을 위해 photo_statuses 를 명시 — mig 028 미적용 윈도우 대비 optional.
 export interface PhotoDeleteResponse {
   photos: string[];
+  photo_statuses?: PhotoStatus[];
 }
 
 // photo-watercolor-pipeline sprint: profile_photos row 의 status snapshot.

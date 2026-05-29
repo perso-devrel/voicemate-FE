@@ -24,6 +24,7 @@ import { VoiceIntroMultiLangPreview } from '@/components/profile/VoiceIntroMulti
 import { PhotoBackground } from '@/components/ui/PhotoBackground';
 import { useProfile, MAX_PHOTOS } from '@/hooks/useProfile';
 import { downloadWatermarkedPhoto } from '@/services/profile';
+import { ApiRequestError } from '@/services/api';
 import { VOICE_INTRO_SLOT_LANGUAGES, type PhotoStatus, type PhotoConversionStatus } from '@/types';
 import { useInterestResolver } from '@/hooks/useInterestLabel';
 import { showAlert } from '@/stores/alertStore';
@@ -187,6 +188,14 @@ export default function ProfileScreen() {
       await setPrimaryPhoto(index);
       setPhotoBust((n) => n + 1);
     } catch (e: any) {
+      // photo-reorder-no-reconvert: 변환 중(비-ready) 사진을 메인으로 보내면 BE 가
+      // 422 + code='main_photo_not_ready' 로 거부 (position 0 = ready 강제 방어선).
+      // 현행 UI 는 ready 슬롯에서만 메인설정을 노출하므로 정상 동선에선 안 뜨지만
+      // 방어 토스트로 안내.
+      if (e instanceof ApiRequestError && e.code === 'main_photo_not_ready') {
+        showAlert({ variant: 'info', title: t('profile.mainPhotoNotReady') });
+        return;
+      }
       showAlert({ variant: 'error', title: t('profile.uploadFailed'), message: e.message });
     }
   };
