@@ -117,6 +117,29 @@ async function getValidToken(): Promise<string | null> {
   return getAccessToken();
 }
 
+// Force a single, deduplicated session refresh and return the new access
+// token (or null if refresh failed). Shares the isRefreshing/refreshPromise
+// singleton with request()/getValidToken() so concurrent callers (e.g. a JSON
+// request and a photo upload racing on the same expired token) trigger only
+// one /refresh call.
+//
+// Non-JSON paths (FileSystem.uploadAsync/downloadAsync in services/profile.ts)
+// bypass ApiClient.request and therefore lack its built-in 401→refresh→retry.
+// Those paths call this on a 401 then retry once with the new token. Returning
+// null means the session is truly dead — the caller surfaces the 401 and the
+// next regular request() will fire onSessionExpired → logout.
+export async function refreshSession(): Promise<string | null> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+  isRefreshing = true;
+  refreshPromise = refreshAccessToken();
+  const newToken = await refreshPromise;
+  isRefreshing = false;
+  refreshPromise = null;
+  return newToken;
+}
+
 class ApiClient {
   private async request<T>(
     path: string,

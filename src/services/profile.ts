@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { api, ApiRequestError, getAccessToken } from './api';
+import { api, ApiRequestError, getAccessToken, refreshSession } from './api';
 import { API_BASE_URL } from '@/constants/config';
 import { uploadWithTimeout } from '@/utils/upload';
 import type {
@@ -39,16 +39,28 @@ export async function uploadPhoto(uri: string): Promise<PhotoUploadResponse> {
   const ext = (/\.(\w+)$/.exec(filename)?.[1] ?? 'jpeg').toLowerCase();
   const mimeType = MIME_MAP[ext] ?? 'image/jpeg';
 
-  const token = await getAccessToken();
-  const result = await uploadWithTimeout(
-    FileSystem.uploadAsync(`${API_BASE_URL}/api/profile/photos`, uri, {
-      httpMethod: 'POST',
-      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-      fieldName: 'photo',
-      mimeType,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    }),
-  );
+  // FileSystem.uploadAsync bypasses ApiClient.request, so it lacks the
+  // built-in 401→refresh→retry. Without this, an expired access token surfaces
+  // as "Invalid or expired token" on upload even though regular JSON calls keep
+  // working (they auto-refresh). Refresh once on 401 and retry with the new token.
+  const upload = (token: string | null) =>
+    uploadWithTimeout(
+      FileSystem.uploadAsync(`${API_BASE_URL}/api/profile/photos`, uri, {
+        httpMethod: 'POST',
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: 'photo',
+        mimeType,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }),
+    );
+
+  let result = await upload(await getAccessToken());
+  if (result.status === 401) {
+    const newToken = await refreshSession();
+    if (newToken) {
+      result = await upload(newToken);
+    }
+  }
 
   if (result.status < 200 || result.status >= 300) {
     let message = 'Upload failed';
@@ -92,13 +104,23 @@ export async function retryPhotoConversion(photoId: string): Promise<{
 // 로컬 캐시에 받아 그 파일 경로를 돌려주며, 호출처가 MediaLibrary 로 갤러리에
 // 저장한다. position 은 profile_photos.position (= 프로필 그리드 슬롯 인덱스).
 export async function downloadWatermarkedPhoto(position: number): Promise<string> {
-  const token = await getAccessToken();
   const cachePath = `${FileSystem.cacheDirectory}haru-photo-${Date.now()}.jpg`;
-  const dl = await FileSystem.downloadAsync(
-    `${API_BASE_URL}/api/profile/photos/${position}/download`,
-    cachePath,
-    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
-  );
+  // Same 401→refresh→retry as uploadPhoto — FileSystem.downloadAsync bypasses
+  // ApiClient.request and would otherwise fail on an expired token.
+  const download = (token: string | null) =>
+    FileSystem.downloadAsync(
+      `${API_BASE_URL}/api/profile/photos/${position}/download`,
+      cachePath,
+      { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+    );
+
+  let dl = await download(await getAccessToken());
+  if (dl.status === 401) {
+    const newToken = await refreshSession();
+    if (newToken) {
+      dl = await download(newToken);
+    }
+  }
   if (dl.status < 200 || dl.status >= 300) {
     throw new ApiRequestError(dl.status, 'Download failed');
   }
