@@ -117,14 +117,24 @@ export function BioPhrasePicker({
     onChange(text, id);
   };
 
+  // Pressing anywhere on the custom card (tag/header area, outside the input)
+  // routes through to focusing the input. The input is always editable, so the
+  // focus lands in a single tap and fires onFocus below — no setTimeout race.
   const handleSelectCustom = () => {
     if (disabled) return;
-    setSelectedId('custom');
-    onChange(customText, null);
-    // Focus on the next tick so the input has flipped to editable=true.
-    // Triggers the onFocus handler so KeyboardAwareScrollView (or any focus
-    // listener wired by the caller) lifts the input above the keyboard.
-    setTimeout(() => customInputRef.current?.focus(), 0);
+    customInputRef.current?.focus();
+  };
+
+  // Single entry point for "switching into custom mode": fires whether the user
+  // tapped the input directly (native focus) or tapped the surrounding card
+  // (handleSelectCustom -> focus()). Keeps selection state and the keyboard
+  // lift (onCustomFocus) in one place.
+  const handleCustomFocus = () => {
+    if (selectedId !== 'custom') {
+      setSelectedId('custom');
+      onChange(customText, null);
+    }
+    onCustomFocus?.();
   };
 
   const handleCustomTextChange = (text: string) => {
@@ -134,39 +144,6 @@ export function BioPhrasePicker({
 
   return (
     <View style={styles.container}>
-      {BIO_PHRASES.map((phrase) => {
-        const selected = selectedId === phrase.id;
-        const localizedText = getBioPhraseText(phrase, language);
-        return (
-          <Pressable
-            key={phrase.id}
-            disabled={disabled}
-            onPress={() => handleSelectPreset(phrase.id, localizedText)}
-            style={[
-              styles.card,
-              selected && styles.cardSelected,
-              disabled && styles.cardDisabled,
-            ]}
-          >
-            <View
-              style={[
-                styles.tag,
-                { backgroundColor: CATEGORY_TINTS[phrase.category] },
-              ]}
-            >
-              <Text style={styles.tagText}>
-                {t(`setupProfile.bioPicker.category.${phrase.category}`)}
-              </Text>
-            </View>
-            <Text
-              style={[styles.phraseText, selected && styles.phraseTextSelected]}
-            >
-              {localizedText}
-            </Text>
-          </Pressable>
-        );
-      })}
-
       <Pressable
         disabled={disabled}
         onPress={handleSelectCustom}
@@ -205,12 +182,45 @@ export function BioPhrasePicker({
           ref={customInputRef}
           value={customText}
           onChangeText={handleCustomTextChange}
-          editable={!disabled && selectedId === 'custom'}
+          editable={!disabled}
           placeholder={t('setupProfile.bioPicker.customPlaceholder')}
-          onFocus={onCustomFocus}
+          onFocus={handleCustomFocus}
         />
         <ErrorText testID="bio-phrase-picker-error">{error ?? null}</ErrorText>
       </Pressable>
+
+      {BIO_PHRASES.map((phrase) => {
+        const selected = selectedId === phrase.id;
+        const localizedText = getBioPhraseText(phrase, language);
+        return (
+          <Pressable
+            key={phrase.id}
+            disabled={disabled}
+            onPress={() => handleSelectPreset(phrase.id, localizedText)}
+            style={[
+              styles.card,
+              selected && styles.cardSelected,
+              disabled && styles.cardDisabled,
+            ]}
+          >
+            <View
+              style={[
+                styles.tag,
+                { backgroundColor: CATEGORY_TINTS[phrase.category] },
+              ]}
+            >
+              <Text style={styles.tagText}>
+                {t(`setupProfile.bioPicker.category.${phrase.category}`)}
+              </Text>
+            </View>
+            <Text
+              style={[styles.phraseText, selected && styles.phraseTextSelected]}
+            >
+              {localizedText}
+            </Text>
+          </Pressable>
+        );
+      })}
 
       {disabled && lockedHint ? (
         <View style={styles.lockHintBox}>
