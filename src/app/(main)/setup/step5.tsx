@@ -24,6 +24,7 @@ import { requestAndRegisterPushToken } from "@/hooks/usePushToken";
 import * as profileService from "@/services/profile";
 import { ApiRequestError } from "@/services/api";
 import { useSignupDraftStore } from "@/stores/signupDraftStore";
+import { usePhotoPreviewStore } from "@/stores/photoPreviewStore";
 import { showAlert } from "@/stores/alertStore";
 import { colors, radii, shadows } from "@/constants/colors";
 import { fonts } from "@/constants/fonts";
@@ -54,6 +55,7 @@ export default function SetupStep5() {
     const PREVIEW_WIDTH = Math.round(SCREEN_WIDTH * 0.82);
     const PREVIEW_HEIGHT = Math.round((PREVIEW_WIDTH * 4) / 3);
     const draft = useSignupDraftStore();
+    const setPhotoPreview = usePhotoPreviewStore((s) => s.setPreview);
     const {
         profile,
         upsertProfile,
@@ -203,7 +205,10 @@ export default function SetupStep5() {
             try {
                 await upsertProfile(draft.buildProfilePayload());
                 for (const uri of uris) {
-                    await profileService.uploadPhoto(uri);
+                    const res = await profileService.uploadPhoto(uri);
+                    // 업로드한 사진의 로컬 URI 를 공유 store 에 기록 — 가입 직후
+                    // 프로필 탭에서 변환 중 슬롯에 흐린 원본을 깔 수 있게 한다.
+                    setPhotoPreview(res.photo_id, uri);
                 }
                 requestAndRegisterPushToken().catch(() => undefined);
             } catch (e: any) {

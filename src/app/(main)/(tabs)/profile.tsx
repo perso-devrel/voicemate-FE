@@ -28,6 +28,7 @@ import { ApiRequestError } from '@/services/api';
 import { VOICE_INTRO_SLOT_LANGUAGES, type PhotoStatus, type PhotoConversionStatus } from '@/types';
 import { useInterestResolver } from '@/hooks/useInterestLabel';
 import { showAlert } from '@/stores/alertStore';
+import { usePhotoPreviewStore } from '@/stores/photoPreviewStore';
 import { colors, gradients, radii, shadows } from '@/constants/colors';
 import { fonts } from '@/constants/fonts';
 import { calculateAge } from '@/utils/age';
@@ -74,14 +75,6 @@ export default function ProfileScreen() {
     return pollPhotoConversions();
   }, [pollPhotoConversions]);
 
-  // photo-original-blur-preview: localPreviews 는 세션 내 append-only — 정리 effect 를
-  // 두지 않는다. 정리하면, 변경 직후 폴링/지연된 stale loadProfile 응답이 photo_statuses
-  // 를 일시적으로 옛 상태(변경 전 ready 사진)로 덮는 순간 방금 추가한 키가 "inflight
-  // 아님"으로 분류돼 지워지고, 새 사진이 다시 processing 으로 잡혀도 URI 가 사라져 blur
-  // 미리보기가 안 뜨는 레이스가 생긴다(메인 단일 사진 변경 시 재현). 로컬 URI 문자열
-  // 몇 개라 누적 메모리는 무시 가능하고, ready/삭제된 슬롯의 stale 엔트리는 slotAt 이
-  // inflight 슬롯만 조회하므로 읽히지 않는다(무해).
-
   // Supabase storage uses upsert so the public URL is identical across uploads
   // to the same slot — React Image caches by URL and won't refetch. Bumping a
   // suffix forces a fresh request after every mutation so the new photo shows
@@ -92,11 +85,12 @@ export default function ProfileScreen() {
   // Cleared on every new pick attempt or successful upload.
   const [photoError, setPhotoError] = useState<string | null>(null);
 
-  // photo-original-blur-preview: 방금 고른 사진의 로컬 URI 를 업로드 응답의
-  // photoId 로 키잉. 변환 중(inflight) 슬롯 배경에 흐리게 깔아 빈 dim 박스 대신
-  // "내가 올린 사진이 그 자리에서 처리 중" 임을 보여준다. 같은 세션 동안만 유효 —
-  // 앱 재시작/cold load 면 비어 있어 기존 dim 박스로 자연 폴백한다(서버 변경 없음).
-  const [localPreviews, setLocalPreviews] = useState<Record<string, string>>({});
+  // photo-original-blur-preview: 변환 중(inflight) 슬롯 배경에 깔 흐린 원본 URI 는
+  // 공유 store 에서 읽는다. 회원가입 step5 배치 업로드도 같은 store 에 기록하므로,
+  // 가입 직후 프로필 탭에 진입해도 같은 세션 동안 흐린 미리보기가 보인다(옛 컴포넌트
+  // state 방식은 step5 의 로컬 URI 가 전달 안 돼 가입 직후 blur 가 안 떴다).
+  const photoPreviews = usePhotoPreviewStore((s) => s.previews);
+  const setPhotoPreview = usePhotoPreviewStore((s) => s.setPreview);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -188,7 +182,7 @@ export default function ProfileScreen() {
     if (!uri) return;
     try {
       const res = await uploadPhoto(uri);
-      setLocalPreviews((m) => ({ ...m, [res.photo_id]: uri }));
+      setPhotoPreview(res.photo_id, uri);
       setPhotoBust((n) => n + 1);
     } catch (e: any) {
       // Network/BE upload failures route through the unified alert host —
@@ -220,7 +214,7 @@ export default function ProfileScreen() {
     if (!uri) return;
     try {
       const res = await replacePhotoAt(index, uri);
-      setLocalPreviews((m) => ({ ...m, [res.photo_id]: uri }));
+      setPhotoPreview(res.photo_id, uri);
       setPhotoBust((n) => n + 1);
     } catch (e: any) {
       showAlert({ variant: 'error', title: t('profile.uploadFailed'), message: e.message });
@@ -351,7 +345,7 @@ export default function ProfileScreen() {
         kind: 'inflight',
         status: s.status,
         photoId: s.id,
-        originalPreviewUrl: localPreviews[s.id],
+        originalPreviewUrl: photoPreviews[s.id],
       };
     return { kind: 'empty' };
   }
