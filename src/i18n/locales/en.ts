@@ -111,13 +111,15 @@ export default {
     dailyLimitTitle: "You've seen enough for today",
     dailyLimitText: 'Come back tomorrow for fresh faces',
     playBio: 'Play bio',
-    lockedTitle: 'Finish your profile first',
+    lockedVoiceTitle: 'Register your voice first',
+    lockedBioTitle: 'Set your voice line first',
+    lockedPhotoTitle: 'Add a profile photo first',
     lockedVoiceHint:
       'To hear other people\'s voices, you need to register your own voice first.',
     lockedBioHint:
-      'Pick a voice line. It will be auto-generated in your own voice and played for others.',
-    lockedGoVoice: 'Register voice',
-    lockedGoBio: 'Set voice line',
+      'It will be auto-generated in your own voice and played for others.',
+    lockedGoVoice: 'Register now',
+    lockedGoBio: 'Register now',
     lockedPhotoHint: 'Please add at least one profile photo.',
     lockedGoPhoto: 'Add a photo',
     voiceProcessingTitle: 'Generating your voice',
@@ -129,8 +131,8 @@ export default {
     headerTitle: 'Likes Received',
     empty: {
       title: "You haven't received any likes yet",
-      text: 'Meet more people in Discover.',
-      cta: 'Start discovering',
+      text: 'Meet more people in the Discover tab.',
+      cta: 'Discover now',
     },
   },
 

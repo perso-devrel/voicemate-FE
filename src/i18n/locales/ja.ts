@@ -111,13 +111,15 @@ export default {
         dailyLimitTitle: "今日はもう十分見ました",
         dailyLimitText: "明日また新しい人に出会いましょう",
         playBio: "自己紹介を聞く",
-        lockedTitle: "先にプロフィールを完成させてください",
+        lockedVoiceTitle: "先に声を登録してください",
+        lockedBioTitle: "ボイスひとことを登録してください",
+        lockedPhotoTitle: "プロフィール写真を登録してください",
         lockedVoiceHint:
             "相手の声を聞くには、まず自分の声を登録する必要があります。",
         lockedBioHint:
-            "ボイスひとことを登録してください。あなたの声で自動生成されて相手に届きます。",
-        lockedGoVoice: "声の登録に進む",
-        lockedGoBio: "ボイスひとことを登録する",
+            "あなたの声で自動生成されて相手に届きます。",
+        lockedGoVoice: "今すぐ登録",
+        lockedGoBio: "今すぐ登録",
         lockedPhotoHint: "プロフィール写真を1枚以上登録してください。",
         lockedGoPhoto: "写真を登録する",
         voiceProcessingTitle: "音声を生成中です",
@@ -128,8 +130,8 @@ export default {
         headerTitle: "もらったいいね",
         empty: {
             title: "まだ「いいね」を受け取っていません",
-            text: "ディスカバーでもっと多くの人に出会ってみましょう。",
-            cta: "探しに行く",
+            text: "探索タブでもっと多くの人に出会ってみましょう。",
+            cta: "今すぐ探す",
         },
     },
 

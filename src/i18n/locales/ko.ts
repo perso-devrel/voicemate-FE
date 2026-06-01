@@ -111,13 +111,15 @@ export default {
         dailyLimitTitle: "오늘은 충분히 살펴보셨어요",
         dailyLimitText: "내일 새로운 사람을 다시 만나보세요",
         playBio: "자기소개 듣기",
-        lockedTitle: "프로필을 먼저 완성해주세요",
+        lockedVoiceTitle: "목소리를 먼저 등록해주세요",
+        lockedBioTitle: "보이스 한마디를 등록해주세요",
+        lockedPhotoTitle: "프로필 사진을 등록해주세요",
         lockedVoiceHint:
             "상대방의 목소리를 듣기 위해서는 먼저 나의 목소리를 등록해야 해요.",
         lockedBioHint:
-            "보이스 한마디를 등록해주세요. 나의 목소리로 음성이 자동 생성되어 상대방에게 들려요.",
-        lockedGoVoice: "목소리 등록하러 가기",
-        lockedGoBio: "보이스 한마디 등록하러 가기",
+            "나의 목소리로 음성이 자동 생성되어 상대방에게 들려요.",
+        lockedGoVoice: "지금 등록하기",
+        lockedGoBio: "지금 등록하기",
         lockedPhotoHint: "프로필 사진을 한 장 이상 등록해주세요.",
         lockedGoPhoto: "사진 등록하러 가기",
         voiceProcessingTitle: "음성 생성 중입니다",
@@ -128,8 +130,8 @@ export default {
         headerTitle: "받은 좋아요",
         empty: {
             title: "아직 받은 좋아요가 없어요",
-            text: "디스커버에서 더 많은 사람을 만나보세요.",
-            cta: "탐색하러 가기",
+            text: "탐색 탭에서 더 많은 사람을 만나보세요.",
+            cta: "지금 탐색하기",
         },
     },
 

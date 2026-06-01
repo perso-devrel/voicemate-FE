@@ -189,23 +189,27 @@ function GateScreen({
   // shows its own icon, hint, and CTA so the user always sees the single
   // next action instead of a vague "complete your profile" instruction.
   let icon: 'mic-outline' | 'create-outline' | 'image-outline';
+  let title: string;
   let hint: string;
   let ctaLabel: string;
   let onCtaPress: () => void;
 
   if (!voiceReady) {
     icon = 'mic-outline';
+    title = t('discover.lockedVoiceTitle');
     hint = t('discover.lockedVoiceHint');
     ctaLabel = t('discover.lockedGoVoice');
     onCtaPress = goVoice;
   } else if (!bioReady) {
     icon = 'create-outline';
+    title = t('discover.lockedBioTitle');
     hint = t('discover.lockedBioHint');
     ctaLabel = t('discover.lockedGoBio');
     onCtaPress = goBio;
   } else {
     // hasPhoto must be the false one here — only remaining gate.
     icon = 'image-outline';
+    title = t('discover.lockedPhotoTitle');
     hint = t('discover.lockedPhotoHint');
     ctaLabel = t('discover.lockedGoPhoto');
     onCtaPress = goPhoto;
@@ -221,7 +225,7 @@ function GateScreen({
       >
         <Ionicons name={icon} size={38} color={colors.white} />
       </LinearGradient>
-      <Text style={styles.emptyTitle}>{t('discover.lockedTitle')}</Text>
+      <Text style={styles.emptyTitle}>{title}</Text>
       <Text style={styles.emptyText}>{hint}</Text>
       <Button
         title={ctaLabel}
